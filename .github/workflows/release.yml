@@ -29,16 +29,24 @@ jobs:
     - name: Build
       run: |
         cd backend
-        go build -v -ldflags="-s -w -H=windowsgui" -trimpath -o app.exe
+        go build -v -ldflags="-s -w" -trimpath -o app.exe
         
     - name: Create ZIP
       run: |
-        Compress-Archive -Path backend/app.exe, backend/static/* -DestinationPath release.zip
+        # Create a temporary directory for the release
+        New-Item -ItemType Directory -Path release
+        # Copy executable to release dir
+        Copy-Item backend/app.exe release/
+        # Create static directory and copy files
+        New-Item -ItemType Directory -Path release/static
+        Copy-Item backend/static/* release/static/
+        # Create the final ZIP
+        Compress-Archive -Path release/* -DestinationPath "chat-tools-${{ github.ref_name }}.zip"
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: release.zip
+        files: chat-tools-${{ github.ref_name }}.zip
         name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false
