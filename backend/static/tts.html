@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Display</title>
+    <title>TTS Only</title>
     <style>
         body {
             margin: 0;
@@ -25,6 +25,7 @@
             margin-right: 8px;
         }
 
+        /* Add styles for super chats if needed */
         .super-chat {
             padding: 10px;
             border-radius: 4px;
@@ -37,6 +38,8 @@
 
     <script>
         const messageDiv = document.getElementById('message');
+        let audioPlayer = new Audio();
+
         const evtSource = new EventSource('/sse');
         
         evtSource.onmessage = async (event) => {
@@ -44,35 +47,42 @@
             console.log("SSE message received");
             console.log(data);
             const chatMessage = data.message;
+            const lang = data.lang;
 
-            // Handle the display based on message type and content
-            let displayText = '';
-            
-            if (chatMessage.data.metadata?.type === 'super_chat') {
-                // Handle super chat display
-                const amount = chatMessage.data.metadata.monetary_data?.formatted || '';
-                const color = chatMessage.data.metadata.monetary_data?.color || '#4CAF50';
-                
-                messageDiv.className = 'super-chat';
-                messageDiv.style.backgroundColor = color;
-            } else {
-                messageDiv.className = '';
-            }
-
-            // Get the content for display
+            // Get the content for TTS
             const content = chatMessage.data.content;
+            let textForTTS = '';
+            
             if (typeof content === 'string') {
-                displayText = content;
+                textForTTS = content;
             } else {
-                displayText = content.rawHtml || content.formatted || content.raw || '';
+                textForTTS = content.sanitized || content.raw || content.formatted || '';
             }
 
-            // Display the message with author name
-            const authorName = chatMessage.data.author.display_name || chatMessage.data.author.name || 'Anonymous';
-            messageDiv.innerHTML = `
-                <span class="author-name">${authorName}:</span>
-                <span class="message-content">${displayText}</span>
-            `;
+            // Only proceed if there's text to speak
+            if (!textForTTS.trim()) {
+                return;
+            }
+
+            try {
+                // Get TTS audio
+                const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: textForTTS,
+                        lang: lang
+                    })
+                });
+                
+                const { audio } = await ttsResponse.json();
+                
+                // Play the audio
+                audioPlayer.src = `data:audio/mp3;base64,${audio}`;
+                audioPlayer.play();
+            } catch (error) {
+                console.error('Error playing TTS:', error);
+            }
         };
 
         evtSource.onerror = () => {

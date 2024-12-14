@@ -1,0 +1,124 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+#chat-container {
+    height: 600px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+}
+
+.chat-message {
+    display: flex;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #eee;
+    word-break: break-word;
+}
+
+.author-name {
+    font-weight: bold;
+    color: #2196F3;
+    margin-right: 8px;
+}
+
+.tts-button {
+    margin-left: 10px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    padding: 4px 8px;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+@media (min-width: 768px) {
+    .controls {
+        flex-direction: row;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+}
+
+.controls input[type="text"],
+.controls select,
+.controls button {
+    padding: 8px;
+    margin: 0;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+#settings {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+.helper-text {
+    margin-top: 8px;
+    color: #666;
+    font-size: 12px;
+    text-align: left;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 4px;
+}
+
+#connection-status {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 3px;
+    text-align: center;
+}
+
+.connected { 
+    background-color: #4CAF50; 
+    color: white; 
+}
+
+.disconnected { 
+    background-color: #f44336; 
+    color: white; 
+}
+
+.error { 
+    background-color: #ff9800; 
+    color: white; 
+} 
+
+.message-actions {
+    display: flex;
+    gap: 5px;
+    margin-left: 10px;
+}
+
+.tts-button,
+.display-button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1.2em;
+    padding: 4px 8px;
+    transition: transform 0.1s ease;
+}
+
+.tts-button:hover,
+.display-button:hover {
+    transform: scale(1.1);
+}
+
+.display-button {
+    color: #2196F3;
+} 
