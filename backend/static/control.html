@@ -16,12 +16,14 @@
         </select>
         <input type="text" id="channel-id" placeholder="Enter channel ID">
         <select id="identifier-type">
-            <option value="username">Username (without @)</option>
-            <option value="channelId">Channel ID (UC...)</option>
-            <option value="liveId">Live ID (watch?v=...)</option>
+            <option value="username">Username</option>
+            <option value="channelId">Channel ID</option>
+            <option value="liveId">Live ID</option>
         </select>
-        <button onclick="connect()">Connect</button>
-        <button onclick="disconnect()">Disconnect</button>
+        <div class="button-group">
+            <button id="connect-btn" onclick="connect()">Connect</button>
+            <button id="disconnect-btn" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
         <div id="connection-status" class="disconnected">Disconnected</div>
     </div>
 
@@ -48,15 +50,21 @@
         <label>
             TTS Language:
             <select id="tts-language">
-                <option value="en">English</option>
-                <option value="ja">Japanese</option>
-                <option value="ko">Korean</option>
                 <option value="id">Indonesian</option>
+                <option value="en">English</option>
+                <option value="ko">Korean</option>
+                <option value="ja">Japanese</option>
             </select>
         </label>
     </div>
 
     <div id="chat-container"></div>
+    <button id="scroll-button" class="scroll-button">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"/>
+        </svg>
+        <span>New Messages</span>
+    </button>
 
     <script src="js/control.js"></script>
 </body>
