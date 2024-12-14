@@ -24,6 +24,13 @@
             align-items: center;
             padding: 8px;
             border-bottom: 1px solid #eee;
+            word-break: break-word;
+        }
+
+        .author-name {
+            font-weight: bold;
+            color: #2196F3;
+            margin-right: 8px;
         }
 
         .tts-button {
@@ -32,22 +39,99 @@
             background: none;
             border: none;
             font-size: 1.2em;
+            padding: 4px 8px;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .controls {
+                flex-direction: row;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+        }
+
+        .controls input[type="text"],
+        .controls select,
+        .controls button {
+            padding: 8px;
+            margin: 0;
+            box-sizing: border-box;
+            font-size: 16px;
         }
 
         #settings {
-            margin-bottom: 20px;
+            margin: 20px 0;
             padding: 15px;
             background: #f5f5f5;
             border-radius: 4px;
         }
 
-        select {
-            padding: 5px;
-            margin-left: 10px;
+        .helper-text {
+            margin-top: 8px;
+            color: #666;
+            font-size: 12px;
+            text-align: left;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
         }
+
+        #connection-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 3px;
+            text-align: center;
+        }
+        .connected { background-color: #4CAF50; color: white; }
+        .disconnected { background-color: #f44336; color: white; }
+        .error { background-color: #ff9800; color: white; }
     </style>
 </head>
 <body>
+    <!-- Connection controls -->
+    <div class="controls">
+        <select id="platform-type">
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+            <option value="twitch">Twitch</option>
+        </select>
+        <input type="text" id="channel-id" placeholder="Enter channel ID">
+        <select id="identifier-type">
+            <option value="username">Username (without @)</option>
+            <option value="channelId">Channel ID (UC...)</option>
+            <option value="liveId">Live ID (watch?v=...)</option>
+        </select>
+        <button onclick="connect()">Connect</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <div id="connection-status" class="disconnected">Disconnected</div>
+    </div>
+
+    <div class="helper-text">
+        <small id="youtube-help">
+            <b>YouTube:</b><br>
+            • Username: Channel handle without @ (e.g., username)<br>
+            • Channel ID: YouTube channel ID (e.g., UC...)<br>
+            • Live ID: Video ID from URL (e.g., watch?v=...)
+        </small>
+        <small id="tiktok-help" style="display: none;">
+            <b>TikTok:</b><br>
+            • Username: TikTok username without @ (e.g., tiktokuser)<br>
+            Note: Only username is supported for TikTok
+        </small>
+        <small id="twitch-help" style="display: none;">
+            <b>Twitch:</b><br>
+            • Username: Twitch channel name (without @)<br>
+            Note: Only username is supported for Twitch
+        </small>
+    </div>
+
     <div id="settings">
         <label>
             TTS Language:
@@ -67,66 +151,129 @@
         const chatContainer = document.getElementById('chat-container');
         const languageSelect = document.getElementById('tts-language');
 
-        // Connect to chat WebSocket
-        function connectWebSocket() {
+        function connect() {
+            // Clear previous chat
+            chatContainer.innerHTML = '';
+            
+            // Disconnect existing connection
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'unsubscribe' }));
+            }
+
+            const channelId = document.getElementById('channel-id').value;
+            const identifierType = document.getElementById('identifier-type').value;
+            const platform = document.getElementById('platform-type').value;
+            
             ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
             
-            ws.onmessage = (event) => {
-                const message = JSON.parse(event.data);
-                appendMessage(message);
+            ws.onopen = () => {
+                document.getElementById('connection-status').className = 'connected';
+                document.getElementById('connection-status').textContent = 'Connected';
+                
+                // Subscribe to the specified channel
+                ws.send(JSON.stringify({
+                    type: 'subscribe',
+                    identifier: channelId,
+                    identifierType: identifierType,
+                    platform: platform
+                }));
             };
 
             ws.onclose = () => {
-                setTimeout(connectWebSocket, 1000);
+                document.getElementById('connection-status').className = 'disconnected';
+                document.getElementById('connection-status').textContent = 'Disconnected';
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const message = JSON.parse(event.data);
+                    switch (message.type) {
+                        case 'chat':
+                            if (message.data) {
+                                appendMessage(message.data);
+                            }
+                            break;
+                        case 'error':
+                            const statusEl = document.getElementById('connection-status');
+                            statusEl.textContent = `Error: ${message.error}`;
+                            statusEl.className = 'error';
+                            break;
+                    }
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                }
             };
         }
 
-        // Append new message to chat
+        function disconnect() {
+            if (ws) {
+                ws.send(JSON.stringify({ type: 'unsubscribe' }));
+                ws.close();
+            }
+        }
+
         function appendMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'chat-message';
             
+            const authorName = message.data.author.display_name || message.data.author.name || 'Anonymous';
+            const content = message.data.content.rawHtml || message.data.content;
+            const sanitizedContent = message.data.content.sanitized || message.data.content;
+            
+            // Only include the TTS button if there's actual text content
+            const ttsButton = sanitizedContent?.trim() 
+                ? `<button class="tts-button" onclick="sendToDisplay('${encodeURIComponent(sanitizedContent)}')">🔉</button>`
+                : '';
+            
             messageDiv.innerHTML = `
-                <span>${message.author}: ${message.content}</span>
-                <button class="tts-button" onclick="playTTS('${encodeURIComponent(message.content)}')">🔉</button>
+                <span class="author-name">${authorName}:</span>
+                <span class="message-content">${content}</span>
+                ${ttsButton}
             `;
             
             chatContainer.appendChild(messageDiv);
             chatContainer.scrollTop = chatContainer.scrollHeight;
         }
 
-        // Handle TTS playback
-        async function playTTS(text) {
+        async function sendToDisplay(text) {
             try {
-                // Get TTS audio from API
-                const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: decodeURIComponent(text),
-                        lang: languageSelect.value
-                    })
-                });
-                
-                const { audio } = await ttsResponse.json();
-
-                // Send to backend for broadcasting
                 await fetch('/update', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         message: decodeURIComponent(text),
-                        lang: languageSelect.value,
-                        audio: audio
+                        lang: languageSelect.value
                     })
                 });
             } catch (error) {
-                console.error('Error playing TTS:', error);
+                console.error('Error sending message:', error);
             }
         }
 
-        // Initialize
-        connectWebSocket();
+        // Update UI based on selected platform
+        document.getElementById('platform-type').addEventListener('change', function() {
+            const platform = this.value;
+            const identifierType = document.getElementById('identifier-type');
+            const youtubeHelp = document.getElementById('youtube-help');
+            const tiktokHelp = document.getElementById('tiktok-help');
+            const twitchHelp = document.getElementById('twitch-help');
+            
+            if (platform === 'tiktok' || platform === 'twitch') {
+                identifierType.value = 'username';
+                identifierType.disabled = true;
+                document.getElementById('channel-id').placeholder = 
+                    `Enter ${platform === 'tiktok' ? 'TikTok' : 'Twitch'} username`;
+                youtubeHelp.style.display = 'none';
+                tiktokHelp.style.display = platform === 'tiktok' ? 'block' : 'none';
+                twitchHelp.style.display = platform === 'twitch' ? 'block' : 'none';
+            } else {
+                identifierType.disabled = false;
+                document.getElementById('channel-id').placeholder = 'Enter ID';
+                youtubeHelp.style.display = 'block';
+                tiktokHelp.style.display = 'none';
+                twitchHelp.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html> 

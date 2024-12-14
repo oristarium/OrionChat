@@ -27,19 +27,30 @@
         const messageDiv = document.getElementById('message');
         let audioPlayer = new Audio();
 
-        // Connect to SSE endpoint
         const evtSource = new EventSource('/sse');
         
-        evtSource.onmessage = (event) => {
+        evtSource.onmessage = async (event) => {
             const data = JSON.parse(event.data);
-            
-            // Update displayed message
             messageDiv.textContent = data.message;
-            
-            // Play audio
-            if (data.audio) {
-                audioPlayer.src = `data:audio/mp3;base64,${data.audio}`;
+
+            try {
+                // Get TTS audio
+                const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: data.message,
+                        lang: data.lang
+                    })
+                });
+                
+                const { audio } = await ttsResponse.json();
+                
+                // Play the audio
+                audioPlayer.src = `data:audio/mp3;base64,${audio}`;
                 audioPlayer.play();
+            } catch (error) {
+                console.error('Error playing TTS:', error);
             }
         };
 
