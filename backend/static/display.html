@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Display</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: transparent;
+            font-family: Arial, sans-serif;
+            color: white;
+            text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+        }
+
+        #message {
+            font-size: 24px;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div id="message"></div>
+
+    <script>
+        const messageDiv = document.getElementById('message');
+        let audioPlayer = new Audio();
+
+        // Connect to SSE endpoint
+        const evtSource = new EventSource('/sse');
+        
+        evtSource.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            // Update displayed message
+            messageDiv.textContent = data.message;
+            
+            // Play audio
+            if (data.audio) {
+                audioPlayer.src = `data:audio/mp3;base64,${data.audio}`;
+                audioPlayer.play();
+            }
+        };
+
+        evtSource.onerror = () => {
+            setTimeout(() => {
+                evtSource.close();
+                location.reload();
+            }, 1000);
+        };
+    </script>
+</body>
+</html> 

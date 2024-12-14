@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TTS Controller</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        #chat-container {
+            height: 600px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        .chat-message {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .tts-button {
+            margin-left: 10px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 1.2em;
+        }
+
+        #settings {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        select {
+            padding: 5px;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="settings">
+        <label>
+            TTS Language:
+            <select id="tts-language">
+                <option value="en">English</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="id">Indonesian</option>
+            </select>
+        </label>
+    </div>
+
+    <div id="chat-container"></div>
+
+    <script>
+        let ws;
+        const chatContainer = document.getElementById('chat-container');
+        const languageSelect = document.getElementById('tts-language');
+
+        // Connect to chat WebSocket
+        function connectWebSocket() {
+            ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
+            
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                appendMessage(message);
+            };
+
+            ws.onclose = () => {
+                setTimeout(connectWebSocket, 1000);
+            };
+        }
+
+        // Append new message to chat
+        function appendMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message';
+            
+            messageDiv.innerHTML = `
+                <span>${message.author}: ${message.content}</span>
+                <button class="tts-button" onclick="playTTS('${encodeURIComponent(message.content)}')">🔉</button>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Handle TTS playback
+        async function playTTS(text) {
+            try {
+                // Get TTS audio from API
+                const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: decodeURIComponent(text),
+                        lang: languageSelect.value
+                    })
+                });
+                
+                const { audio } = await ttsResponse.json();
+
+                // Send to backend for broadcasting
+                await fetch('/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: decodeURIComponent(text),
+                        lang: languageSelect.value,
+                        audio: audio
+                    })
+                });
+            } catch (error) {
+                console.error('Error playing TTS:', error);
+            }
+        }
+
+        // Initialize
+        connectWebSocket();
+    </script>
+</body>
+</html> 
