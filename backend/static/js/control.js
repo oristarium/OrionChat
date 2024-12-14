@@ -105,16 +105,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Create buttons for TTS and Display
         const ttsButton = hasValidContent
-            ? `<button class="tts-button" onclick='sendToTTS(${JSON.stringify({
-                message: message,
-                lang: languageSelect.value
-              }).replace(/'/g, "&apos;")})'>🔉</button>`
+            ? `<button class="tts-button" onclick='sendToTTS(${JSON.stringify(message).replace(/'/g, "&apos;")})'>🔉</button>`
             : '';
         
-        const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify({
-            message: message,
-            lang: languageSelect.value
-          }).replace(/'/g, "&apos;")})'>📌</button>`;
+        const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify(message).replace(/'/g, "&apos;")})'>📌</button>`;
         
         messageDiv.innerHTML = `
             <span class="author-name">${authorName}:</span>
@@ -129,12 +123,15 @@ document.addEventListener('DOMContentLoaded', () => {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    async function sendToDisplay(data) {
+    async function sendToDisplay(message) {
         try {
             const response = await fetch('/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    message: message,
+                    lang: languageSelect.value // Get current language at time of click
+                })
             });
 
             if (!response.ok) {
@@ -145,12 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    async function sendToTTS(data) {
+    async function sendToTTS(message) {
         try {
             const response = await fetch('/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+                body: JSON.stringify({
+                    message: message,
+                    lang: languageSelect.value // Get current language at time of click
+                })
             });
 
             if (!response.ok) {

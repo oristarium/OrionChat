@@ -12,40 +12,133 @@
             font-family: Arial, sans-serif;
             color: white;
             text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
         }
 
-        #message {
-            font-size: 24px;
-            word-wrap: break-word;
+        .avatar-container {
+            width: 300px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .author-name {
-            color: #4CAF50;
+        .message-bubble {
+            position: absolute;
+            bottom: 100%;
+            margin-bottom: 1rem;
+            max-width: 200px;
+            width: fit-content;
+            background-color: rgba(255, 255, 255, 0.9);
+            color: #333;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+
+        .message-bubble.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message-bubble::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid rgba(255, 255, 255, 0.9);
+        }
+
+        .username {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
             font-weight: bold;
-            margin-right: 8px;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            max-width: 284px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
         }
 
-        /* Add styles for super chats if needed */
-        .super-chat {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
+        .username.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .avatar-image {
+            width: 300px;
+            height: 300px;
+            object-fit: contain;
+            transform-origin: bottom;
+        }
+
+        @keyframes talking {
+            0%, 100% { transform: scale(1, 1); }
+            25% { transform: scale(1.05, 0.95); }
+            50% { transform: scale(0.95, 1.05); }
+            75% { transform: scale(1.02, 0.98); }
+        }
+
+        .animate-talking {
+            animation: talking 0.5s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
-    <div id="message"></div>
+    <div class="avatar-container">
+        <div id="message-bubble" class="message-bubble"></div>
+        <div id="username" class="username"></div>
+        <div id="avatar-wrapper">
+            <img id="avatar" src="/idle.png" alt="Avatar" class="avatar-image">
+        </div>
+    </div>
 
     <script>
-        const messageDiv = document.getElementById('message');
+        const messageBubble = document.getElementById('message-bubble');
+        const username = document.getElementById('username');
+        const avatar = document.getElementById('avatar');
+        const avatarWrapper = document.getElementById('avatar-wrapper');
         let audioPlayer = new Audio();
 
         const evtSource = new EventSource('/sse');
         
+        // Audio event handlers
+        audioPlayer.onplay = () => {
+            // Show message bubble and username when audio starts playing
+            messageBubble.classList.add('show');
+            username.classList.add('show');
+            // Start talking animation
+            avatar.src = '/talking.gif';
+            avatarWrapper.classList.add('animate-talking');
+        };
+
+        audioPlayer.onended = () => {
+            // Hide everything when audio ends
+            avatar.src = '/idle.png';
+            avatarWrapper.classList.remove('animate-talking');
+            messageBubble.classList.remove('show');
+            username.classList.remove('show');
+        };
+        
         evtSource.onmessage = async (event) => {
             const data = JSON.parse(event.data);
-            console.log("SSE message received");
-            console.log(data);
             const chatMessage = data.message;
             const lang = data.lang;
 
@@ -64,7 +157,18 @@
                 return;
             }
 
+            // Prepare message content (but don't show yet)
+            const authorName = chatMessage.data.author.display_name || chatMessage.data.author.name || 'Anonymous';
+            messageBubble.textContent = textForTTS;
+            username.textContent = authorName;
+
             try {
+                // Ensure we're in idle state while loading
+                avatar.src = '/idle.png';
+                avatarWrapper.classList.remove('animate-talking');
+                messageBubble.classList.remove('show');
+                username.classList.remove('show');
+
                 // Get TTS audio
                 const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
                     method: 'POST',
@@ -77,11 +181,29 @@
                 
                 const { audio } = await ttsResponse.json();
                 
-                // Play the audio
+                // Set up audio and start playing
                 audioPlayer.src = `data:audio/mp3;base64,${audio}`;
-                audioPlayer.play();
+                
+                // Add a loading promise
+                const playPromise = audioPlayer.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch((error) => {
+                        console.error('Error playing audio:', error);
+                        // Reset UI if audio fails to play
+                        avatar.src = '/idle.png';
+                        avatarWrapper.classList.remove('animate-talking');
+                        messageBubble.classList.remove('show');
+                        username.classList.remove('show');
+                    });
+                }
             } catch (error) {
-                console.error('Error playing TTS:', error);
+                console.error('Error getting/playing TTS:', error);
+                // Reset UI on error
+                avatar.src = '/idle.png';
+                avatarWrapper.classList.remove('animate-talking');
+                messageBubble.classList.remove('show');
+                username.classList.remove('show');
             }
         };
 
