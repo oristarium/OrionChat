@@ -112,7 +112,7 @@
 
     <script>
         // Constants and Element References
-        const AVATAR_STATES = {
+        let AVATAR_STATES = {
             idle: '/avatars/idle.png',
             talking: '/avatars/talking.gif'
         };
@@ -195,7 +195,18 @@
             
             evtSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
-                await processTTSMessage(data.message, data.lang);
+                console.log('SSE message received:', data);
+                if (data.type === 'avatar_update') {
+                    console.log('Avatar update received:', data.data);
+                    AVATAR_STATES[data.data.type] = data.data.path;
+                    console.log('Updated AVATAR_STATES:', AVATAR_STATES);
+                    if (!audioPlayer.playing) {
+                        ELEMENTS.avatar.src = AVATAR_STATES.idle;
+                        console.log('Updated avatar src to:', ELEMENTS.avatar.src);
+                    }
+                } else {
+                    await processTTSMessage(data.message, data.lang);
+                }
             };
 
             evtSource.onerror = () => {
@@ -207,10 +218,22 @@
         }
 
         // Initialization
-        function init() {
-            ELEMENTS.avatar.src = AVATAR_STATES.idle;
+        async function init() {
+            await initializeAvatars();
             setupAudioPlayer();
             setupEventSource();
+        }
+
+        async function initializeAvatars() {
+            try {
+                const response = await fetch('/get-avatars');
+                const avatars = await response.json();
+                AVATAR_STATES.idle = avatars.idle;
+                AVATAR_STATES.talking = avatars.talking;
+                ELEMENTS.avatar.src = AVATAR_STATES.idle;
+            } catch (error) {
+                console.error('Error loading avatars:', error);
+            }
         }
 
         init();

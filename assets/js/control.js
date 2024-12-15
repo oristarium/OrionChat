@@ -3,20 +3,25 @@ import { ChatManager } from './modules/ChatManager.js';
 import { ConnectionManager } from './modules/ConnectionManager.js';
 import { UIManager } from './modules/UIManager.js';
 import { MessageHandler } from './modules/MessageHandler.js';
+import { AvatarManager } from './modules/AvatarManager.js';
 
 class Controller {
     constructor() {
+        console.log('Initializing Controller');
         this.ui = new UIManager();
         this.chat = new ChatManager();
         this.connection = new ConnectionManager();
         this.messageHandler = new MessageHandler();
+        this.avatarManager = new AvatarManager();
         
         this.init();
     }
 
     init() {
+        console.log('Controller initialization started');
         this.setupEventListeners();
         this.ui.initializePlatformUI();
+        console.log('Controller initialization completed');
     }
 
     setupEventListeners() {

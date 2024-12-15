@@ -300,3 +300,25 @@ button:disabled {
 button:not(:disabled):hover {
     opacity: 0.9;
 }
+
+/* Add these styles */
+.avatar-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.avatar-upload {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.avatar-upload input[type="file"] {
+    flex: 1;
+    font-size: 12px;
+}
