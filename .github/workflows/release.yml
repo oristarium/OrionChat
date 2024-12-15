@@ -17,28 +17,28 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.21'
+        go-version: '1.22'
         cache: true
         
-    - name: Initialize Go Module
+    - name: Set up MinGW
+      uses: egor-tensin/setup-mingw@v2
+      with:
+        platform: x64
+        
+    - name: Install Dependencies
       run: |
-        go mod init github.com/${{ github.repository }}
-        go mod tidy
+        go install fyne.io/fyne/v2/cmd/fyne@latest
         
     - name: Build
       run: |
-        go build -v -ldflags="-s -w" -trimpath -o app.exe
+        go build -v -ldflags="-s -w -H=windowsgui" -trimpath -o app.exe
         
     - name: Create ZIP
       run: |
-        # Create a temporary directory for the release
         New-Item -ItemType Directory -Path release
-        # Copy executable to release dir
         Copy-Item app.exe release/
-        # Create assets directory and copy files
         New-Item -ItemType Directory -Path release/assets
-        Copy-Item assets/* release/assets/
-        # Create the final ZIP
+        Copy-Item assets/* release/assets/ -Recurse
         Compress-Archive -Path release/* -DestinationPath "chat-tools-${{ github.ref_name }}.zip"
         
     - name: Create Release

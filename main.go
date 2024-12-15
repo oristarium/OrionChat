@@ -1,3 +1,5 @@
+//go:build !js
+
 package main
 
 import (
@@ -11,6 +13,11 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/widget"
 
 	"go.etcd.io/bbolt"
 )
@@ -318,8 +325,62 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	// Create a channel to coordinate shutdown
+	shutdown := make(chan bool)
+	var wg sync.WaitGroup
+
+	// Create and start the server in a goroutine
 	server := NewServer()
-	log.Fatal(server.Start())
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := server.Start(); err != nil {
+			log.Printf("Server error: %v", err)
+			shutdown <- true
+		}
+	}()
+
+	// Create Fyne application
+	fyneApp := app.New()
+	window := fyneApp.NewWindow("Chat Tools")
+
+	// Create status label
+	status := widget.NewLabel(fmt.Sprintf("Server running on port %s", ServerPort))
+
+	// Create quit button
+	quitBtn := widget.NewButton("Quit Application", func() {
+		shutdown <- true
+		fyneApp.Quit()
+	})
+
+	// Layout
+	content := container.NewVBox(
+		status,
+		quitBtn,
+	)
+
+	window.SetContent(content)
+
+	// Handle window closing
+	window.SetCloseIntercept(func() {
+		shutdown <- true
+		fyneApp.Quit()
+	})
+
+	// Set a reasonable default size
+	window.Resize(fyne.NewSize(300, 100))
+
+	// Show the window
+	window.Show()
+
+	// Run the GUI
+	go fyneApp.Run()
+
+	// Wait for shutdown signal
+	<-shutdown
+
+	// Clean up and wait for server to finish
+	wg.Wait()
 }
 
 // ChatAuthor represents the author of a chat message
