@@ -7,19 +7,19 @@
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 0px;
             background: transparent;
             font-family: Arial, sans-serif;
             color: white;
-            text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-end;
             min-height: 100vh;
+            overflow: hidden;
         }
 
         .avatar-container {
-            width: 300px;
+            width: 65vh;
             position: relative;
             display: flex;
             flex-direction: column;
@@ -30,17 +30,19 @@
             position: absolute;
             bottom: 100%;
             margin-bottom: 1rem;
-            max-width: 200px;
+            max-height: 50vh;
             width: fit-content;
             background-color: rgba(255, 255, 255, 0.9);
-            color: #333;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
+            color: black;
+            padding: .5em;
+            border-radius: 0.5em;
             text-align: center;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.3s, transform 0.3s;
+            font-size: 3.6vh;
+            font-weight: bold;
         }
 
         .message-bubble.show {
@@ -51,23 +53,21 @@
         .message-bubble::after {
             content: '';
             position: absolute;
-            bottom: -8px;
+            bottom: -20px;
             left: 50%;
             transform: translateX(-50%);
-            border-left: 8px solid transparent;
-            border-right: 8px solid transparent;
-            border-top: 8px solid rgba(255, 255, 255, 0.9);
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 20px solid rgba(255, 255, 255, 0.9);
         }
 
         .username {
             background-color: rgba(0, 0, 0, 0.5);
             color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
+            padding: 0.5em 1em;
+            border-radius: 0.5em;
             font-weight: bold;
-            font-size: 0.875rem;
-            margin-bottom: 0.5rem;
-            max-width: 284px;
+            margin-bottom: 0.5em;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
@@ -75,6 +75,7 @@
             opacity: 0;
             transform: translateY(10px);
             transition: opacity 0.3s, transform 0.3s;
+            font-size: 2vh;
         }
 
         .username.show {
@@ -83,10 +84,11 @@
         }
 
         .avatar-image {
-            width: 300px;
-            height: 300px;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
-            transform-origin: bottom;
+            transform-origin: bottom center;
+            margin-bottom: -4px;
         }
 
         @keyframes talking {
@@ -98,10 +100,62 @@
 
         .animate-talking {
             animation: talking 0.5s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+
+        .watermark {
+            position: fixed;
+            bottom: 10px;
+            left:50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 9999;
+            pointer-events: none;
+            user-select: none;
+            content-visibility: visible !important;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 0.5 !important;
+            mix-blend-mode: normal !important;
+            filter: none !important;
+            transform: none !important;
+            clip-path: none !important;
+            -webkit-clip-path: none !important;
+        }
+
+        .watermark::before {
+            content: "Powered by Oristarium";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: inherit;
+            border-radius: inherit;
+        }
+        .avatar-wrapper {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            margin: 0px;
+            padding: 0px;
+            width: fit-content;
+            height: fit-content;
         }
     </style>
 </head>
 <body>
+    <div class="watermark">
+        Powered by Oristarium
+    </div>
+
     <div class="avatar-container">
         <div id="message-bubble" class="message-bubble"></div>
         <div id="username" class="username"></div>
