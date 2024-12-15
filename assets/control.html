@@ -7,65 +7,57 @@
     <link rel="stylesheet" href="css/control.css">
 </head>
 <body>
-    <!-- Connection controls -->
-    <div class="controls">
-        <select id="platform-type">
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok</option>
-            <option value="twitch">Twitch</option>
-        </select>
-        <input type="text" id="channel-id" placeholder="Enter channel ID">
-        <select id="identifier-type">
-            <option value="username">Username</option>
-            <option value="channelId">Channel ID</option>
-            <option value="liveId">Live ID</option>
-        </select>
-        <div class="button-group">
-            <button id="connect-btn" onclick="connect()">Connect</button>
-            <button id="disconnect-btn" onclick="disconnect()" disabled>Disconnect</button>
-        </div>
-        <div id="connection-status" class="disconnected">Disconnected</div>
+    <div class="app-container">
+        <!-- Connection Panel -->
+        <section class="connection-panel">
+            <div class="platform-controls">
+                <select id="platform-type" data-platform="youtube">
+                    <option value="youtube">YouTube</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="twitch">Twitch</option>
+                </select>
+                <input type="text" id="channel-id" placeholder="Enter channel ID">
+                <select id="identifier-type">
+                    <option value="username">Username</option>
+                    <option value="channelId">Channel ID</option>
+                    <option value="liveId">Live ID</option>
+                </select>
+            </div>
+
+            <div class="connection-controls">
+                <div class="button-group">
+                    <button id="connect-btn" class="primary-btn">Connect</button>
+                    <button id="disconnect-btn" class="secondary-btn" disabled>Disconnect</button>
+                </div>
+                <div id="connection-status" class="status-indicator disconnected">Disconnected</div>
+            </div>
+        </section>
+
+        <!-- Settings Panel -->
+        <section class="settings-panel">
+            <div class="setting-group">
+                <label for="tts-language">TTS Language:</label>
+                <select id="tts-language">
+                    <option value="id">Indonesian</option>
+                    <option value="en">English</option>
+                    <option value="ko">Korean</option>
+                    <option value="ja">Japanese</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- Chat Panel -->
+        <section class="chat-panel">
+            <div id="chat-container"></div>
+            <button id="scroll-button" class="scroll-button hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
+                    <path d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"/>
+                </svg>
+                <span>New Messages</span>
+            </button>
+        </section>
     </div>
 
-    <div class="helper-text">
-        <small id="youtube-help">
-            <b>YouTube:</b><br>
-            • Username: Channel handle without @ (e.g., username)<br>
-            • Channel ID: YouTube channel ID (e.g., UC...)<br>
-            • Live ID: Video ID from URL (e.g., watch?v=...)
-        </small>
-        <small id="tiktok-help" style="display: none;">
-            <b>TikTok:</b><br>
-            • Username: TikTok username without @ (e.g., tiktokuser)<br>
-            Note: Only username is supported for TikTok
-        </small>
-        <small id="twitch-help" style="display: none;">
-            <b>Twitch:</b><br>
-            • Username: Twitch channel name (without @)<br>
-            Note: Only username is supported for Twitch
-        </small>
-    </div>
-
-    <div id="settings">
-        <label>
-            TTS Language:
-            <select id="tts-language">
-                <option value="id">Indonesian</option>
-                <option value="en">English</option>
-                <option value="ko">Korean</option>
-                <option value="ja">Japanese</option>
-            </select>
-        </label>
-    </div>
-
-    <div id="chat-container"></div>
-    <button id="scroll-button" class="scroll-button">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"/>
-        </svg>
-        <span>New Messages</span>
-    </button>
-
-    <script src="js/control.js"></script>
+    <script type="module" src="js/control.js"></script>
 </body>
 </html> 

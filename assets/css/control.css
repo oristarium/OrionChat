@@ -7,117 +7,34 @@ body {
     width: calc(100vw - 20px);
     height: calc(100vh - 20px);
     overflow: hidden;
+}
+
+.app-container {
     display: flex;
     flex-direction: column;
-}
-
-#chat-container {
-    position: relative;
     height: 100%;
-    flex-grow: 1;
-    overflow-y: auto;
-    border: 1px solid #ccc;
-    padding: 8px;
-    margin-top: 8px;
 }
 
-.chat-message {
-    display: flex;
-    align-items: flex-start;
-    padding: 4px;
-    border-bottom: 1px solid #eee;
-    word-break: break-word;
-    font-size: 13px;
-    line-height: 1.3;
-    transition: background-color 0.2s ease;
-}
-
-.chat-message:hover {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-
-.author-name {
-    font-weight: bold;
-    color: #666;
-    margin-right: 6px;
-    flex-shrink: 0;
-}
-
-.author-name.moderator {
-    color: #9C27B0;
-}
-
-.author-name.subscriber {
-    color: #4CAF50;
-}
-
-.author-name.broadcaster {
-    color: #FF5722;
-}
-
-.message-content {
-    flex: 1;
-    min-width: 0;
-}
-
-.message-actions {
-    display: flex;
-    gap: 2px;
-    margin-left: 4px;
-    flex-shrink: 0;
-    opacity: 0;
-    transform: translateX(-5px);
-    transition: all 0.2s ease;
-}
-
-.chat-message:hover .message-actions {
-    opacity: 1;
-    transform: translateX(0);
-}
-
-.tts-button,
-.display-button {
-    cursor: pointer;
-    background: none;
-    border: none;
-    font-size: 1em;
-    padding: 2px 4px;
-    transition: all 0.2s ease;
-    opacity: 0.7;
-}
-
-.tts-button:hover,
-.display-button:hover {
-    transform: scale(1.1);
-    opacity: 1;
-}
-
-.display-button {
-    color: #2196F3;
-}
-
-.controls {
-    display: grid;
-    grid-template-areas:
-        "platform input type"
-        "buttons buttons buttons"
-        "status status status";
-    grid-template-columns: auto 1fr auto;
-    gap: 6px;
+/* Connection Panel */
+.connection-panel {
     margin-bottom: 10px;
 }
 
-.controls select,
-.controls input[type="text"] {
-    padding: 4px 6px;
-    margin: 0;
-    box-sizing: border-box;
-    font-size: 13px;
-    height: 28px;
+.platform-controls {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 6px;
+    margin-bottom: 6px;
 }
 
+.connection-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+/* Platform Select Styling */
 #platform-type {
-    grid-area: platform;
     min-width: 90px;
     padding: 4px 6px 4px 24px;
     cursor: pointer;
@@ -127,14 +44,7 @@ body {
     height: 28px;
 }
 
-#platform-type option {
-    padding: 8px;
-}
-
-.platform-icon {
-    display: none;
-}
-
+/* Platform Icons */
 #platform-type[data-platform="youtube"] {
     color: #FF0000;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%23FF0000' viewBox='0 0 16 16'%3E%3Cpath d='M8.051 1.999h.089c.822.003 4.987.033 6.11.335a2.01 2.01 0 0 1 1.415 1.42c.101.38.172.883.22 1.402l.01.104.022.26.008.104c.065.914.073 1.77.074 1.957v.075c-.001.194-.01 1.108-.082 2.06l-.008.105-.009.104c-.05.572-.124 1.14-.235 1.558a2.01 2.01 0 0 1-1.415 1.42c-1.16.312-5.569.334-6.18.335h-.142c-.309 0-1.587-.006-2.927-.052l-.17-.006-.087-.004-.171-.007-.171-.007c-1.11-.049-2.167-.128-2.654-.26a2.01 2.01 0 0 1-1.415-1.419c-.111-.417-.185-.986-.235-1.558L.09 9.82l-.008-.104A31 31 0 0 1 0 7.68v-.123c.002-.215.01-.958.064-1.778l.007-.103.003-.052.008-.104.022-.26.01-.104c.048-.519.119-1.023.22-1.402a2.01 2.01 0 0 1 1.415-1.42c.487-.13 1.544-.21 2.654-.26l.17-.007.172-.006.086-.003.171-.007A100 100 0 0 1 7.858 2zM6.4 5.209v4.818l4.157-2.408z'/%3E%3C/svg%3E");
@@ -156,17 +66,18 @@ body {
     background-position: 4px center;
 }
 
-#channel-id {
-    grid-area: input;
+/* Form Controls */
+.platform-controls select,
+.platform-controls input[type="text"] {
+    padding: 4px 6px;
+    margin: 0;
+    box-sizing: border-box;
+    font-size: 13px;
+    height: 28px;
 }
 
-#identifier-type {
-    grid-area: type;
-    min-width: 120px;
-}
-
+/* Button Group */
 .button-group {
-    grid-area: buttons;
     display: flex;
     gap: 6px;
 }
@@ -178,9 +89,21 @@ body {
     height: 28px;
 }
 
-#connection-status {
-    grid-area: status;
-    margin-top: 0;
+.primary-btn {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    border-radius: 3px;
+}
+
+.secondary-btn {
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+/* Status Indicator */
+.status-indicator {
     padding: 4px;
     border-radius: 3px;
     text-align: center;
@@ -190,21 +113,96 @@ body {
     text-overflow: ellipsis;
 }
 
-.connected { 
-    background-color: #4CAF50; 
-    color: white; 
+/* Settings Panel */
+.settings-panel {
+    margin-bottom: 10px;
 }
 
-.disconnected { 
-    background-color: #f44336; 
-    color: white; 
+.setting-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.error { 
-    background-color: #ff9800; 
-    color: white; 
+.setting-group label {
+    font-size: 13px;
+    color: #666;
 }
 
+/* Chat Panel */
+.chat-panel {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+#chat-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 8px;
+    position: relative;
+}
+
+/* Keep existing chat message styles */
+.chat-message {
+    display: flex;
+    align-items: flex-start;
+    padding: 4px;
+    border-bottom: 1px solid #eee;
+    word-break: break-word;
+    font-size: 13px;
+    line-height: 1.3;
+    transition: background-color 0.2s ease;
+}
+
+/* Keep existing message action styles */
+.message-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: 4px;
+    flex-shrink: 0;
+    opacity: 0;
+    transform: translateX(-5px);
+    transition: all 0.2s ease;
+}
+
+/* Scroll Button */
+.scroll-button {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(33, 150, 243, 0.9);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    transition: all 0.2s;
+    z-index: 1000;
+}
+
+.scroll-button.hidden {
+    display: none;
+}
+
+.scroll-button:hover {
+    background: rgba(33, 150, 243, 1);
+    transform: translateX(-50%) scale(1.05);
+}
+
+.scroll-button svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Scrollbar Styling */
 #chat-container::-webkit-scrollbar {
     width: 6px;
 }
@@ -220,56 +218,30 @@ body {
 
 #chat-container::-webkit-scrollbar-thumb:hover {
     background: #555;
-} 
-
-/* Remove helper-text styles since we're removing that section */
-.helper-text {
-    display: none;
 }
 
-/* Add styles for disabled buttons */
-.button-group button:disabled {
+/* Status Colors */
+.status-indicator.connected { 
+    background-color: #4CAF50; 
+    color: white; 
+}
+
+.status-indicator.disconnected { 
+    background-color: #f44336; 
+    color: white; 
+}
+
+.status-indicator.error { 
+    background-color: #ff9800; 
+    color: white; 
+}
+
+/* Disabled States */
+button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-/* Optional: Add hover effect only for enabled buttons */
-.button-group button:not(:disabled):hover {
-    background-color: #e0e0e0;
-}
-
-/* Emote styles */
-.chat-message img.emote {
-    height: 16px;
-}
-
-/* Update the scroll button styles */
-.scroll-button {
-    position: fixed;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(33, 150, 243, 0.9);
-    color: white;
-    border: none;
-    border-radius: 20px;
-    padding: 8px 16px;
-    font-size: 12px;
-    cursor: pointer;
-    display: none;
-    align-items: center;
-    gap: 4px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-    transition: all 0.2s;
-    z-index: 1000;
-}
-
-.scroll-button:hover {
-    background: rgba(33, 150, 243, 1);
-    transform: translateX(-50%) scale(1.05);
-}
-
-.scroll-button svg {
-    width: 16px;
-    height: 16px;
+button:not(:disabled):hover {
+    opacity: 0.9;
 }
