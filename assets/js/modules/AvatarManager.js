@@ -2,8 +2,21 @@ export class AvatarManager {
     constructor() {
         console.log('AvatarManager initialized');
         this.currentAvatars = { idle: null, talking: null };
+        this.initializeModal();
         this.setupEventListeners();
         this.loadAvatars();
+    }
+
+    initializeModal() {
+        // Initialize tabs first
+        $("#avatar-tabs").tabs();
+
+        // Then initialize dialog
+        $("#avatar-settings-modal").dialog({
+            autoOpen: false,
+            width: 500,
+            modal: true
+        });
     }
 
     async loadAvatars() {
@@ -80,6 +93,9 @@ export class AvatarManager {
         console.log('Setting up avatar upload event listeners');
         document.getElementById('upload-idle').addEventListener('click', () => this.uploadAvatar('idle'));
         document.getElementById('upload-talking').addEventListener('click', () => this.uploadAvatar('talking'));
+        document.getElementById('open-avatar-settings').addEventListener('click', () => {
+            $("#avatar-settings-modal").dialog('open');
+        });
     }
 
     async uploadAvatar(type) {

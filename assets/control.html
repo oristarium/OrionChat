@@ -1,88 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TTS Controller</title>
-    <link rel="stylesheet" href="css/control.css">
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"
+    />
+    <link rel="stylesheet" href="css/control.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  </head>
+  <body>
     <div class="app-container">
-        <!-- Connection Panel -->
-        <section class="connection-panel">
-            <div class="platform-controls">
-                <select id="platform-type" data-platform="youtube">
-                    <option value="youtube">YouTube</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="twitch">Twitch</option>
-                </select>
-                <input type="text" id="channel-id" placeholder="Enter channel ID">
-                <select id="identifier-type">
-                    <option value="username">Username</option>
-                    <option value="channelId">Channel ID</option>
-                    <option value="liveId">Live ID</option>
-                </select>
-            </div>
+      <!-- Connection Panel -->
+      <section class="connection-panel">
+        <div class="platform-controls">
+          <select id="platform-type" data-platform="youtube">
+            <option value="youtube">YouTube</option>
+            <option value="tiktok">TikTok</option>
+            <option value="twitch">Twitch</option>
+          </select>
+          <input type="text" id="channel-id" placeholder="Enter channel ID" />
+          <select id="identifier-type">
+            <option value="username">Username</option>
+            <option value="channelId">Channel ID</option>
+            <option value="liveId">Live ID</option>
+          </select>
+          <button id="connect-btn" class="btn btn-primary">Connect</button>
+          <button id="disconnect-btn" class="btn btn-secondary hidden">
+            Disconnect
+          </button>
+        </div>
 
-            <div class="connection-controls">
-                <div class="button-group">
-                    <button id="connect-btn" class="primary-btn">Connect</button>
-                    <button id="disconnect-btn" class="secondary-btn" disabled>Disconnect</button>
-                </div>
-                <div id="connection-status" class="status-indicator disconnected">Disconnected</div>
-            </div>
-        </section>
+        <div id="connection-status" class="status-indicator disconnected">
+          Disconnected
+        </div>
+      </section>
 
-        <!-- Settings Panel -->
-        <section class="settings-panel">
-            <div class="setting-group">
-                <label for="tts-language">TTS Language:</label>
-                <select id="tts-language">
-                    <option value="id">Indonesian</option>
-                    <option value="en">English</option>
-                    <option value="ko">Korean</option>
-                    <option value="ja">Japanese</option>
-                </select>
-            </div>
-            <div class="setting-group avatar-settings">
-                <div class="avatar-section">
-                    <h3>Idle Avatar</h3>
-                    <div class="avatar-upload">
-                        <label>Upload New:</label>
-                        <input type="file" id="idle-avatar" accept="image/*">
-                        <button id="upload-idle" class="secondary-btn">Upload</button>
-                    </div>
-                    <div class="avatar-grid" id="idle-avatar-grid">
-                        <!-- Avatars will be populated here -->
-                    </div>
-                </div>
+      <!-- Settings Panel -->
+      <section class="settings-panel">
+        <div class="setting-group">
+          <label for="tts-language">TTS Language:</label>
+          <select id="tts-language">
+            <option value="id">Indonesian</option>
+            <option value="en">English</option>
+            <option value="ko">Korean</option>
+            <option value="ja">Japanese</option>
+          </select>
+        </div>
+        <button id="open-avatar-settings" class="btn btn-secondary">
+          Avatar Settings
+        </button>
+      </section>
 
-                <div class="avatar-section">
-                    <h3>Talking Avatar</h3>
-                    <div class="avatar-upload">
-                        <label>Upload New:</label>
-                        <input type="file" id="talking-avatar" accept="image/*">
-                        <button id="upload-talking" class="secondary-btn">Upload</button>
-                    </div>
-                    <div class="avatar-grid" id="talking-avatar-grid">
-                        <!-- Avatars will be populated here -->
-                    </div>
-                </div>
-            </div>
-        </section>
+      <!-- Chat Panel -->
+      <section class="chat-panel">
+        <div id="chat-container"></div>
+        <button id="scroll-button" class="scroll-button hidden">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 16 16"
+            fill="currentColor"
+          >
+            <path
+              d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"
+            />
+          </svg>
+          <span>New Messages</span>
+        </button>
+      </section>
+    </div>
 
-        <!-- Chat Panel -->
-        <section class="chat-panel">
-            <div id="chat-container"></div>
-            <button id="scroll-button" class="scroll-button hidden">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
-                    <path d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"/>
-                </svg>
-                <span>New Messages</span>
-            </button>
-        </section>
+    <!-- Avatar Settings Modal -->
+    <div id="avatar-settings-modal" title="Avatar Settings">
+      <div class="setting-group avatar-settings">
+        <div id="avatar-tabs">
+          <ul>
+            <li><a href="#idle-tab">Idle Avatar</a></li>
+            <li><a href="#talking-tab">Talking Avatar</a></li>
+          </ul>
+          <div id="idle-tab">
+            <div class="avatar-section">
+              <div class="avatar-upload">
+                <label>Upload New:</label>
+                <input type="file" id="idle-avatar" accept="image/*" />
+                <button id="upload-idle" class="btn btn-secondary btn-sm">
+                  Upload
+                </button>
+              </div>
+              <div class="avatar-grid" id="idle-avatar-grid">
+                <!-- Avatars will be populated here -->
+              </div>
+            </div>
+          </div>
+          <div id="talking-tab">
+            <div class="avatar-section">
+              <div class="avatar-upload">
+                <label>Upload New:</label>
+                <input type="file" id="talking-avatar" accept="image/*" />
+                <button id="upload-talking" class="btn btn-secondary btn-sm">
+                  Upload
+                </button>
+              </div>
+              <div class="avatar-grid" id="talking-avatar-grid">
+                <!-- Avatars will be populated here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script type="module" src="js/control.js"></script>
-</body>
-</html> 
+  </body>
+</html>

@@ -14,6 +14,9 @@ export class ConnectionManager {
         } catch (error) {
             this.handleConnectionError(error);
         }
+
+        document.getElementById('connect-btn').classList.add('hidden');
+        document.getElementById('disconnect-btn').classList.remove('hidden');
     }
 
     async initializeWebSocket(channelId, identifierType, platform) {
@@ -112,6 +115,9 @@ export class ConnectionManager {
             }
             this.updateConnectionState(false);
         }
+
+        document.getElementById('connect-btn').classList.remove('hidden');
+        document.getElementById('disconnect-btn').classList.add('hidden');
     }
 
     handleStatusMessage(message) {

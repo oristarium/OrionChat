@@ -64,3 +64,12 @@ go.sum.backup
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Database files
+*.db
+
+# Avatar files
+/assets/avatars/*
+!/assets/avatars/idle.png
+!/assets/avatars/talking.gif
+avatars.db
