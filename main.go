@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -31,7 +30,7 @@ import (
 
 // Constants
 const (
-	ServerPort    = ":12"
+	ServerPort    = ":7777"
 	AssetsDir     = "assets"
 	DBPath        = "avatars.db"
 	AvatarBucket  = "avatars"
@@ -105,7 +104,7 @@ func NewServer() *Server {
 			Port:      ServerPort,
 			AssetsDir: AssetsDir,
 			Routes: map[string]string{
-				"/":        "/control.html",
+				"/control": "/control.html",
 				"/display": "/display.html",
 				"/tts":     "/tts.html",
 				"/tutorial": "/tutorial.html",
@@ -134,16 +133,15 @@ func (s *Server) setupRoutes() {
 		".html": "text/html",
 	}
 	
-	// Handle static assets under /assets/
-	http.HandleFunc("/assets/", func(w http.ResponseWriter, r *http.Request) {
+	// Serve static files directly (revert the /assets/ handling)
+	fs := http.FileServer(http.Dir(s.config.AssetsDir))
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Set correct MIME type based on file extension
 		ext := filepath.Ext(r.URL.Path)
 		if mimeType, ok := mime[ext]; ok {
 			w.Header().Set("Content-Type", mimeType)
 		}
-		// Strip /assets/ prefix and serve from assets directory
-		r.URL.Path = strings.TrimPrefix(r.URL.Path, "/assets/")
-		http.FileServer(http.Dir(s.config.AssetsDir)).ServeHTTP(w, r)
+		fs.ServeHTTP(w, r)
 	})
 	
 	// Configure SSE and update endpoints
@@ -428,7 +426,7 @@ func main() {
 		return btn
 	}
 
-	copyControlBtn := createCopyButton("Control", "")
+	copyControlBtn := createCopyButton("Control", "/control")
 	copyTTSBtn := createCopyButton("TTS", "/tts")
 	copyDisplayBtn := createCopyButton("Display", "/display")
 
