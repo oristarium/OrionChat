@@ -85,7 +85,6 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	client := make(SSEClient)
 	
 	s.addClient(client)
-	defer s.removeClient(client)
 
 	notify := w.(http.CloseNotifier).CloseNotify()
 	go func() {
@@ -97,6 +96,8 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "data: %s\n\n", msg)
 		w.(http.Flusher).Flush()
 	}
+
+	s.removeClient(client)
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -142,8 +143,10 @@ func (s *Server) addClient(client SSEClient) {
 
 func (s *Server) removeClient(client SSEClient) {
 	s.mu.Lock()
-	delete(s.clients, client)
-	close(client)
+	if _, exists := s.clients[client]; exists {
+		delete(s.clients, client)
+		close(client)
+	}
 	s.mu.Unlock()
 }
 

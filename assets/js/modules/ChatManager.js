@@ -123,10 +123,10 @@ export class ChatManager {
 
     generateMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent) {
         const ttsButton = hasValidContent
-            ? `<button class="tts-button" onclick='sendToTTS(${JSON.stringify(message).replace(/'/g, "&apos;")})'>🔉</button>`
+            ? `<button class="tts-button" onclick='sendToTTS(${JSON.stringify(message).replace(/'/g, "&apos;")})'><span>🔉</span></button>`
             : '';
         
-        const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify(message).replace(/'/g, "&apos;")})'>📌</button>`;
+        const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify(message).replace(/'/g, "&apos;")})'><span>📌</span></button>`;
         
         return `
             <span class="${authorClasses.join(' ')}">${authorName}:</span>

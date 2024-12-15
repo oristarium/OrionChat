@@ -145,7 +145,7 @@ body {
     position: relative;
 }
 
-/* Keep existing chat message styles */
+/* Chat Message Styles */
 .chat-message {
     display: flex;
     align-items: flex-start;
@@ -157,15 +157,70 @@ body {
     transition: background-color 0.2s ease;
 }
 
-/* Keep existing message action styles */
+.chat-message:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.author-name {
+    font-weight: bold;
+    color: #666;
+    margin-right: 6px;
+    flex-shrink: 0;
+}
+
+.author-name.moderator {
+    color: #9C27B0;
+}
+
+.author-name.subscriber {
+    color: #4CAF50;
+}
+
+.author-name.broadcaster {
+    color: #FF5722;
+}
+
+.message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+/* Emote styles */
+.chat-message img.emote {
+    height: 16px;
+    vertical-align: middle;
+    margin: -3px 1px;
+}
+
+/* Message Actions */
 .message-actions {
     display: flex;
     gap: 2px;
     margin-left: 4px;
     flex-shrink: 0;
-    opacity: 0;
-    transform: translateX(-5px);
+}
+
+.tts-button,
+.display-button {
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-size: 1em;
+    padding: 2px 4px;
     transition: all 0.2s ease;
+}
+
+.tts-button:hover,
+.display-button:hover {
+    transform: scale(1.1);
+}
+
+.tts-button {
+    color: #4CAF50;
+}
+
+.display-button {
+    color: #2196F3;
 }
 
 /* Scroll Button */
