@@ -111,117 +111,109 @@
     </div>
 
     <script>
-        // Avatar state constants
+        // Constants and Element References
         const AVATAR_STATES = {
             idle: '/avatars/idle.png',
             talking: '/avatars/talking.gif'
         };
 
-        const messageBubble = document.getElementById('message-bubble');
-        const username = document.getElementById('username');
-        const avatar = document.getElementById('avatar');
-        const avatarWrapper = document.getElementById('avatar-wrapper');
+        const ELEMENTS = {
+            messageBubble: document.getElementById('message-bubble'),
+            username: document.getElementById('username'),
+            avatar: document.getElementById('avatar'),
+            avatarWrapper: document.getElementById('avatar-wrapper')
+        };
+
+        const TTS_API_URL = 'https://google-tts.oristarium.com/';
         let audioPlayer = new Audio();
 
-        const evtSource = new EventSource('/sse');
-        
-        // Audio event handlers
-        audioPlayer.onplay = () => {
-            // Show message bubble and username when audio starts playing
-            messageBubble.classList.add('show');
-            username.classList.add('show');
-            // Start talking animation
-            avatar.src = AVATAR_STATES.talking;
-            avatarWrapper.classList.add('animate-talking');
-        };
+        // UI State Management
+        function updateUIState(isPlaying) {
+            ELEMENTS.avatar.src = AVATAR_STATES[isPlaying ? 'talking' : 'idle'];
+            ELEMENTS.avatarWrapper.classList.toggle('animate-talking', isPlaying);
+            ELEMENTS.messageBubble.classList.toggle('show', isPlaying);
+            ELEMENTS.username.classList.toggle('show', isPlaying);
+        }
 
-        audioPlayer.onended = () => {
-            // Hide everything when audio ends
-            avatar.src = AVATAR_STATES.idle;
-            avatarWrapper.classList.remove('animate-talking');
-            messageBubble.classList.remove('show');
-            username.classList.remove('show');
-        };
-        
-        evtSource.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            const chatMessage = data.message;
-            const lang = data.lang;
+        // Audio Setup
+        function setupAudioPlayer() {
+            audioPlayer.onplay = () => updateUIState(true);
+            audioPlayer.onended = () => updateUIState(false);
+        }
 
-            // Get the content for TTS
+        // TTS Processing
+        async function processTTSMessage(chatMessage, lang) {
             const content = chatMessage.data.content;
-            let textForTTS = '';
-            
-            if (typeof content === 'string') {
-                textForTTS = content;
-            } else {
-                textForTTS = content.sanitized || content.raw || content.formatted || '';
-            }
+            const textForTTS = typeof content === 'string' 
+                ? content 
+                : (content.sanitized || content.raw || content.formatted || '');
 
-            // Only proceed if there's text to speak
-            if (!textForTTS.trim()) {
-                return;
-            }
+            if (!textForTTS.trim()) return;
 
-            // Prepare message content (but don't show yet)
-            const authorName = chatMessage.data.author.display_name || chatMessage.data.author.name || 'Anonymous';
-            messageBubble.textContent = textForTTS;
-            username.textContent = authorName;
+            const authorName = chatMessage.data.author.display_name 
+                || chatMessage.data.author.name 
+                || 'Anonymous';
+
+            ELEMENTS.messageBubble.textContent = textForTTS;
+            ELEMENTS.username.textContent = authorName;
 
             try {
-                // Ensure we're in idle state while loading
-                avatar.src = AVATAR_STATES.idle;
-                avatarWrapper.classList.remove('animate-talking');
-                messageBubble.classList.remove('show');
-                username.classList.remove('show');
-
-                // Get TTS audio
-                const ttsResponse = await fetch('https://google-tts.oristarium.com/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text: textForTTS,
-                        lang: lang
-                    })
-                });
-                
-                const { audio } = await ttsResponse.json();
-                
-                // Set up audio and start playing
-                audioPlayer.src = `data:audio/mp3;base64,${audio}`;
-                
-                // Add a loading promise
-                const playPromise = audioPlayer.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.catch((error) => {
-                        console.error('Error playing audio:', error);
-                        // Reset UI if audio fails to play
-                        avatar.src = AVATAR_STATES.idle;
-                        avatarWrapper.classList.remove('animate-talking');
-                        messageBubble.classList.remove('show');
-                        username.classList.remove('show');
-                    });
-                }
+                updateUIState(false);
+                const audio = await fetchTTSAudio(textForTTS, lang);
+                await playAudio(audio);
             } catch (error) {
-                console.error('Error getting/playing TTS:', error);
-                // Reset UI on error
-                avatar.src = AVATAR_STATES.idle;
-                avatarWrapper.classList.remove('animate-talking');
-                messageBubble.classList.remove('show');
-                username.classList.remove('show');
+                console.error('Error in TTS processing:', error);
+                updateUIState(false);
             }
-        };
+        }
 
-        evtSource.onerror = () => {
-            setTimeout(() => {
-                evtSource.close();
-                location.reload();
-            }, 1000);
-        };
+        // API Interaction
+        async function fetchTTSAudio(text, lang) {
+            const response = await fetch(TTS_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text, lang })
+            });
+            const { audio } = await response.json();
+            return audio;
+        }
 
-        // Set initial avatar state when page loads
-        document.getElementById('avatar').src = AVATAR_STATES.idle;
+        // Audio Playback
+        async function playAudio(audioData) {
+            audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
+            try {
+                await audioPlayer.play();
+            } catch (error) {
+                console.error('Error playing audio:', error);
+                updateUIState(false);
+            }
+        }
+
+        // Event Source Setup
+        function setupEventSource() {
+            const evtSource = new EventSource('/sse');
+            
+            evtSource.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                await processTTSMessage(data.message, data.lang);
+            };
+
+            evtSource.onerror = () => {
+                setTimeout(() => {
+                    evtSource.close();
+                    location.reload();
+                }, 1000);
+            };
+        }
+
+        // Initialization
+        function init() {
+            ELEMENTS.avatar.src = AVATAR_STATES.idle;
+            setupAudioPlayer();
+            setupEventSource();
+        }
+
+        init();
     </script>
 </body>
 </html> 
