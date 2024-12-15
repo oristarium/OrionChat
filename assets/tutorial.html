@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Tools Tutorial</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2c3e50;
+            margin-top: 30px;
+        }
+        .step {
+            background: #f8f9fa;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        code {
+            background: #eee;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+        .tip {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 20px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Chat Tools Tutorial</h1>
+        <p>This guide will help you set up Chat Tools in OBS for your streaming needs. There are three main components to set up:</p>
+
+        <h2>1. Control Panel Setup</h2>
+        <div class="step">
+            <p>The control panel is where you manage your chat connections and settings.</p>
+            <ol>
+                <li>In OBS, go to View → Docks → Custom Browser Docks</li>
+                <li>Add a new dock with:
+                    <ul>
+                        <li>Dock Name: <code>Chat Tools Control</code></li>
+                        <li>URL: <code>http://localhost:7777</code></li>
+                    </ul>
+                </li>
+                <li>Click "Apply" to add the dock to your OBS workspace</li>
+            </ol>
+        </div>
+
+        <h2>2. Avatar TTS Setup</h2>
+        <div class="step">
+            <p>The TTS avatar will appear and speak chat messages on your stream.</p>
+            <ol>
+                <li>In OBS, add a new Browser source to your scene</li>
+                <li>Configure it with:
+                    <ul>
+                        <li>URL: <code>http://localhost:7777/tts</code></li>
+                        <li>Width: 300 (or as needed)</li>
+                        <li>Height: 300 (or as needed)</li>
+                    </ul>
+                </li>
+                <li>Position the browser source where you want the avatar to appear</li>
+            </ol>
+        </div>
+
+        <h2>3. Chat Display Setup</h2>
+        <div class="step">
+            <p>This will show highlighted chat messages on your stream.</p>
+            <ol>
+                <li>Add another Browser source to your scene</li>
+                <li>Configure it with:
+                    <ul>
+                        <li>URL: <code>http://localhost:7777/display</code></li>
+                        <li>Width: 400 (or as needed)</li>
+                        <li>Height: 600 (or as needed)</li>
+                    </ul>
+                </li>
+                <li>Position the chat display where you want messages to appear</li>
+            </ol>
+        </div>
+
+        <div class="tip">
+            <strong>Tip:</strong> Make sure Chat Tools is running before adding these sources to OBS. The application needs to be running for the sources to work properly.
+        </div>
+
+        <h2>Usage Tips</h2>
+        <ul>
+            <li>Use the control panel to connect to your streaming platform</li>
+            <li>You can customize the avatar by clicking the "Avatar Settings" button</li>
+            <li>Select your preferred TTS language from the dropdown menu</li>
+            <li>The chat display will automatically show messages as they come in</li>
+        </ul>
+    </div>
+</body>
+</html> 
