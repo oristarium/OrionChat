@@ -24,6 +24,7 @@ jobs:
       uses: egor-tensin/setup-mingw@v2
       with:
         platform: x64
+        continue-on-error: true
         
     - name: Install Dependencies
       run: |
@@ -31,6 +32,7 @@ jobs:
         
     - name: Build
       run: |
+        $env:CC = "x86_64-w64-mingw32-gcc"
         go build -v -ldflags="-s -w -H=windowsgui" -trimpath -o app.exe
         
     - name: Create ZIP
