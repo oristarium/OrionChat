@@ -106,11 +106,17 @@
         <div id="message-bubble" class="message-bubble"></div>
         <div id="username" class="username"></div>
         <div id="avatar-wrapper">
-            <img id="avatar" src="/idle.png" alt="Avatar" class="avatar-image">
+            <img id="avatar" src="" alt="Avatar" class="avatar-image">
         </div>
     </div>
 
     <script>
+        // Avatar state constants
+        const AVATAR_STATES = {
+            idle: '/avatars/idle.png',
+            talking: '/avatars/talking.gif'
+        };
+
         const messageBubble = document.getElementById('message-bubble');
         const username = document.getElementById('username');
         const avatar = document.getElementById('avatar');
@@ -125,13 +131,13 @@
             messageBubble.classList.add('show');
             username.classList.add('show');
             // Start talking animation
-            avatar.src = '/avatars/talking.gif';
+            avatar.src = AVATAR_STATES.talking;
             avatarWrapper.classList.add('animate-talking');
         };
 
         audioPlayer.onended = () => {
             // Hide everything when audio ends
-            avatar.src = '/idle.png';
+            avatar.src = AVATAR_STATES.idle;
             avatarWrapper.classList.remove('animate-talking');
             messageBubble.classList.remove('show');
             username.classList.remove('show');
@@ -164,7 +170,7 @@
 
             try {
                 // Ensure we're in idle state while loading
-                avatar.src = '/idle.png';
+                avatar.src = AVATAR_STATES.idle;
                 avatarWrapper.classList.remove('animate-talking');
                 messageBubble.classList.remove('show');
                 username.classList.remove('show');
@@ -191,7 +197,7 @@
                     playPromise.catch((error) => {
                         console.error('Error playing audio:', error);
                         // Reset UI if audio fails to play
-                        avatar.src = '/idle.png';
+                        avatar.src = AVATAR_STATES.idle;
                         avatarWrapper.classList.remove('animate-talking');
                         messageBubble.classList.remove('show');
                         username.classList.remove('show');
@@ -200,7 +206,7 @@
             } catch (error) {
                 console.error('Error getting/playing TTS:', error);
                 // Reset UI on error
-                avatar.src = '/avatars/idle.png';
+                avatar.src = AVATAR_STATES.idle;
                 avatarWrapper.classList.remove('animate-talking');
                 messageBubble.classList.remove('show');
                 username.classList.remove('show');
@@ -213,6 +219,9 @@
                 location.reload();
             }, 1000);
         };
+
+        // Set initial avatar state when page loads
+        document.getElementById('avatar').src = AVATAR_STATES.idle;
     </script>
 </body>
 </html> 
