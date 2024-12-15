@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -34,33 +35,23 @@ type Server struct {
 	config  Config
 	clients map[SSEClient]bool
 	mu      sync.RWMutex
-	db *bbolt.DB
+	fileHandler *FileHandler
 }
 
 // NewServer creates and configures a new server instance
 func NewServer() *Server {
-	db, err := bbolt.Open(DBPath, 0600, nil)
+	storage, err := NewBBoltStorage(DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Initialize default avatars in DB
-	err = db.Update(func(tx *bbolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(AvatarBucket))
-		if err != nil {
-			return err
-		}
+	// Set default avatars
+	err = storage.Save("avatar_idle", "/avatars/idle.png", AvatarBucket)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-		// Set defaults if not exists
-		if b.Get([]byte("avatar_idle")) == nil {
-			b.Put([]byte("avatar_idle"), []byte("/avatars/idle.png"))
-		}
-		if b.Get([]byte("avatar_talking")) == nil {
-			b.Put([]byte("avatar_talking"), []byte("/avatars/talking.gif"))
-		}
-		return nil
-	})
-
+	err = storage.Save("avatar_talking", "/avatars/talking.gif", AvatarBucket)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,7 +67,7 @@ func NewServer() *Server {
 			},
 		},
 		clients: make(map[SSEClient]bool),
-		db: db,
+		fileHandler: NewFileHandler(storage),
 	}
 }
 
@@ -106,6 +97,8 @@ func (s *Server) setupRoutes() {
 	}
 	http.HandleFunc("/upload-avatar", s.handleAvatarUpload)
 	http.HandleFunc("/get-avatars", s.handleGetAvatars)
+	http.HandleFunc("/list-avatars", s.handleListAvatars)
+	http.HandleFunc("/set-avatar", s.handleSetAvatar)
 }
 
 func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
@@ -193,123 +186,135 @@ func (s *Server) removeClient(client SSEClient) {
 }
 
 func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
-	log.Printf("Avatar upload request received: %s", r.Method)
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Parse multipart form
-	log.Println("Parsing multipart form...")
-	err := r.ParseMultipartForm(10 << 20)
-	if err != nil {
-		log.Printf("Form parse error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	log.Println("Getting file from form...")
-	file, handler, err := r.FormFile("avatar")
-	if err != nil {
-		log.Printf("File retrieval error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	avatarType := r.FormValue("type")
-	log.Printf("Avatar type: %s", avatarType)
-	if avatarType != "idle" && avatarType != "talking" {
-		log.Printf("Invalid avatar type: %s", avatarType)
-		http.Error(w, "Invalid avatar type", http.StatusBadRequest)
-		return
-	}
-
-	// Generate filename with timestamp
-	ext := filepath.Ext(handler.Filename)
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), ext)
-	filepath := filepath.Join("assets", "avatars", filename)
-	log.Printf("Generated filepath: %s", filepath)
-
-	// Create file
-	log.Println("Creating destination file...")
-	dst, err := os.Create(filepath)
-	if err != nil {
-		log.Printf("File creation error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	defer dst.Close()
-
-	// Copy file contents
-	log.Println("Copying file contents...")
-	if _, err = io.Copy(dst, file); err != nil {
-		log.Printf("File copy error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Update DB
-	dbKey := fmt.Sprintf("avatar_%s", avatarType)
-	dbValue := fmt.Sprintf("/avatars/%s", filename)
-	log.Printf("Updating DB - Key: %s, Value: %s", dbKey, dbValue)
-	
-	err = s.db.Update(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(AvatarBucket))
-		return b.Put([]byte(dbKey), []byte(dbValue))
-	})
-
-	if err != nil {
-		log.Printf("DB update error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Broadcast update to TTS clients
-	log.Println("Preparing broadcast update...")
-	update := Update{
-		Type: "avatar_update",
-		Data: map[string]string{
-			"type": avatarType,
-			"path": dbValue,
-		},
-		Message: ChatMessage{
-			Type: "avatar_update",
-			Data: ChatMessageData{
-				Content: ChatContent{
-					Raw: dbValue,
+	s.fileHandler.HandleUpload(w, r, struct {
+		FileField  string
+		TypeField  string
+		Directory  string
+		Bucket     string
+		KeyPrefix  string
+		OnSuccess  func(string) error
+	}{
+		FileField:  "avatar",
+		TypeField:  "type",
+		Directory:  "avatars",
+		Bucket:     AvatarBucket,
+		KeyPrefix:  "avatar",
+		OnSuccess: func(path string) error {
+			update := Update{
+				Type: "avatar_update",
+				Data: map[string]string{
+					"type": r.FormValue("type"),
+					"path": path,
 				},
-			},
+				Message: ChatMessage{
+					Type: "avatar_update",
+					Data: ChatMessageData{
+						Content: ChatContent{
+							Raw: path,
+						},
+					},
+				},
+				Lang: "en",
+			}
+			return s.broadcastUpdate(update)
 		},
-		Lang: "en",
-	}
-	log.Printf("Broadcasting update: %+v", update)
-	s.broadcastUpdate(update)
-
-	// Return success response
-	log.Println("Sending success response...")
-	json.NewEncoder(w).Encode(map[string]string{
-		"path": dbValue,
 	})
-	log.Println("Avatar upload completed successfully")
 }
 
 func (s *Server) handleGetAvatars(w http.ResponseWriter, r *http.Request) {
 	avatars := make(map[string]string)
 	
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(AvatarBucket))
-		avatars["idle"] = string(b.Get([]byte("avatar_idle")))
-		avatars["talking"] = string(b.Get([]byte("avatar_talking")))
-		return nil
-	})
-
+	idle, err := s.fileHandler.storage.Get("avatar_idle", AvatarBucket)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	avatars["idle"] = idle
+
+	talking, err := s.fileHandler.storage.Get("avatar_talking", AvatarBucket)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	avatars["talking"] = talking
 
 	json.NewEncoder(w).Encode(avatars)
+}
+
+func (s *Server) handleListAvatars(w http.ResponseWriter, r *http.Request) {
+	avatarDir := filepath.Join(AssetsDir, "avatars")
+	files, err := os.ReadDir(avatarDir)
+	if err != nil {
+		log.Printf("Error reading avatar directory: %v", err)
+		http.Error(w, "Failed to read avatars", http.StatusInternalServerError)
+		return
+	}
+
+	var avatars []string
+	for _, file := range files {
+		if !file.IsDir() {
+			avatars = append(avatars, fmt.Sprintf("/avatars/%s", file.Name()))
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string][]string{
+		"avatars": avatars,
+	})
+}
+
+func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Type string `json:"type"`  // idle or talking
+		Path string `json:"path"`  // path to existing avatar
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if request.Type != "idle" && request.Type != "talking" {
+		http.Error(w, "Invalid avatar type", http.StatusBadRequest)
+		return
+	}
+
+	// Save to DB
+	key := fmt.Sprintf("avatar_%s", request.Type)
+	if err := s.fileHandler.storage.Save(key, request.Path, AvatarBucket); err != nil {
+		http.Error(w, "Failed to save avatar setting", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast update
+	update := Update{
+		Type: "avatar_update",
+		Data: map[string]string{
+			"type": request.Type,
+			"path": request.Path,
+		},
+		Message: ChatMessage{
+			Type: "avatar_update",
+			Data: ChatMessageData{
+				Content: ChatContent{
+					Raw: request.Path,
+				},
+			},
+		},
+		Lang: "en",
+	}
+
+	if err := s.broadcastUpdate(update); err != nil {
+		http.Error(w, "Failed to broadcast update", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func main() {
@@ -394,3 +399,134 @@ type Update struct {
 }
 
 type SSEClient chan string
+
+// FileStorage interface defines methods for file operations
+type FileStorage interface {
+	Upload(file *multipart.File, filename string, directory string) (string, error)
+	Get(key string, bucket string) (string, error)
+	Save(key string, value string, bucket string) error
+}
+
+// BBoltStorage implements FileStorage using BBolt
+type BBoltStorage struct {
+	db *bbolt.DB
+}
+
+func NewBBoltStorage(dbPath string) (*BBoltStorage, error) {
+	db, err := bbolt.Open(dbPath, 0600, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &BBoltStorage{db: db}, nil
+}
+
+func (s *BBoltStorage) Upload(file *multipart.File, filename string, directory string) (string, error) {
+	filepath := filepath.Join(AssetsDir, directory, filename)
+	
+	// Create directory if it doesn't exist
+	if err := os.MkdirAll(directory, 0755); err != nil {
+		return "", err
+	}
+
+	dst, err := os.Create(filepath)
+	if err != nil {
+		return "", err
+	}
+	defer dst.Close()
+
+	if _, err = io.Copy(dst, *file); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("/%s/%s", directory, filename), nil
+}
+
+func (s *BBoltStorage) Get(key string, bucket string) (string, error) {
+	var value string
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(bucket))
+		if b == nil {
+			return fmt.Errorf("bucket %s not found", bucket)
+		}
+		value = string(b.Get([]byte(key)))
+		return nil
+	})
+	return value, err
+}
+
+func (s *BBoltStorage) Save(key string, value string, bucket string) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(bucket))
+		if err != nil {
+			return err
+		}
+		return b.Put([]byte(key), []byte(value))
+	})
+}
+
+// FileHandler handles file-related operations
+type FileHandler struct {
+	storage FileStorage
+}
+
+func NewFileHandler(storage FileStorage) *FileHandler {
+	return &FileHandler{storage: storage}
+}
+
+func (h *FileHandler) HandleUpload(w http.ResponseWriter, r *http.Request, options struct {
+	FileField  string
+	TypeField  string
+	Directory  string
+	Bucket     string
+	KeyPrefix  string
+	OnSuccess  func(string) error
+}) {
+	log.Printf("Upload request received for %s", options.Directory)
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		log.Printf("Form parse error: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	file, handler, err := r.FormFile(options.FileField)
+	if err != nil {
+		log.Printf("File retrieval error: %v", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	itemType := r.FormValue(options.TypeField)
+	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), filepath.Ext(handler.Filename))
+
+	path, err := h.storage.Upload(&file, filename, options.Directory)
+	if err != nil {
+		log.Printf("File upload error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	key := fmt.Sprintf("%s_%s", options.KeyPrefix, itemType)
+	if err := h.storage.Save(key, path, options.Bucket); err != nil {
+		log.Printf("Storage save error: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if options.OnSuccess != nil {
+		if err := options.OnSuccess(path); err != nil {
+			log.Printf("OnSuccess callback error: %v", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{"path": path})
+}

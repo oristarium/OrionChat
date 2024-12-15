@@ -45,15 +45,28 @@
                 </select>
             </div>
             <div class="setting-group avatar-settings">
-                <div class="avatar-upload">
-                    <label>Idle Avatar:</label>
-                    <input type="file" id="idle-avatar" accept="image/*">
-                    <button id="upload-idle" class="secondary-btn">Upload</button>
+                <div class="avatar-section">
+                    <h3>Idle Avatar</h3>
+                    <div class="avatar-upload">
+                        <label>Upload New:</label>
+                        <input type="file" id="idle-avatar" accept="image/*">
+                        <button id="upload-idle" class="secondary-btn">Upload</button>
+                    </div>
+                    <div class="avatar-grid" id="idle-avatar-grid">
+                        <!-- Avatars will be populated here -->
+                    </div>
                 </div>
-                <div class="avatar-upload">
-                    <label>Talking Avatar:</label>
-                    <input type="file" id="talking-avatar" accept="image/*">
-                    <button id="upload-talking" class="secondary-btn">Upload</button>
+
+                <div class="avatar-section">
+                    <h3>Talking Avatar</h3>
+                    <div class="avatar-upload">
+                        <label>Upload New:</label>
+                        <input type="file" id="talking-avatar" accept="image/*">
+                        <button id="upload-talking" class="secondary-btn">Upload</button>
+                    </div>
+                    <div class="avatar-grid" id="talking-avatar-grid">
+                        <!-- Avatars will be populated here -->
+                    </div>
                 </div>
             </div>
         </section>
