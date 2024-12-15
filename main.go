@@ -89,8 +89,8 @@ var (
 )
 
 func main() {
-	// Serve static files
-	http.Handle("/", http.FileServer(http.Dir("static")))
+	// Serve assets files
+	http.Handle("/", http.FileServer(http.Dir("assets")))
 	
 	// SSE endpoint
 	http.HandleFunc("/sse", handleSSE)
@@ -100,15 +100,15 @@ func main() {
 
 	// Redirect root to control
 	http.HandleFunc("/control", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/control.html")
+		http.ServeFile(w, r, "assets/control.html")
 	})
 
 	http.HandleFunc("/display", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/display.html")
+		http.ServeFile(w, r, "assets/display.html")
 	})
 
 	http.HandleFunc("/tts", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/tts.html")
+		http.ServeFile(w, r, "assets/tts.html")
 	})
 
 	log.Printf("Server starting on http://localhost:7777")

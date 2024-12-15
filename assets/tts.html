@@ -125,7 +125,7 @@
             messageBubble.classList.add('show');
             username.classList.add('show');
             // Start talking animation
-            avatar.src = '/talking.gif';
+            avatar.src = '/avatars/talking.gif';
             avatarWrapper.classList.add('animate-talking');
         };
 
@@ -200,7 +200,7 @@
             } catch (error) {
                 console.error('Error getting/playing TTS:', error);
                 // Reset UI on error
-                avatar.src = '/idle.png';
+                avatar.src = '/avatars/idle.png';
                 avatarWrapper.classList.remove('animate-talking');
                 messageBubble.classList.remove('show');
                 username.classList.remove('show');

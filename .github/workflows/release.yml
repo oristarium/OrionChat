@@ -22,13 +22,11 @@ jobs:
         
     - name: Initialize Go Module
       run: |
-        cd backend
-        go mod init github.com/${{ github.repository }}/backend
+        go mod init github.com/${{ github.repository }}
         go mod tidy
         
     - name: Build
       run: |
-        cd backend
         go build -v -ldflags="-s -w" -trimpath -o app.exe
         
     - name: Create ZIP
@@ -36,10 +34,10 @@ jobs:
         # Create a temporary directory for the release
         New-Item -ItemType Directory -Path release
         # Copy executable to release dir
-        Copy-Item backend/app.exe release/
-        # Create static directory and copy files
-        New-Item -ItemType Directory -Path release/static
-        Copy-Item backend/static/* release/static/
+        Copy-Item app.exe release/
+        # Create assets directory and copy files
+        New-Item -ItemType Directory -Path release/assets
+        Copy-Item assets/* release/assets/
         # Create the final ZIP
         Compress-Archive -Path release/* -DestinationPath "chat-tools-${{ github.ref_name }}.zip"
         
