@@ -8,6 +8,150 @@ import (
 	"sync"
 )
 
+// Constants
+const (
+	ServerPort = ":7777"
+	AssetsDir  = "assets"
+)
+
+// Config holds server configuration
+type Config struct {
+	Port      string
+	AssetsDir string
+	Routes    map[string]string
+}
+
+// Server represents the application server
+type Server struct {
+	config  Config
+	clients map[SSEClient]bool
+	mu      sync.RWMutex
+}
+
+// NewServer creates and configures a new server instance
+func NewServer() *Server {
+	return &Server{
+		config: Config{
+			Port:      ServerPort,
+			AssetsDir: AssetsDir,
+			Routes: map[string]string{
+				"/control": "/control.html",
+				"/display": "/display.html",
+				"/tts":     "/tts.html",
+			},
+		},
+		clients: make(map[SSEClient]bool),
+	}
+}
+
+// Start initializes and starts the server
+func (s *Server) Start() error {
+	s.setupRoutes()
+	addr := fmt.Sprintf("http://localhost%s", s.config.Port)
+	log.Printf("Server starting on %s", addr)
+	return http.ListenAndServe(s.config.Port, nil)
+}
+
+// setupRoutes configures all HTTP routes
+func (s *Server) setupRoutes() {
+	// Serve static files
+	http.Handle("/", http.FileServer(http.Dir(s.config.AssetsDir)))
+	
+	// Configure SSE and update endpoints
+	http.HandleFunc("/sse", s.handleSSE)
+	http.HandleFunc("/update", s.handleUpdate)
+	
+	// Configure page routes
+	for route, file := range s.config.Routes {
+		filePath := s.config.AssetsDir + file
+		http.HandleFunc(route, func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filePath)
+		})
+	}
+}
+
+func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
+	headers := map[string]string{
+		"Content-Type":                "text/event-stream",
+		"Cache-Control":               "no-cache",
+		"Connection":                  "keep-alive",
+		"Access-Control-Allow-Origin": "*",
+	}
+	
+	for key, value := range headers {
+		w.Header().Set(key, value)
+	}
+
+	client := make(SSEClient)
+	
+	s.addClient(client)
+	defer s.removeClient(client)
+
+	notify := w.(http.CloseNotifier).CloseNotify()
+	go func() {
+		<-notify
+		s.removeClient(client)
+	}()
+
+	for msg := range client {
+		fmt.Fprintf(w, "data: %s\n\n", msg)
+		w.(http.Flusher).Flush()
+	}
+}
+
+func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var update Update
+	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := s.broadcastUpdate(update); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) broadcastUpdate(update Update) error {
+	message, err := json.Marshal(update)
+	if err != nil {
+		return err
+	}
+	
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	
+	for client := range s.clients {
+		client <- string(message)
+	}
+	return nil
+}
+
+func (s *Server) addClient(client SSEClient) {
+	s.mu.Lock()
+	s.clients[client] = true
+	s.mu.Unlock()
+}
+
+func (s *Server) removeClient(client SSEClient) {
+	s.mu.Lock()
+	delete(s.clients, client)
+	close(client)
+	s.mu.Unlock()
+}
+
+func main() {
+	server := NewServer()
+	log.Fatal(server.Start())
+}
+
 // ChatAuthor represents the author of a chat message
 type ChatAuthor struct {
 	ID          string `json:"id"`
@@ -83,99 +227,3 @@ type Update struct {
 }
 
 type SSEClient chan string
-var (
-	clients    = make(map[SSEClient]bool)
-	clientsMux sync.RWMutex
-)
-
-func main() {
-	// Serve assets files
-	http.Handle("/", http.FileServer(http.Dir("assets")))
-	
-	// SSE endpoint
-	http.HandleFunc("/sse", handleSSE)
-	
-	// Update endpoint
-	http.HandleFunc("/update", handleUpdate)
-
-	// Redirect root to control
-	http.HandleFunc("/control", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/control.html")
-	})
-
-	http.HandleFunc("/display", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/display.html")
-	})
-
-	http.HandleFunc("/tts", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "assets/tts.html")
-	})
-
-	log.Printf("Server starting on http://localhost:7777")
-	log.Fatal(http.ListenAndServe(":7777", nil))
-}
-
-func handleSSE(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
-	client := make(SSEClient)
-	
-	clientsMux.Lock()
-	clients[client] = true
-	clientsMux.Unlock()
-
-	defer func() {
-		clientsMux.Lock()
-		delete(clients, client)
-		clientsMux.Unlock()
-	}()
-
-	notify := w.(http.CloseNotifier).CloseNotify()
-	go func() {
-		<-notify
-		clientsMux.Lock()
-		delete(clients, client)
-		close(client)
-		clientsMux.Unlock()
-	}()
-
-	for {
-		msg, ok := <-client
-		if !ok {
-			return
-		}
-		fmt.Fprintf(w, "data: %s\n\n", msg)
-		w.(http.Flusher).Flush()
-	}
-}
-
-func handleUpdate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var update Update
-	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// Broadcast to all SSE clients
-	message, err := json.Marshal(update)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	
-	clientsMux.RLock()
-	for client := range clients {
-		client <- string(message)
-	}
-	clientsMux.RUnlock()
-
-	w.WriteHeader(http.StatusOK)
-} 
