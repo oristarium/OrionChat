@@ -20,6 +20,24 @@ jobs:
         go-version: '1.22'
         cache: true
         
+    # Cache Go modules
+    - name: Go Module Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    # Cache Fyne CLI
+    - name: Fyne CLI Cache
+      uses: actions/cache@v4
+      with:
+        path: ~/go/bin/fyne.exe
+        key: ${{ runner.os }}-fyne-cli-${{ hashFiles('go.sum') }}
+        
     - name: Set up MinGW
       continue-on-error: true
       uses: egor-tensin/setup-mingw@v2
@@ -28,7 +46,20 @@ jobs:
         
     - name: Install Dependencies
       run: |
-        go install fyne.io/fyne/v2/cmd/fyne@latest
+        if (!(Test-Path ~/go/bin/fyne.exe)) {
+          go install fyne.io/fyne/v2/cmd/fyne@latest
+        }
+        
+    # Cache build dependencies
+    - name: Dependencies Cache
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/go-build
+          ~/go/pkg/mod
+        key: ${{ runner.os }}-build-${{ hashFiles('**/*.go') }}
+        restore-keys: |
+          ${{ runner.os }}-build-
         
     - name: Build
       run: |
