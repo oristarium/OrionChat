@@ -21,10 +21,10 @@ jobs:
         cache: true
         
     - name: Set up MinGW
+      continue-on-error: true
       uses: egor-tensin/setup-mingw@v2
       with:
         platform: x64
-        continue-on-error: true
         
     - name: Install Dependencies
       run: |

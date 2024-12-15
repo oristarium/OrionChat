@@ -3,6 +3,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -325,32 +326,22 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	// Create a channel to coordinate shutdown
+	// Create channels to coordinate shutdown
 	shutdown := make(chan bool)
+	serverStarted := make(chan bool)
 	var wg sync.WaitGroup
 
-	// Create and start the server in a goroutine
-	server := NewServer()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		if err := server.Start(); err != nil {
-			log.Printf("Server error: %v", err)
-			shutdown <- true
-		}
-	}()
-
-	// Create Fyne application
+	// Create Fyne application in the main thread
 	fyneApp := app.New()
 	window := fyneApp.NewWindow("Chat Tools")
 
 	// Create status label
-	status := widget.NewLabel(fmt.Sprintf("Server running on port %s", ServerPort))
+	status := widget.NewLabel("Starting server...")
 
 	// Create quit button
 	quitBtn := widget.NewButton("Quit Application", func() {
-		shutdown <- true
-		fyneApp.Quit()
+		status.SetText("Shutting down...")
+		close(shutdown)
 	})
 
 	// Layout
@@ -363,24 +354,66 @@ func main() {
 
 	// Handle window closing
 	window.SetCloseIntercept(func() {
-		shutdown <- true
-		fyneApp.Quit()
+		status.SetText("Shutting down...")
+		close(shutdown)
 	})
 
 	// Set a reasonable default size
 	window.Resize(fyne.NewSize(300, 100))
 
-	// Show the window
-	window.Show()
+	// Create HTTP server
+	server := NewServer()
+	httpServer := &http.Server{
+		Addr:    ServerPort,
+		Handler: http.DefaultServeMux,
+	}
 
-	// Run the GUI
-	go fyneApp.Run()
+	// Start server in a separate goroutine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		
+		server.setupRoutes()
+		
+		// Signal that we're about to start the server
+		serverStarted <- true
+		
+		// Start the server
+		if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
+			log.Printf("Server error: %v", err)
+			close(shutdown)
+			return
+		}
+	}()
 
-	// Wait for shutdown signal
-	<-shutdown
+	// Update status when server starts
+	go func() {
+		select {
+		case <-serverStarted:
+			status.SetText(fmt.Sprintf("Server running on port %s", ServerPort))
+		case <-shutdown:
+			return
+		}
+	}()
 
-	// Clean up and wait for server to finish
-	wg.Wait()
+	// Handle shutdown
+	go func() {
+		<-shutdown
+		
+		// Shutdown the HTTP server
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		
+		if err := httpServer.Shutdown(ctx); err != nil {
+			log.Printf("Server shutdown error: %v", err)
+		}
+		
+		wg.Wait()
+		fyneApp.Quit()
+	}()
+
+	// Run the GUI in the main thread
+	window.ShowAndRun()
 }
 
 // ChatAuthor represents the author of a chat message
