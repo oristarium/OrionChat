@@ -149,11 +149,64 @@
             width: fit-content;
             height: fit-content;
         }
+
+        .debug-box {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 9999;
+            max-width: 300px;
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .debug-box.show {
+            display: block;
+        }
+
+        .debug-box__header {
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #00ff00;
+        }
+
+        .debug-box__row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .debug-box__message {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .debug-box__status {
+            text-align: right;
+        }
+
+        .debug-box__status--done { color: #00ff00; }
+        .debug-box__status--fetching { color: #ffff00; }
+        .debug-box__status--queued { color: #ff9900; }
     </style>
 </head>
 <body>
     <div class="watermark">
         Powered by Oristarium
+    </div>
+
+    <div class="debug-box">
+        <div class="debug-box__header">Message Queue: <span id="queue-count">0</span></div>
+        <div id="queue-status"></div>
     </div>
 
     <div class="avatar-container">
@@ -175,11 +228,16 @@
             messageBubble: document.getElementById('message-bubble'),
             username: document.getElementById('username'),
             avatar: document.getElementById('avatar'),
-            avatarWrapper: document.getElementById('avatar-wrapper')
+            avatarWrapper: document.getElementById('avatar-wrapper'),
+            debugQueueCount: document.getElementById('queue-count'),
+            debugQueueStatus: document.getElementById('queue-status')
         };
 
         const TTS_API_URL = 'https://google-tts.oristarium.com/';
         let audioPlayer = new Audio();
+
+        // Add transition duration constant
+        const UI_TRANSITION_DURATION = 300; // Match this with CSS transition duration
 
         // UI State Management
         function updateUIState(isPlaying) {
@@ -191,53 +249,170 @@
 
         // Audio Setup
         function setupAudioPlayer() {
-            audioPlayer.onplay = () => updateUIState(true);
-            audioPlayer.onended = () => updateUIState(false);
+            audioPlayer.onplay = () => {
+                updateUIState(true);
+                console.log(`[${new Date().toISOString()}] Audio playback started`);
+            };
+
+            // Add onended handler to reset UI state
+            audioPlayer.onended = () => {
+                updateUIState(false);
+                console.log(`[${new Date().toISOString()}] Audio playback ended, resetting UI`);
+            };
         }
 
         // TTS Processing
+        const ttsQueue = [];
+        let isProcessingQueue = false;
         let lastPlayedMessageId = null;
+        const audioCache = new Map();
 
         async function processTTSMessage(chatMessage, lang) {
-            console.log(`[${new Date().toISOString()}] Starting TTS process for message:`, chatMessage.message_id);
+            console.log(`[${new Date().toISOString()}] Received TTS message:`, chatMessage.message_id);
             
+            // Check for duplicate consecutive message
             if (chatMessage.message_id === lastPlayedMessageId) {
                 console.log('Ignoring duplicate consecutive message:', chatMessage.message_id);
                 return;
             }
 
-            const content = chatMessage.data.content;
-            const textForTTS = typeof content === 'string' 
-                ? content 
-                : (content.sanitized || content.raw || content.formatted || '');
-
-            if (!textForTTS.trim()) return;
-
-            const authorName = chatMessage.data.author.display_name 
-                || chatMessage.data.author.name 
-                || 'Anonymous';
-
-            ELEMENTS.messageBubble.textContent = textForTTS;
-            ELEMENTS.username.textContent = authorName;
-
-            try {
-                updateUIState(false);
-                console.log(`[${new Date().toISOString()}] Fetching TTS audio from API...`);
-                const startFetch = performance.now();
-                const audio = await fetchTTSAudio(textForTTS, lang);
-                const fetchDuration = performance.now() - startFetch;
-                console.log(`[${new Date().toISOString()}] TTS audio fetched in ${fetchDuration.toFixed(2)}ms`);
-
-                lastPlayedMessageId = chatMessage.message_id;
-                console.log(`[${new Date().toISOString()}] Starting audio playback...`);
-                const startPlay = performance.now();
-                await playAudio(audio);
-                const playDuration = performance.now() - startPlay;
-                console.log(`[${new Date().toISOString()}] Audio playback started in ${playDuration.toFixed(2)}ms`);
-            } catch (error) {
-                console.error('Error in TTS processing:', error);
-                updateUIState(false);
+            // Check if this message is already in queue
+            const isDuplicate = ttsQueue.some(item => item.chatMessage.message_id === chatMessage.message_id);
+            if (isDuplicate) {
+                console.log('Ignoring duplicate message already in queue:', chatMessage.message_id);
+                return;
             }
+
+            // Add to queue
+            ttsQueue.push({ chatMessage, lang });
+            console.log(`[${new Date().toISOString()}] Added to queue. Queue length:`, ttsQueue.length);
+            updateDebugBox();
+
+            // Start processing if not already processing
+            if (!isProcessingQueue) {
+                processQueue();
+            }
+        }
+
+        // Add prefetch function
+        async function prefetchNextInQueue() {
+            const itemsToPrefetch = ttsQueue.slice(1, 4);
+            
+            for (const item of itemsToPrefetch) {
+                const { chatMessage, lang } = item;
+                const content = chatMessage.data.content;
+                const textForTTS = typeof content === 'string' 
+                    ? content 
+                    : (content.sanitized || content.raw || content.formatted || '');
+
+                if (!textForTTS.trim() || audioCache.has(chatMessage.message_id)) continue;
+
+                try {
+                    console.log(`[${new Date().toISOString()}] Prefetching audio for message:`, chatMessage.message_id);
+                    updateDebugBox(); // Update status before fetching
+                    const audio = await fetchTTSAudio(textForTTS, lang);
+                    audioCache.set(chatMessage.message_id, audio);
+                    console.log(`[${new Date().toISOString()}] Successfully prefetched audio for message:`, chatMessage.message_id);
+                    updateDebugBox(); // Update status after fetching
+                } catch (error) {
+                    console.error(`Error prefetching audio for message ${chatMessage.message_id}:`, error);
+                }
+            }
+        }
+
+        // Modify processQueue to use cached audio
+        async function processQueue() {
+            if (isProcessingQueue || ttsQueue.length === 0) {
+                return;
+            }
+
+            isProcessingQueue = true;
+
+            while (ttsQueue.length > 0) {
+                const { chatMessage, lang } = ttsQueue[0];
+                console.log(`[${new Date().toISOString()}] Processing from queue:`, chatMessage.message_id);
+
+                // Start prefetching next items while processing current one
+                prefetchNextInQueue();
+
+                // Wait for any ongoing hide transitions to complete
+                if (!ELEMENTS.messageBubble.classList.contains('show')) {
+                    await new Promise(resolve => setTimeout(resolve, UI_TRANSITION_DURATION));
+                }
+
+                const content = chatMessage.data.content;
+                const textForTTS = typeof content === 'string' 
+                    ? content 
+                    : (content.sanitized || content.raw || content.formatted || '');
+
+                if (!textForTTS.trim()) {
+                    ttsQueue.shift();
+                    updateDebugBox();
+                    continue;
+                }
+
+                const authorName = chatMessage.data.author.display_name 
+                    || chatMessage.data.author.name 
+                    || 'Anonymous';
+
+                // Update content while elements are hidden
+                ELEMENTS.messageBubble.textContent = textForTTS;
+                ELEMENTS.username.textContent = authorName;
+
+                try {
+                    let audio;
+                    // Check if audio is cached
+                    if (audioCache.has(chatMessage.message_id)) {
+                        console.log(`[${new Date().toISOString()}] Using cached audio for message:`, chatMessage.message_id);
+                        audio = audioCache.get(chatMessage.message_id);
+                        audioCache.delete(chatMessage.message_id); // Clean up cache
+                    } else {
+                        console.log(`[${new Date().toISOString()}] Fetching TTS audio from API...`);
+                        const startFetch = performance.now();
+                        audio = await fetchTTSAudio(textForTTS, lang);
+                        const fetchDuration = performance.now() - startFetch;
+                        console.log(`[${new Date().toISOString()}] TTS audio fetched in ${fetchDuration.toFixed(2)}ms`);
+                    }
+
+                    lastPlayedMessageId = chatMessage.message_id;
+                    console.log(`[${new Date().toISOString()}] Starting audio playback...`);
+                    const startPlay = performance.now();
+                    
+                    // Wait for audio to finish playing
+                    await new Promise((resolve, reject) => {
+                        audioPlayer.src = `data:audio/mp3;base64,${audio}`;
+                        const onEnded = () => {
+                            audioPlayer.onended = null;
+                            updateUIState(false);
+                            // Wait for hide transition to complete before resolving
+                            setTimeout(resolve, UI_TRANSITION_DURATION);
+                        };
+                        audioPlayer.onended = onEnded;
+                        audioPlayer.onerror = reject;
+                        updateUIState(true);
+                        audioPlayer.play().catch(reject);
+                    });
+
+                    const playDuration = performance.now() - startPlay;
+                    console.log(`[${new Date().toISOString()}] Audio playback completed in ${playDuration.toFixed(2)}ms`);
+                    
+                } catch (error) {
+                    console.error('Error processing queued TTS:', error);
+                    updateUIState(false);
+                    await new Promise(resolve => setTimeout(resolve, UI_TRANSITION_DURATION));
+                }
+
+                ttsQueue.shift();
+                updateDebugBox();
+                // Clean up old cached items
+                if (audioCache.size > 5) { // Keep cache size reasonable
+                    const oldestKey = audioCache.keys().next().value;
+                    audioCache.delete(oldestKey);
+                }
+            }
+
+            isProcessingQueue = false;
+            console.log(`[${new Date().toISOString()}] Queue processing completed`);
         }
 
         // API Interaction
@@ -260,17 +435,6 @@
             } catch (error) {
                 console.error(`[${new Date().toISOString()}] TTS API error:`, error);
                 throw error;
-            }
-        }
-
-        // Audio Playback
-        async function playAudio(audioData) {
-            audioPlayer.src = `data:audio/mp3;base64,${audioData}`;
-            try {
-                await audioPlayer.play();
-            } catch (error) {
-                console.error('Error playing audio:', error);
-                updateUIState(false);
             }
         }
 
@@ -338,6 +502,64 @@
             } catch (error) {
                 console.error('Error loading avatars:', error);
             }
+        }
+
+        function updateDebugBox() {
+            if (!debugMode) return;
+            
+            ELEMENTS.debugQueueCount.textContent = ttsQueue.length;
+            
+            const queueHTML = ttsQueue.map((item, index) => {
+                const message = item.chatMessage;
+                const content = message.data.content;
+                const text = typeof content === 'string' 
+                    ? content 
+                    : (content.sanitized || content.raw || content.formatted || '');
+                
+                let status = 'queued';
+                let statusText = 'queued';
+                
+                // If it's the first item and processing, check if we're fetching or done
+                if (index === 0 && isProcessingQueue) {
+                    // If audio is cached or we're past the fetch stage (playing), it's done
+                    if (audioCache.has(message.message_id) || audioPlayer.src.includes(message.message_id)) {
+                        status = 'done';
+                        statusText = 'done';
+                    } else {
+                        status = 'fetching';
+                        statusText = 'fetching';
+                    }
+                }
+                // For other items, if they're cached they're done
+                else if (audioCache.has(message.message_id)) {
+                    status = 'done';
+                    statusText = 'done';
+                }
+                // Otherwise they're still queued
+                else {
+                    status = 'queued';
+                    statusText = 'queued';
+                }
+
+                return `
+                    <div class="debug-box__row">
+                        <div class="debug-box__message">${text.substring(0, 30)}${text.length > 30 ? '...' : ''}</div>
+                        <div class="debug-box__status debug-box__status--${status}">${statusText}</div>
+                    </div>
+                `;
+            }).join('');
+
+            ELEMENTS.debugQueueStatus.innerHTML = queueHTML;
+        }
+
+        // Add this near the top of the script, after constants
+        const urlParams = new URLSearchParams(window.location.search);
+        const debugMode = urlParams.has('debug') && (urlParams.get('debug') === '' || urlParams.get('debug') === 'true');
+
+        // After DOM elements are defined, show debug box if in debug mode
+        if (debugMode) {
+            document.querySelector('.debug-box').classList.add('show');
+            console.log('Debug mode enabled');
         }
 
         init();
