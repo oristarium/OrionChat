@@ -7,72 +7,157 @@
     <style>
         body {
             margin: 0;
-            padding: 20px;
+            padding: 2vh;
             background: transparent;
             font-family: Arial, sans-serif;
-            color: white;
-            text-shadow: 2px 2px 2px rgba(0,0,0,0.5);
+            color: #000;
         }
 
-        #message {
-            font-size: 24px;
-            word-wrap: break-word;
+        #message-container {
+            display: flex;
+            align-items: center;
+            gap: 2vw;
+            padding: 3vh 3vw;
+            background: white;
+            border-radius: 1vw;
+            box-shadow: 0 0.2vw 1vw rgba(0,0,0,0.1);
+            animation: fadeInUp 0.3s ease-out;
+        }
+
+        .author-avatar {
+            width: clamp(48px, 8vw, 96px);
+            height: clamp(48px, 8vw, 96px);
+            border-radius: 50%;
+            border: 0.3vw solid #4CAF50;
         }
 
         .author-name {
             color: #4CAF50;
             font-weight: bold;
-            margin-right: 8px;
+            font-size: clamp(16px, 2.5vw, 32px);
         }
 
-        .super-chat {
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 10px;
+        .message-content {
+            font-size: clamp(24px, 4vw, 48px);
+            word-wrap: break-word;
+            line-height: 1.4;
+            color: #000;
+        }
+
+        /* Make emotes scale with font size */
+        .message-content img.emote {
+            height: 1.2em; /* 1.2x the font size */
+            width: auto;
+            vertical-align: middle;
+            margin: 0 0.1em;
+        }
+
+        /* Ensure emotes don't get too small or too large */
+        @media screen and (max-width: 600px) {
+            .message-content img.emote {
+                height: clamp(24px, 1.2em, 48px);
+            }
+        }
+
+        /* Platform-specific colors - keeping these more subtle for better readability */
+        .platform-youtube .author-avatar { border-color: #FF0000; }
+        .platform-youtube .author-name { color: #CC0000; }
+        
+        .platform-twitch .author-avatar { border-color: #9146FF; }
+        .platform-twitch .author-name { color: #7829E1; }
+        
+        .platform-tiktok .author-avatar { border-color: #00F2EA; }
+        .platform-tiktok .author-name { color: #00C5BE; }
+
+        /* Animation keyframes */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(2vh);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Optional: Add transition for smooth color changes */
+        .author-avatar, .author-name {
+            transition: border-color 0.3s, color 0.3s;
+        }
+
+        .message-content-wrapper {
+            flex-grow: 1;
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+            margin-bottom: 1vh;
         }
     </style>
 </head>
 <body>
-    <div id="message"></div>
-
     <script>
-        const messageDiv = document.getElementById('message');
+        let messageContainer = null;
         const evtSource = new EventSource('/sse');
         
         evtSource.onmessage = async (event) => {
             const data = JSON.parse(event.data);
-            console.log("SSE message received");
-            console.log(data);
+            console.log("SSE message received", data);
             const chatMessage = data.message;
+            const platform = chatMessage.data.platform;
 
-            // Handle the display based on message type and content
-            let displayText = '';
-            
-            if (chatMessage.data.metadata?.type === 'super_chat') {
-                // Handle super chat display
-                const amount = chatMessage.data.metadata.monetary_data?.formatted || '';
-                const color = chatMessage.data.metadata.monetary_data?.color || '#4CAF50';
-                
-                messageDiv.className = 'super-chat';
-                messageDiv.style.backgroundColor = color;
-            } else {
-                messageDiv.className = '';
-            }
+            // Create a new container for the animation to restart
+            const newContainer = document.createElement('div');
+            newContainer.id = 'message-container';
 
             // Get the content for display
             const content = chatMessage.data.content;
-            if (typeof content === 'string') {
-                displayText = content;
-            } else {
-                displayText = content.rawHtml || content.formatted || content.raw || '';
-            }
+            const displayText = typeof content === 'string' 
+                ? content 
+                : (content.rawHtml || content.formatted || content.raw || '');
 
-            // Display the message with author name
-            const authorName = chatMessage.data.author.display_name || chatMessage.data.author.name || 'Anonymous';
-            messageDiv.innerHTML = `
-                <span class="author-name">${authorName}:</span>
-                <span class="message-content">${displayText}</span>
+            // Get author information
+            const author = chatMessage.data.author;
+            const authorName = author.display_name || author.username || 'Anonymous';
+            const avatarUrl = author.avatar_url || 'default-avatar.png';
+
+            // Create badges HTML
+            const badgesHtml = author.badges?.map(badge => 
+                `<img class="badge" src="${badge.image_url}" alt="${badge.label}" title="${badge.label}">`
+            ).join('') || '';
+
+            // Handle super chat styling
+            const isSuperChat = chatMessage.data.metadata?.type === 'super_chat';
+            const superChatStyle = isSuperChat 
+                ? `background-color: ${chatMessage.data.metadata.monetary_data?.color || '#4CAF50'};`
+                : '';
+
+            // Update the message container
+            newContainer.className = `platform-${platform} ${isSuperChat ? 'super-chat' : ''}`;
+            newContainer.style = superChatStyle;
+            newContainer.innerHTML = `
+                <img class="author-avatar" src="${avatarUrl}" alt="${authorName}'s avatar">
+                <div class="message-content-wrapper">
+                    <div class="author-info">
+                        <span class="author-name">${authorName}</span>
+                        ${badgesHtml}
+                    </div>
+                    <div class="message-content">${displayText}</div>
+                </div>
             `;
+
+            // Replace or append the new container
+            if (messageContainer) {
+                document.body.replaceChild(newContainer, messageContainer);
+            } else {
+                document.body.appendChild(newContainer);
+            }
+            
+            // Update the container reference
+            messageContainer = newContainer;
         };
 
         evtSource.onerror = () => {
