@@ -64,7 +64,8 @@ jobs:
     - name: Create Resource File
       shell: cmd
       run: |
-        "C:\msys64\mingw64\bin\windres.exe" icon.rc -O coff -o icon.syso
+        where windres
+        windres icon.rc -O coff -o icon.syso
         
     - name: Build
       run: |
