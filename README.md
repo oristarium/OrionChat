@@ -1,22 +1,15 @@
 Read this in other languages: [English](README.md) | [Indonesia](README.id.md)
 
 <div align="center">
-<img src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg" alt="Awesome Badge"/>
-<img src="https://img.shields.io/static/v1?label=%F0%9F%8C%9F&message=If%20Useful&style=style=flat&color=BC4E99" alt="Star Badge"/>
-<a href="https://discord.gg/JgjExyntw4"><img src="https://img.shields.io/discord/733027681184251937.svg?style=flat&label=Join%20Community&color=7289DA" alt="Join Community Badge"/></a>
+<a href="https://discord.gg/JgjExyntw4"><img src="https://img.shields.io/discord/733027681184251937.svg?style=flat&label=Join%20Our%20Discord&color=7289DA" alt="Join Community Badge"/></a>
 <a href="https://twitter.com/oristarium"><img src="https://img.shields.io/twitter/follow/oristarium.svg?style=social" /></a>
+<a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/oristarium/orionchat?color=2b9348"></a>
+<a href="https://github.com/oristarium/orionchat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/oristarium/orionchat?color=2b9348" alt="License Badge"/></a>
 <br>
 <img src="assets/icon-big.png" alt="OrionChat logo" width="200" height="200"/>
 <h1 align="center"> OrionChat </h1>
 <i>A powerful OBS integration tool for managing live stream chats with TTS and avatar animations</i>
-<br><br>
-<a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/network/members"><img src="https://img.shields.io/github/forks/oristarium/orionchat" alt="Forks Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/pulls"><img src="https://img.shields.io/github/issues-pr/oristarium/orionchat" alt="Pull Requests Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/issues"><img src="https://img.shields.io/github/issues/oristarium/orionchat" alt="Issues Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/oristarium/orionchat?color=2b9348"></a>
-<a href="https://github.com/oristarium/orionchat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/oristarium/orionchat?color=2b9348" alt="License Badge"/></a>
-
 </div>
 
 ## ✨ Features
@@ -27,6 +20,18 @@ Read this in other languages: [English](README.md) | [Indonesia](README.id.md)
 - 🎨 **Customizable Avatars** - Support for both static and animated avatars
 - 🎯 **Real-time Chat Display** - Show highlighted messages on stream
 - 🔧 **Control Panel** - User-friendly interface for managing all features
+
+
+## 💖 Support Us
+
+<a href="https://oristarium.com" target="_blank"><img alt="Oristarium Logo" src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/1000x1000/" width="200"/></a>
+
+We contribute to the VTuber community through open-source tools, technical resources, and knowledge sharing.  
+Your support helps us continue building for the community!
+<br><br>
+<a href="https://trakteer.id/oristarium">
+  <img src="https://cdn.trakteer.id/images/embed/trbtn-red-1.png" height="40" alt="Support us on Trakteer" />
+</a>
 
 ## 🚀 Installation & Setup Guide
 
@@ -119,19 +124,8 @@ Note: For more detailed information about Web Items in VTube Studio, please refe
 - TikTok (Username)
 - Twitch (Username)
 
-## 💖 Support
-
-Love this project? Please consider supporting us:
-
-<a href="https://trakteer.id/oristarium">
-  <img src="https://cdn.trakteer.id/images/embed/trbtn-red-1.png" height="40" alt="Support us on Trakteer" />
-</a>
-
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-<h3 align="center">Made with ❤️ by</h3>
-<div align="center">
-<img alt="Oristarium Logo" src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/1000x1000/" width="200"> </img>
-</div>
+

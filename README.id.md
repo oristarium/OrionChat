@@ -1,22 +1,15 @@
 Baca ini dalam bahasa lain: [English](README.md) | [Indonesia](README.id.md)
 
 <div align="center">
-<img src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg" alt="Awesome Badge"/>
-<img src="https://img.shields.io/static/v1?label=%F0%9F%8C%9F&message=If%20Useful&style=style=flat&color=BC4E99" alt="Star Badge"/>
-<a href="https://discord.gg/JgjExyntw4"><img src="https://img.shields.io/discord/733027681184251937.svg?style=flat&label=Join%20Community&color=7289DA" alt="Join Community Badge"/></a>
+<a href="https://discord.gg/JgjExyntw4"><img src="https://img.shields.io/discord/733027681184251937.svg?style=flat&label=Join%20Our%20Discord&color=7289DA" alt="Join Community Badge"/></a>
 <a href="https://twitter.com/oristarium"><img src="https://img.shields.io/twitter/follow/oristarium.svg?style=social" /></a>
+<a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/oristarium/orionchat?color=2b9348"></a>
+<a href="https://github.com/oristarium/orionchat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/oristarium/orionchat?color=2b9348" alt="License Badge"/></a>
 <br>
 <img src="assets/icon-big.png" alt="OrionChat logo" width="200" height="200"/>
 <h1 align="center"> OrionChat </h1>
 <i>Alat integrasi OBS yang powerful untuk mengelola chat live stream dengan TTS dan animasi avatar</i>
-
-<a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/network/members"><img src="https://img.shields.io/github/forks/oristarium/orionchat" alt="Forks Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/pulls"><img src="https://img.shields.io/github/issues-pr/oristarium/orionchat" alt="Pull Requests Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/issues"><img src="https://img.shields.io/github/issues/oristarium/orionchat" alt="Issues Badge"/></a>
-<a href="https://github.com/oristarium/orionchat/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/oristarium/orionchat?color=2b9348"></a>
-<a href="https://github.com/oristarium/orionchat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/oristarium/orionchat?color=2b9348" alt="License Badge"/></a>
-
 </div>
 
 ## ✨ Fitur
@@ -27,6 +20,18 @@ Baca ini dalam bahasa lain: [English](README.md) | [Indonesia](README.id.md)
 - 🎨 **Avatar yang Dapat Disesuaikan** - Mendukung avatar statis dan animasi
 - 🎯 **Tampilan Chat Real-time** - Tampilkan pesan yang disorot di stream
 - 🔧 **Panel Kontrol** - Antarmuka yang mudah digunakan untuk mengelola semua fitur
+
+
+## 💖 Dukung Kami
+
+<a href="https://oristarium.com" target="_blank"><img alt="Oristarium Logo" src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/1000x1000/" width="200"/></a>
+
+Kami berkontribusi untuk komunitas VTuber melalui perangkat open-source, sumber daya teknis, dan berbagi pengetahuan.  
+Dukungan Anda membantu kami terus berkarya untuk komunitas!
+<br><br>
+<a href="https://trakteer.id/oristarium">
+  <img src="https://cdn.trakteer.id/images/embed/trbtn-red-1.png" height="40" alt="Support us on Trakteer" />
+</a>
 
 ## 🚀 Panduan Instalasi & Pengaturan
 
@@ -104,8 +109,3 @@ Suka proyek ini? Silakan dukung kami:
 ## 📜 Lisensi
 
 Proyek ini dilisensikan di bawah Lisensi MIT - lihat file [LICENSE](LICENSE) untuk detail.
-
-<h3 align="center">Dibuat dengan ❤️ oleh</h3>
-<div align="center">
-<img alt="Oristarium Logo" src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/1000x1000/" width="200"> </img>
-</div> 
