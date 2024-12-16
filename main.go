@@ -25,6 +25,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
+	"github.com/oristarium/orionchat/tts" // Replace with your actual module name
+
 	"go.etcd.io/bbolt"
 )
 
@@ -79,6 +81,7 @@ type Server struct {
 	clients map[SSEClient]bool
 	mu      sync.RWMutex
 	fileHandler *FileHandler
+	ttsService *tts.TTSService
 }
 
 // NewServer creates and configures a new server instance
@@ -112,6 +115,7 @@ func NewServer() *Server {
 		},
 		clients: make(map[SSEClient]bool),
 		fileHandler: NewFileHandler(storage),
+		ttsService: tts.NewTTSService(),
 	}
 }
 
@@ -159,6 +163,7 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/get-avatars", s.handleGetAvatars)
 	http.HandleFunc("/list-avatars", s.handleListAvatars)
 	http.HandleFunc("/set-avatar", s.handleSetAvatar)
+	http.HandleFunc("/tts-service", s.handleTTS)
 }
 
 func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
@@ -375,6 +380,56 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request struct {
+		Text string `json:"text"`
+		Lang string `json:"lang"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Split long text into chunks if needed
+	chunks, err := s.ttsService.SplitLongText(request.Text, "")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Text splitting error: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	// If text is short enough to not need splitting, put it in a single chunk
+	if len(chunks) == 0 {
+		chunks = []string{request.Text}
+	}
+
+	// Get audio for all chunks and combine them
+	var combinedAudio string
+	for _, chunk := range chunks {
+		audio, err := s.ttsService.GetAudioBase64(chunk, request.Lang, false)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("TTS error: %v", err), http.StatusInternalServerError)
+			return
+		}
+		if combinedAudio == "" {
+			combinedAudio = audio
+		} else {
+			combinedAudio += audio
+		}
+	}
+
+	response := map[string]string{
+		"audio": combinedAudio,
+	}
+
+	json.NewEncoder(w).Encode(response)
 }
 
 func main() {
