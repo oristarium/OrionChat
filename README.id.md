@@ -1,5 +1,3 @@
-# OrionChat
-
 Baca ini dalam bahasa lain: [English](README.md) | [Indonesia](README.id.md)
 
 <div align="center">
@@ -8,7 +6,8 @@ Baca ini dalam bahasa lain: [English](README.md) | [Indonesia](README.id.md)
 <a href="https://discord.gg/JgjExyntw4"><img src="https://img.shields.io/discord/733027681184251937.svg?style=flat&label=Join%20Community&color=7289DA" alt="Join Community Badge"/></a>
 <a href="https://twitter.com/oristarium"><img src="https://img.shields.io/twitter/follow/oristarium.svg?style=social" /></a>
 <br>
-
+<img src="assets/icon-big.png" alt="OrionChat logo" width="200" height="200"/>
+<h1 align="center"> OrionChat </h1>
 <i>Alat integrasi OBS yang powerful untuk mengelola chat live stream dengan TTS dan animasi avatar</i>
 
 <a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
