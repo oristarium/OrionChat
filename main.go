@@ -41,7 +41,7 @@ const (
 
 	// Window dimensions
 	WindowWidth   = 300
-	WindowHeight  = 100
+	WindowHeight  = 350
 
 	// Text sizes
 	DefaultTextSize = 14
@@ -454,6 +454,12 @@ func main() {
 	// Disable window maximizing
 	window.SetFixedSize(true)
 
+	// Create and configure the large icon image
+	iconBig := canvas.NewImageFromFile("assets/icon-big.png")
+	iconBig.SetMinSize(fyne.NewSize(100, 100))
+	iconBig.Resize(fyne.NewSize(100, 100))
+	iconBigContainer := container.NewCenter(iconBig)
+
 	// Create status text with initial color
 	status := canvas.NewText("Starting server...", color.Gray{Y: 200})
 	status.TextStyle = fyne.TextStyle{Bold: true}
@@ -526,6 +532,7 @@ func main() {
 
 	// Layout
 	content := container.NewVBox(
+		iconBigContainer,  // Add the icon container first
 		statusContainer,
 		layout.NewSpacer(), // Add margin after status
 		buttonsContainer,
