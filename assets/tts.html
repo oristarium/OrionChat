@@ -196,7 +196,16 @@
         }
 
         // TTS Processing
+        let lastPlayedMessageId = null;
+
         async function processTTSMessage(chatMessage, lang) {
+            console.log(`[${new Date().toISOString()}] Starting TTS process for message:`, chatMessage.message_id);
+            
+            if (chatMessage.message_id === lastPlayedMessageId) {
+                console.log('Ignoring duplicate consecutive message:', chatMessage.message_id);
+                return;
+            }
+
             const content = chatMessage.data.content;
             const textForTTS = typeof content === 'string' 
                 ? content 
@@ -213,8 +222,18 @@
 
             try {
                 updateUIState(false);
+                console.log(`[${new Date().toISOString()}] Fetching TTS audio from API...`);
+                const startFetch = performance.now();
                 const audio = await fetchTTSAudio(textForTTS, lang);
+                const fetchDuration = performance.now() - startFetch;
+                console.log(`[${new Date().toISOString()}] TTS audio fetched in ${fetchDuration.toFixed(2)}ms`);
+
+                lastPlayedMessageId = chatMessage.message_id;
+                console.log(`[${new Date().toISOString()}] Starting audio playback...`);
+                const startPlay = performance.now();
                 await playAudio(audio);
+                const playDuration = performance.now() - startPlay;
+                console.log(`[${new Date().toISOString()}] Audio playback started in ${playDuration.toFixed(2)}ms`);
             } catch (error) {
                 console.error('Error in TTS processing:', error);
                 updateUIState(false);
@@ -223,13 +242,25 @@
 
         // API Interaction
         async function fetchTTSAudio(text, lang) {
-            const response = await fetch(TTS_API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text, lang })
-            });
-            const { audio } = await response.json();
-            return audio;
+            const startTime = performance.now();
+            try {
+                const response = await fetch(TTS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, lang })
+                });
+                const endFetch = performance.now();
+                console.log(`[${new Date().toISOString()}] Network request took ${(endFetch - startTime).toFixed(2)}ms`);
+                
+                const { audio } = await response.json();
+                const endParse = performance.now();
+                console.log(`[${new Date().toISOString()}] JSON parsing took ${(endParse - endFetch).toFixed(2)}ms`);
+                
+                return audio;
+            } catch (error) {
+                console.error(`[${new Date().toISOString()}] TTS API error:`, error);
+                throw error;
+            }
         }
 
         // Audio Playback
@@ -249,7 +280,18 @@
             
             evtSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
-                console.log('SSE message received:', data);
+                console.log('SSE message received - Full data:', data);
+                console.log('Message type:', data.type);
+                if (data.type === 'tts') {
+                    console.log('Message ID:', data.message.message_id);
+                }
+
+                // Only handle tts and avatar_update types
+                if (data.type !== 'tts' && data.type !== 'avatar_update') {
+                    console.log('Ignoring non-TTS message type:', data.type);
+                    return;
+                }
+
                 if (data.type === 'avatar_update') {
                     console.log('Avatar update received:', data.data);
                     AVATAR_STATES[data.data.type] = data.data.path;
@@ -258,16 +300,24 @@
                         ELEMENTS.avatar.src = AVATAR_STATES.idle;
                         console.log('Updated avatar src to:', ELEMENTS.avatar.src);
                     }
-                } else {
-                    await processTTSMessage(data.message, data.lang);
+                    return;
                 }
+
+                // Handle TTS message
+                await processTTSMessage(data.message, data.lang);
             };
 
-            evtSource.onerror = () => {
+            evtSource.onerror = (error) => {
+                console.error("SSE connection error:", error);
                 setTimeout(() => {
+                    console.log("Attempting to reconnect...");
                     evtSource.close();
                     location.reload();
                 }, 1000);
+            };
+
+            evtSource.onopen = () => {
+                console.log("SSE connection established");
             };
         }
 
