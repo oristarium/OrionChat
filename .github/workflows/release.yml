@@ -40,8 +40,9 @@ jobs:
         
     - name: Set up MinGW
       continue-on-error: true
-      uses: egor-tensin/setup-mingw@v2
+      uses: egor-tensin/setup-mingw@v2.2.0
       with:
+        version: 12.2.0
         platform: x64
         
     - name: Install Dependencies
