@@ -61,6 +61,10 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-build-
         
+    - name: Create Resource File
+      run: |
+        x86_64-w64-mingw32-windres icon.rc -O coff -o icon.syso
+        
     - name: Build
       run: |
         $env:CC = "x86_64-w64-mingw32-gcc"
