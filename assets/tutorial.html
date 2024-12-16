@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chat Tools Tutorial</title>
+    <title>OrionChat Tutorial</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -60,67 +60,83 @@
 </head>
 <body>
     <div class="container">
-        <h1>Chat Tools Tutorial</h1>
-        <p>This guide will help you set up Chat Tools in OBS for your streaming needs. There are three main components to set up:</p>
+        <h1>OrionChat Tutorial</h1>
+        <p>This guide will help you set up OrionChat for your streaming needs.</p>
 
-        <h2>1. Control Panel Setup</h2>
+        <h2>1. Control Panel Setup in OBS</h2>
         <div class="step">
-            <p>The control panel is where you manage your chat connections and settings.</p>
+            <p>The control panel is where you manage all your OrionChat settings.</p>
             <ol>
-                <li>In OBS, go to View → Docks → Custom Browser Docks</li>
-                <li>Add a new dock with:
+                <li>In OBS Studio, go to "View" → "Docks" → "Custom Browser Docks..."</li>
+                <li>In the popup window, add:
                     <ul>
-                        <li>Dock Name: <code>Chat Tools Control</code></li>
+                        <li>Dock Name: <code>OrionChat Control</code></li>
                         <li>URL: <code>http://localhost:7777</code></li>
                     </ul>
                 </li>
-                <li>Click "Apply" to add the dock to your OBS workspace</li>
+                <li>Click "Apply" then "Close"</li>
+                <li>The Control Panel will appear as a dockable window in OBS</li>
+                <li>You can now arrange it alongside your other OBS panels</li>
             </ol>
         </div>
 
-        <h2>2. Avatar TTS Setup</h2>
+        <h2>2. Adding Sources in OBS Studio</h2>
         <div class="step">
-            <p>The TTS avatar will appear and speak chat messages on your stream.</p>
             <ol>
-                <li>In OBS, add a new Browser source to your scene</li>
-                <li>Configure it with:
+                <li>Open OBS Studio</li>
+                <li>Right-click in the "Sources" panel</li>
+                <li>Select "Add" → "Browser"</li>
+                <li>Create new and name it (example: "OrionChat Display")</li>
+                <li>Add these sources one by one:
                     <ul>
-                        <li>URL: <code>http://localhost:7777/tts</code></li>
-                        <li>Width: 300 (or as needed)</li>
-                        <li>Height: 300 (or as needed)</li>
+                        <li>Chat Display: <code>http://localhost:7777/display</code> (Width: 400, Height: 600)</li>
+                        <li>TTS Avatar: <code>http://localhost:7777/tts</code> (Width: 300, Height: 300)</li>
                     </ul>
                 </li>
-                <li>Position the browser source where you want the avatar to appear</li>
             </ol>
         </div>
 
-        <h2>3. Chat Display Setup</h2>
+        <h2>3. Using with VTube Studio</h2>
         <div class="step">
-            <p>This will show highlighted chat messages on your stream.</p>
             <ol>
-                <li>Add another Browser source to your scene</li>
-                <li>Configure it with:
+                <li>Open VTube Studio</li>
+                <li>Click the "+" button in the bottom right to add a new item</li>
+                <li>Select "Web Item"</li>
+                <li>Add these URLs one at a time:
                     <ul>
-                        <li>URL: <code>http://localhost:7777/display</code></li>
-                        <li>Width: 400 (or as needed)</li>
-                        <li>Height: 600 (or as needed)</li>
+                        <li>For Chat Display: <code>http://localhost:7777/display</code>
+                            <br>Recommended size: 400x600</li>
+                        <li>For TTS Avatar: <code>http://localhost:7777/tts</code>
+                            <br>Recommended size: 300x300</li>
                     </ul>
                 </li>
-                <li>Position the chat display where you want messages to appear</li>
+                <li>Position and resize the web items as needed in your scene</li>
+                <li>Use the OBS Control Panel dock to manage settings</li>
             </ol>
+            <p>For more detailed information about Web Items in VTube Studio, please refer to the <a href="https://github.com/DenchiSoft/VTubeStudio/wiki/Web-Items/" target="_blank">official VTube Studio Wiki</a>.</p>
         </div>
 
+        <h2>Tips for Content Creators</h2>
         <div class="tip">
-            <strong>Tip:</strong> Make sure Chat Tools is running before adding these sources to OBS. The application needs to be running for the sources to work properly.
+            <ul>
+                <li>Make sure OrionChat is running before starting OBS or VTube Studio</li>
+                <li>Test your setup before going live</li>
+                <li>The Control Panel can be accessed from any browser at <code>http://localhost:7777</code></li>
+                <li>Customize your avatar and chat display settings through the Control Panel</li>
+                <li>For best results, keep the application running in the background while streaming</li>
+            </ul>
         </div>
 
-        <h2>Usage Tips</h2>
-        <ul>
-            <li>Use the control panel to connect to your streaming platform</li>
-            <li>You can customize the avatar by clicking the "Avatar Settings" button</li>
-            <li>Select your preferred TTS language from the dropdown menu</li>
-            <li>The chat display will automatically show messages as they come in</li>
-        </ul>
+        <h2>Troubleshooting</h2>
+        <div class="step">
+            <ul>
+                <li>If you can't see the chat or avatar, make sure OrionChat is running</li>
+                <li>Try refreshing your browser sources in OBS or web items in VTube Studio</li>
+                <li>Check if your antivirus is blocking the application</li>
+                <li>Make sure you're using the correct URLs</li>
+                <li>If nothing works, restart OrionChat and your streaming software</li>
+            </ul>
+        </div>
     </div>
 </body>
 </html> 

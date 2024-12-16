@@ -1,3 +1,7 @@
+# OrionChat
+
+Read this in other languages: [English](README.md) | [Indonesia](README.id.md)
+
 <h1 align="center">OrionChat</h1>
 <div align="center">
 <img src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg" alt="Awesome Badge"/>
@@ -26,17 +30,66 @@
 - 🎯 **Real-time Chat Display** - Show highlighted messages on stream
 - 🔧 **Control Panel** - User-friendly interface for managing all features
 
-## 🚀 Quick Start
+## 🚀 Installation & Setup Guide
 
-1. Download the latest release for your platform
-2. Run the application
-3. Open OBS and add the following browser sources:
+### Windows Installation
+1. Download the latest Windows release (.zip file) from our [Releases Page](https://github.com/oristarium/orionchat/releases/latest)
+2. Extract the downloaded .zip file
+3. Open the extracted folder and double-click `orionchat.exe`
+4. The app will open a status window showing the server is running on port 7777
+   
+   ![OrionChat Status Window](https://ucarecdn.com/841b9ca8-2d7d-43c6-b440-e8e7e1bc5628/orionchatstatusapp.png)
 
-```bash
-Control Panel: http://localhost:7777
-Chat Display: http://localhost:7777/display
-TTS Avatar: http://localhost:7777/tts
-```
+5. Use the provided copy buttons to get the necessary URLs for your streaming setup
+6. Keep OrionChat running while streaming
+
+⚠️ Note: Currently, OrionChat is only available for Windows. Mac and Linux support coming soon.
+
+### 📺 Control Panel Setup in OBS
+1. In OBS Studio, go to "View" → "Docks" → "Custom Browser Docks..."
+2. In the popup window:
+   - Enter "OrionChat Control" for the Dock Name
+   - Enter `http://localhost:7777` for the URL
+3. Click "Apply" then "Close"
+4. The Control Panel will appear as a dockable window in OBS
+5. You can now arrange it alongside your other OBS panels
+
+### 📺 Adding Sources in OBS Studio
+1. Open OBS Studio
+2. Right-click in the "Sources" panel
+3. Select "Add" → "Browser"
+4. Create new and name it (example: "OrionChat Display")
+5. Add these sources one by one:
+   - Chat Display: `http://localhost:7777/display` (Width: 400, Height: 600)
+   - TTS Avatar: `http://localhost:7777/tts` (Width: 300, Height: 300)
+
+### 🎭 Using with VTube Studio
+1. Open VTube Studio
+2. Click the "+" button in the bottom right to add a new item
+3. Select "Web Item"
+4. Add these URLs one at a time:
+   - For Chat Display: `http://localhost:7777/display`
+     - Recommended size: 400x600
+   - For TTS Avatar: `http://localhost:7777/tts`
+     - Recommended size: 300x300
+5. Position and resize the web items as needed in your scene
+6. Use the OBS Control Panel dock to manage settings
+
+Note: For more detailed information about Web Items in VTube Studio, please refer to the [official VTube Studio Wiki](https://github.com/DenchiSoft/VTubeStudio/wiki/Web-Items/).
+
+### 💡 Tips for Content Creators
+- Make sure OrionChat is running before starting OBS or VTube Studio
+- Test your setup before going live
+- The Control Panel can be accessed from any browser at `http://localhost:7777`
+- Customize your avatar and chat display settings through the Control Panel
+- For best results, keep the application running in the background while streaming
+
+### 🔧 Troubleshooting
+- If you can't see the chat or avatar, make sure OrionChat is running
+- Try refreshing your browser sources in OBS or web widgets in VTube Studio
+- Check if your antivirus is blocking the application
+- Make sure you're using the correct URLs
+- If nothing works, restart OrionChat and your streaming software
 
 ## 📖 Setup Guide
 
