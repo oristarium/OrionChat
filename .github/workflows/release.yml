@@ -64,20 +64,20 @@ jobs:
     - name: Build
       run: |
         $env:CC = "x86_64-w64-mingw32-gcc"
-        go build -v -ldflags="-s -w -H=windowsgui" -trimpath -o app.exe
+        go build -v -ldflags="-s -w -H=windowsgui" -trimpath -o orionchat.exe
         
     - name: Create ZIP
       run: |
         New-Item -ItemType Directory -Path release
-        Copy-Item app.exe release/
+        Copy-Item orionchat.exe release/
         New-Item -ItemType Directory -Path release/assets
         Copy-Item assets/* release/assets/ -Recurse
-        Compress-Archive -Path release/* -DestinationPath "chat-tools-${{ github.ref_name }}.zip"
+        Compress-Archive -Path release/* -DestinationPath "orionchat-${{ github.ref_name }}.zip"
         
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: chat-tools-${{ github.ref_name }}.zip
+        files: orionchat-${{ github.ref_name }}.zip
         name: Release ${{ github.ref_name }}
         draft: false
         prerelease: false

@@ -1,4 +1,4 @@
-module github.com/roffidaijoubu/chat-tools
+module github.com/oristarium/orionchat
 
 go 1.22
 

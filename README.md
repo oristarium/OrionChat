@@ -1,4 +1,4 @@
-<h1 align="center">Chat Tools for OBS</h1>
+<h1 align="center">OrionChat</h1>
 <div align="center">
 <img src="https://cdn.rawgit.com/sindresorhus/awesome/d7305f38d29fed78fa85652e3a63e154dd8e8829/media/badge.svg" alt="Awesome Badge"/>
 <img src="https://img.shields.io/static/v1?label=%F0%9F%8C%9F&message=If%20Useful&style=style=flat&color=BC4E99" alt="Star Badge"/>
@@ -8,12 +8,12 @@
 
 <i>A powerful OBS integration tool for managing live stream chats with TTS and avatar animations</i>
 
-<a href="https://github.com/roffidaijoubu/chat-tools/stargazers"><img src="https://img.shields.io/github/stars/roffidaijoubu/chat-tools" alt="Stars Badge"/></a>
-<a href="https://github.com/roffidaijoubu/chat-tools/network/members"><img src="https://img.shields.io/github/forks/roffidaijoubu/chat-tools" alt="Forks Badge"/></a>
-<a href="https://github.com/roffidaijoubu/chat-tools/pulls"><img src="https://img.shields.io/github/issues-pr/roffidaijoubu/chat-tools" alt="Pull Requests Badge"/></a>
-<a href="https://github.com/roffidaijoubu/chat-tools/issues"><img src="https://img.shields.io/github/issues/roffidaijoubu/chat-tools" alt="Issues Badge"/></a>
-<a href="https://github.com/roffidaijoubu/chat-tools/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/roffidaijoubu/chat-tools?color=2b9348"></a>
-<a href="https://github.com/roffidaijoubu/chat-tools/blob/master/LICENSE"><img src="https://img.shields.io/github/license/roffidaijoubu/chat-tools?color=2b9348" alt="License Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/stargazers"><img src="https://img.shields.io/github/stars/oristarium/orionchat" alt="Stars Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/network/members"><img src="https://img.shields.io/github/forks/oristarium/orionchat" alt="Forks Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/pulls"><img src="https://img.shields.io/github/issues-pr/oristarium/orionchat" alt="Pull Requests Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/issues"><img src="https://img.shields.io/github/issues/oristarium/orionchat" alt="Issues Badge"/></a>
+<a href="https://github.com/oristarium/orionchat/graphs/contributors"><img alt="GitHub contributors" src="https://img.shields.io/github/contributors/oristarium/orionchat?color=2b9348"></a>
+<a href="https://github.com/oristarium/orionchat/blob/master/LICENSE"><img src="https://img.shields.io/github/license/oristarium/orionchat?color=2b9348" alt="License Badge"/></a>
 
 </div>
 
@@ -64,9 +64,9 @@ TTS Avatar: http://localhost:7777/tts
 - 🇯🇵 Japanese
 
 ### Platform Support
-- YouTube (Channel ID or Username)
-- TikTok (Username or Live ID)
-- Twitch (Channel Name)
+- YouTube (Channel ID or Username or Live ID)
+- TikTok (Username)
+- Twitch (Username)
 
 ## 💖 Support
 
