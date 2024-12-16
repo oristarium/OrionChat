@@ -58,8 +58,9 @@ export class VoiceManager {
     populateVoiceSelect(language) {
         const voices = this.voiceData.filter(v => v.lang_label === language);
         
-        this.tiktokVoiceSelect.innerHTML = voices
-            .map(v => `<option value="${v.voice_id}">${v.voice_name}</option>`)
+        this.tiktokVoiceSelect.innerHTML = 
+            '<option value="random">Random</option>' +
+            voices.map(v => `<option value="${v.voice_id}">${v.voice_name}</option>`)
             .join('');
     }
 
@@ -86,7 +87,16 @@ export class VoiceManager {
     getCurrentVoiceId() {
         const provider = this.providerSelect.value;
         if (provider === 'tiktok') {
-            return this.tiktokVoiceSelect.value;
+            if (this.tiktokVoiceSelect.value === 'random') {
+                // Get all voice IDs for current language
+                const currentLang = this.tiktokLangSelect.value;
+                const voices = this.voiceData.filter(v => v.lang_label === currentLang);
+                // Pick a random voice
+                const randomIndex = Math.floor(Math.random() * voices.length);
+                return voices[randomIndex].voice_id;
+            } else {
+                return this.tiktokVoiceSelect.value;
+            }
         }
         return document.getElementById('tts-language').value;
     }
