@@ -17,7 +17,7 @@ export class MessageHandler {
                 type: type,
                 data: {},
                 message: message,
-                lang: this.languageSelect.value
+                voice_id: this.languageSelect.value || 'en'
             };
             
             console.log(`Sending ${type} message:`, update);
@@ -74,7 +74,7 @@ export class MessageHandler {
                     }
                 }
             },
-            lang: this.languageSelect.value
+            voice_id: this.languageSelect.value
         };
 
         console.log('Sending clear display command:', update);
@@ -130,7 +130,7 @@ export class MessageHandler {
                         }
                     }
                 },
-                lang: this.languageSelect.value
+                voice_id: this.languageSelect.value
             };
 
             console.log('Sending clear TTS queue command:', update);

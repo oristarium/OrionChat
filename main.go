@@ -279,7 +279,7 @@ func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
 						},
 					},
 				},
-				Lang: "en",
+				VoiceID: "en",
 			}
 			return s.broadcastUpdate(update)
 		},
@@ -371,7 +371,7 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 				},
 			},
 		},
-		Lang: "en",
+		VoiceID: "en",
 	}
 
 	if err := s.broadcastUpdate(update); err != nil {
@@ -389,8 +389,8 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request struct {
-		Text string `json:"text"`
-		Lang string `json:"lang"`
+		Text    string `json:"text"`
+		VoiceID string `json:"voice_id"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -398,9 +398,18 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Printf("TTS Request - Text: %q, VoiceID: %q", request.Text, request.VoiceID)
+
+	// Set default voice ID if empty
+	if request.VoiceID == "" {
+		request.VoiceID = "en"
+		log.Printf("Using default voice ID: %q", request.VoiceID)
+	}
+
 	// Split long text into chunks if needed
 	chunks, err := s.ttsService.SplitLongText(request.Text, "")
 	if err != nil {
+		log.Printf("Text splitting error: %v", err)
 		http.Error(w, fmt.Sprintf("Text splitting error: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -410,11 +419,14 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 		chunks = []string{request.Text}
 	}
 
+	log.Printf("Split into %d chunks: %v", len(chunks), chunks)
+
 	// Get audio for all chunks and combine them
 	var combinedAudio string
 	for _, chunk := range chunks {
-		audio, err := s.ttsService.GetAudioBase64(chunk, request.Lang, false)
+		audio, err := s.ttsService.GetAudioBase64(chunk, request.VoiceID, false)
 		if err != nil {
+			log.Printf("TTS error for chunk %q: %v", chunk, err)
 			http.Error(w, fmt.Sprintf("TTS error: %v", err), http.StatusInternalServerError)
 			return
 		}
@@ -423,13 +435,22 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 		} else {
 			combinedAudio += audio
 		}
+		log.Printf("Successfully processed chunk: %q", chunk)
 	}
+
+	log.Printf("Successfully combined %d audio chunks", len(chunks))
 
 	response := map[string]string{
 		"audio": combinedAudio,
 	}
 
-	json.NewEncoder(w).Encode(response)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+		return
+	}
+	log.Printf("Successfully sent response with audio length: %d", len(combinedAudio))
 }
 
 func main() {
@@ -703,7 +724,7 @@ type Update struct {
 	Type    string                 `json:"type"`
 	Data    map[string]string      `json:"data,omitempty"`
 	Message ChatMessage            `json:"message"`
-	Lang    string                `json:"lang"`
+	VoiceID string                `json:"voice_id"`
 }
 
 type SSEClient chan string

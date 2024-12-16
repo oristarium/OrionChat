@@ -268,7 +268,7 @@
         let lastPlayedMessageId = null;
         const audioCache = new Map();
 
-        async function processTTSMessage(chatMessage, lang) {
+        async function processTTSMessage(chatMessage, voiceId) {
             console.log(`[${new Date().toISOString()}] Received TTS message:`, chatMessage.message_id);
             
             // Check for duplicate consecutive message
@@ -285,7 +285,7 @@
             }
 
             // Add to queue
-            ttsQueue.push({ chatMessage, lang });
+            ttsQueue.push({ chatMessage, voiceId });
             console.log(`[${new Date().toISOString()}] Added to queue. Queue length:`, ttsQueue.length);
             updateDebugBox();
 
@@ -300,7 +300,7 @@
             const itemsToPrefetch = ttsQueue.slice(1, 4);
             
             for (const item of itemsToPrefetch) {
-                const { chatMessage, lang } = item;
+                const { chatMessage, voiceId } = item;
                 const content = chatMessage.data.content;
                 const textForTTS = typeof content === 'string' 
                     ? content 
@@ -311,7 +311,7 @@
                 try {
                     console.log(`[${new Date().toISOString()}] Prefetching audio for message:`, chatMessage.message_id);
                     updateDebugBox(); // Update status before fetching
-                    const audio = await fetchTTSAudio(textForTTS, lang);
+                    const audio = await fetchTTSAudio(textForTTS, voiceId);
                     audioCache.set(chatMessage.message_id, audio);
                     console.log(`[${new Date().toISOString()}] Successfully prefetched audio for message:`, chatMessage.message_id);
                     updateDebugBox(); // Update status after fetching
@@ -330,7 +330,7 @@
             isProcessingQueue = true;
 
             while (ttsQueue.length > 0) {
-                const { chatMessage, lang } = ttsQueue[0];
+                const { chatMessage, voiceId } = ttsQueue[0];
                 console.log(`[${new Date().toISOString()}] Processing from queue:`, chatMessage.message_id);
 
                 // Start prefetching next items while processing current one
@@ -370,7 +370,7 @@
                     } else {
                         console.log(`[${new Date().toISOString()}] Fetching TTS audio from API...`);
                         const startFetch = performance.now();
-                        audio = await fetchTTSAudio(textForTTS, lang);
+                        audio = await fetchTTSAudio(textForTTS, voiceId);
                         const fetchDuration = performance.now() - startFetch;
                         console.log(`[${new Date().toISOString()}] TTS audio fetched in ${fetchDuration.toFixed(2)}ms`);
                     }
@@ -417,13 +417,13 @@
         }
 
         // API Interaction
-        async function fetchTTSAudio(text, lang) {
+        async function fetchTTSAudio(text, voiceId) {
             const startTime = performance.now();
             try {
                 const response = await fetch(TTS_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, lang })
+                    body: JSON.stringify({ text, voice_id: voiceId })
                 });
                 const endFetch = performance.now();
                 console.log(`[${new Date().toISOString()}] Network request took ${(endFetch - startTime).toFixed(2)}ms`);
@@ -473,7 +473,7 @@
                 }
 
                 // Handle TTS message
-                await processTTSMessage(data.message, data.lang);
+                await processTTSMessage(data.message, data.voice_id);
             };
 
             evtSource.onerror = (error) => {
