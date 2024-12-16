@@ -89,4 +89,13 @@ class Controller {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded - initializing Controller');
     new Controller();
+});
+
+// Add this after initializing other components
+$(document).ready(function() {
+    // Initialize tabs
+    $("#settings-tabs").tabs();
+    
+    // Remove the avatar settings modal initialization since it's now in a tab
+    $("#open-avatar-settings").remove();
 }); 

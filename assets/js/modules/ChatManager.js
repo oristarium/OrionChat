@@ -144,8 +144,10 @@ export class ChatManager {
         const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify(message).replace(/'/g, "&apos;")})'><span>📌</span></button>`;
         
         return `
-            <span class="${authorClasses.join(' ')}">${authorName}:</span>
-            <span class="message-content">${displayContent}</span>
+            <div class="message-main">
+                <span class="${authorClasses.join(' ')}">${authorName}:</span>
+                <span class="message-content">${displayContent}</span>
+            </div>
             <div class="message-actions">
                 ${ttsButton}
                 ${displayButton}

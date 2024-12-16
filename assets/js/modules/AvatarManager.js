@@ -54,7 +54,6 @@ export class AvatarManager {
             img.alt = `Avatar option`;
 
             item.appendChild(img);
-            item.addEventListener('click', () => this.setAvatar(type, path));
             grid.appendChild(item);
         });
     }
@@ -91,11 +90,51 @@ export class AvatarManager {
 
     setupEventListeners() {
         console.log('Setting up avatar upload event listeners');
-        document.getElementById('upload-idle').addEventListener('click', () => this.uploadAvatar('idle'));
-        document.getElementById('upload-talking').addEventListener('click', () => this.uploadAvatar('talking'));
-        document.getElementById('open-avatar-settings').addEventListener('click', () => {
-            $("#avatar-settings-modal").dialog('open');
+        this.setupUploadHandlers();
+        this.setupAvatarSelection();
+    }
+
+    setupUploadHandlers() {
+        const uploadButtons = {
+            idle: document.getElementById('upload-idle'),
+            talking: document.getElementById('upload-talking')
+        };
+
+        const fileInputs = {
+            idle: document.getElementById('idle-avatar'),
+            talking: document.getElementById('talking-avatar')
+        };
+
+        Object.entries(uploadButtons).forEach(([type, button]) => {
+            if (button) {
+                button.addEventListener('click', () => this.handleUpload(type, fileInputs[type]));
+            }
         });
+    }
+
+    setupAvatarSelection() {
+        ['idle', 'talking'].forEach(type => {
+            const grid = document.getElementById(`${type}-avatar-grid`);
+            if (grid) {
+                grid.addEventListener('click', (e) => {
+                    const item = e.target.closest('.avatar-item');
+                    if (item) {
+                        const img = item.querySelector('img');
+                        const path = img.src.substring(img.src.indexOf('/avatars/'));
+                        this.setAvatar(type, path);
+                    }
+                });
+            }
+        });
+    }
+
+    handleUpload(type, fileInput) {
+        if (!fileInput.files.length) {
+            console.warn('No file selected');
+            alert('Please select a file first');
+            return;
+        }
+        this.uploadAvatar(type);
     }
 
     async uploadAvatar(type) {

@@ -28,120 +28,133 @@
             <option value="channelId">Channel ID</option>
             <option value="liveId">Live ID</option>
           </select>
+        </div>
+
+        <div class="connection-controls">
           <button id="connect-btn" class="btn btn-primary">Connect</button>
-          <button id="disconnect-btn" class="btn btn-secondary hidden">
+          <button id="disconnect-btn" class="btn btn-danger hidden">
             Disconnect
           </button>
-        </div>
-
-        <div id="connection-status" class="status-indicator disconnected">
-          Disconnected
+          <div id="connection-status" class="status-indicator disconnected">
+            Disconnected
+          </div>
         </div>
       </section>
 
-      <!-- Settings Panel -->
+      <!-- Settings Panel with Tabs -->
       <section class="settings-panel">
-        <div class="setting-group">
-          <label for="tts-language">TTS Language:</label>
-          <select id="tts-language">
-            <option value="id">Indonesian</option>
-            <option value="en">English</option>
-            <option value="ko">Korean</option>
-            <option value="ja">Japanese</option>
-          </select>
-          <div class="toggle-wrapper">
-            <label for="tts-all-chat" class="toggle-label">
-              <input type="checkbox" id="tts-all-chat" class="toggle-input">
-              <span class="toggle-display"></span>
-              TTS All Chat
-            </label>
-          </div>
-        </div>
-        <button id="open-avatar-settings" class="btn btn-secondary">
-          Avatar Settings
-        </button>
-        <div class="control-group">
-            <button id="clear-display" class="control-button">Clear Display</button>
-            <button id="clear-tts" class="control-button">Clear TTS Queue</button>
-        </div>
-      </section>
-
-      <!-- Chat Panel -->
-      <section class="chat-panel">
-        <div id="chat-container"></div>
-        <button id="scroll-button" class="scroll-button hidden">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 16 16"
-            fill="currentColor"
-          >
-            <path
-              d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"
-            />
-          </svg>
-          <span>New Messages</span>
-        </button>
-      </section>
-    </div>
-
-    <!-- Avatar Settings Modal -->
-    <div id="avatar-settings-modal" title="Avatar Settings">
-      <div class="setting-group avatar-settings">
-        <div id="avatar-tabs">
+        <div id="settings-tabs">
           <ul>
-            <li><a href="#idle-tab">Idle Avatar</a></li>
-            <li><a href="#talking-tab">Talking Avatar</a></li>
+            <li><a href="#livechat-tab">Livechat</a></li>
+            <li><a href="#tts-tab">TTS Settings</a></li>
           </ul>
-          <div id="idle-tab">
-            <div class="avatar-section">
-              <div class="avatar-upload">
-                <label>Upload New:</label>
-                <input type="file" id="idle-avatar" accept="image/*" />
-                <button id="upload-idle" class="btn btn-secondary btn-sm">
-                  Upload
-                </button>
+
+          <!-- Livechat Tab -->
+          <div id="livechat-tab">
+            <div class="control-group">
+              <button id="clear-display" class="btn btn-secondary">
+                Clear Display
+              </button>
+              <div class="w-full"></div>
+              <div class="toggle-wrapper">
+                <label for="tts-all-chat" class="toggle-label">
+                  <input
+                    type="checkbox"
+                    id="tts-all-chat"
+                    class="toggle-input"
+                  />
+                  <span class="toggle-display"></span>
+                  TTS All Chat
+                </label>
               </div>
-              <div class="avatar-grid" id="idle-avatar-grid">
-                <!-- Avatars will be populated here -->
-              </div>
+              <button id="clear-tts" class="btn btn-secondary">
+                Clear TTS Queue
+              </button>
+            </div>
+            <!-- Move chat panel here -->
+            <div class="chat-panel">
+              <div id="chat-container"></div>
+              <button id="scroll-button" class="scroll-button hidden">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 16 16"
+                  fill="currentColor"
+                >
+                  <path
+                    d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"
+                  />
+                </svg>
+                <span>New Messages</span>
+              </button>
             </div>
           </div>
-          <div id="talking-tab">
-            <div class="avatar-section">
-              <div class="avatar-upload">
-                <label>Upload New:</label>
-                <input type="file" id="talking-avatar" accept="image/*" />
-                <button id="upload-talking" class="btn btn-secondary btn-sm">
-                  Upload
-                </button>
-              </div>
-              <div class="avatar-grid" id="talking-avatar-grid">
-                <!-- Avatars will be populated here -->
+          <!-- TTS Settings Tab -->
+          <div id="tts-tab">
+            <div class="setting-list">
+              <label for="tts-language">TTS Language:</label>
+              <select id="tts-language">
+                <option value="id">Indonesian</option>
+                <option value="en">English</option>
+                <option value="ko">Korean</option>
+                <option value="ja">Japanese</option>
+              </select>
+            </div>
+            <div class="setting-group avatar-settings">
+              <div id="avatar-sections">
+                <div class="avatar-section">
+                  <h3>Idle Avatar</h3>
+                  <div class="avatar-upload">
+                    <label>Upload New:</label>
+                    <input type="file" id="idle-avatar" accept="image/*" />
+                    <button id="upload-idle" class="btn btn-secondary btn-sm">
+                      Upload
+                    </button>
+                  </div>
+                  <div class="avatar-grid" id="idle-avatar-grid">
+                    <!-- Avatars will be populated here -->
+                  </div>
+                </div>
+                <div class="avatar-section">
+                  <h3>Talking Avatar</h3>
+                  <div class="avatar-upload">
+                    <label>Upload New:</label>
+                    <input type="file" id="talking-avatar" accept="image/*" />
+                    <button
+                      id="upload-talking"
+                      class="btn btn-secondary btn-sm"
+                    >
+                      Upload
+                    </button>
+                  </div>
+                  <div class="avatar-grid" id="talking-avatar-grid">
+                    <!-- Avatars will be populated here -->
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <script>
-        // Add this before the type="module" script
-        console.log('Control page loaded');
-        
-        // Add click event listener with logging
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log('DOM fully loaded');
-            
-            const clearBtn = document.getElementById('clear-display');
-            if (clearBtn) {
-                console.log('Clear display button found');
-                clearBtn.addEventListener('click', () => {
-                    console.log('Clear display button clicked');
-                });
-            } else {
-                console.error('Clear display button not found');
-            }
-        });
+      // Add this before the type="module" script
+      console.log("Control page loaded");
+
+      // Add click event listener with logging
+      document.addEventListener("DOMContentLoaded", () => {
+        console.log("DOM fully loaded");
+
+        const clearBtn = document.getElementById("clear-display");
+        if (clearBtn) {
+          console.log("Clear display button found");
+          clearBtn.addEventListener("click", () => {
+            console.log("Clear display button clicked");
+          });
+        } else {
+          console.error("Clear display button not found");
+        }
+      });
     </script>
     <script type="module" src="js/control.js"></script>
   </body>
