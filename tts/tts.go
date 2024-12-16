@@ -9,33 +9,27 @@ import (
 
 // TTSService handles text-to-speech conversion
 type TTSService struct {
-	provider Provider
+	providers map[string]Provider
 }
 
 // NewTTSService creates a new TTS service instance
 func NewTTSService() *TTSService {
-	provider, err := GetProvider("google") // Default to Google provider
-	if err != nil {
-		log.Printf("Error creating default provider: %v", err)
-		return nil
-	}
-	
 	return &TTSService{
-		provider: provider,
+		providers: make(map[string]Provider),
 	}
 }
 
-// GetAudioBase64 converts text to speech and returns base64 encoded audio
-func (s *TTSService) GetAudioBase64(text, voiceID string, slow bool) (string, error) {
+// GetAudioBase64WithProvider converts text to speech and returns base64 encoded audio
+func (s *TTSService) GetAudioBase64WithProvider(text, voiceID string, provider Provider, slow bool) (string, error) {
 	options := map[string]interface{}{
 		"slow": slow,
 	}
 	
-	if !s.provider.ValidateVoiceID(voiceID) {
+	if !provider.ValidateVoiceID(voiceID) {
 		return "", fmt.Errorf("invalid voice ID: %s", voiceID)
 	}
 	
-	return s.provider.GetAudioBase64(text, voiceID, options)
+	return provider.GetAudioBase64(text, voiceID, options)
 }
 
 // SplitLongText splits text into chunks that are less than maxTextLength

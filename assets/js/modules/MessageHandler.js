@@ -1,6 +1,7 @@
 export class MessageHandler {
     constructor() {
         this.languageSelect = document.getElementById('tts-language');
+        this.providerSelect = document.getElementById('tts-provider');
     }
 
     async sendToDisplay(message) {
@@ -15,9 +16,11 @@ export class MessageHandler {
         try {
             const update = {
                 type: type,
-                data: {},
-                message: message,
-                voice_id: this.languageSelect.value || 'en'
+                data: {
+                    message: message,
+                    voice_id: this.languageSelect.value || 'en',
+                    voice_provider: this.providerSelect.value || 'google'
+                }
             };
             
             console.log(`Sending ${type} message:`, update);
@@ -41,40 +44,7 @@ export class MessageHandler {
         console.log('Clearing display...');
         const update = {
             type: 'clear_display',
-            data: {},
-            message: {
-                type: 'chat',
-                platform: 'system',
-                timestamp: new Date().toISOString(),
-                message_id: 'clear_' + Date.now(),
-                room_id: '',
-                data: {
-                    author: {
-                        id: 'system',
-                        username: 'system',
-                        display_name: 'System',
-                        avatar_url: '',
-                        roles: {
-                            broadcaster: false,
-                            moderator: false,
-                            subscriber: false,
-                            verified: false
-                        },
-                        badges: []
-                    },
-                    content: {
-                        raw: '',
-                        formatted: '',
-                        sanitized: '',
-                        rawHtml: '',
-                        elements: []
-                    },
-                    metadata: {
-                        type: 'chat'
-                    }
-                }
-            },
-            voice_id: this.languageSelect.value
+            data: {}
         };
 
         console.log('Sending clear display command:', update);
@@ -97,40 +67,7 @@ export class MessageHandler {
         try {
             const update = {
                 type: 'clear_tts',
-                data: {},
-                message: {
-                    type: 'chat',
-                    platform: 'system',
-                    timestamp: new Date().toISOString(),
-                    message_id: 'clear_tts_' + Date.now(),
-                    room_id: '',
-                    data: {
-                        author: {
-                            id: 'system',
-                            username: 'system',
-                            display_name: 'System',
-                            avatar_url: '',
-                            roles: {
-                                broadcaster: false,
-                                moderator: false,
-                                subscriber: false,
-                                verified: false
-                            },
-                            badges: []
-                        },
-                        content: {
-                            raw: '',
-                            formatted: '',
-                            sanitized: '',
-                            rawHtml: '',
-                            elements: []
-                        },
-                        metadata: {
-                            type: 'chat'
-                        }
-                    }
-                },
-                voice_id: this.languageSelect.value
+                data: {}
             };
 
             console.log('Sending clear TTS queue command:', update);

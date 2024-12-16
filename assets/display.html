@@ -163,8 +163,8 @@
             }
 
             // Handle display message
-            const chatMessage = data.message;
-            const platform = chatMessage.data.platform;
+            const chatMessage = data.data.message;
+            const platform = chatMessage.platform;
 
             // Create a new container for the animation to restart
             const newContainer = document.createElement('div');

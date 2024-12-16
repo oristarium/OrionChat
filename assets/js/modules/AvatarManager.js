@@ -66,7 +66,10 @@ export class AvatarManager {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ type, path })
+                body: JSON.stringify({ 
+                    type, 
+                    path 
+                })
             });
 
             if (!response.ok) {

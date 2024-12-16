@@ -267,19 +267,10 @@ func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
 		OnSuccess: func(path string) error {
 			update := Update{
 				Type: "avatar_update",
-				Data: map[string]string{
-					"type": r.FormValue("type"),
-					"path": path,
+				Data: UpdateData{
+					AvatarType: r.FormValue("type"),
+					Path: path,
 				},
-				Message: ChatMessage{
-					Type: "avatar_update",
-					Data: ChatMessageData{
-						Content: ChatContent{
-							Raw: path,
-						},
-					},
-				},
-				VoiceID: "en",
 			}
 			return s.broadcastUpdate(update)
 		},
@@ -359,19 +350,10 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 	// Broadcast update
 	update := Update{
 		Type: "avatar_update",
-		Data: map[string]string{
-			"type": request.Type,
-			"path": request.Path,
+		Data: UpdateData{
+			AvatarType: request.Type,
+			Path: request.Path,
 		},
-		Message: ChatMessage{
-			Type: "avatar_update",
-			Data: ChatMessageData{
-				Content: ChatContent{
-					Raw: request.Path,
-				},
-			},
-		},
-		VoiceID: "en",
 	}
 
 	if err := s.broadcastUpdate(update); err != nil {
@@ -391,6 +373,7 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 	var request struct {
 		Text    string `json:"text"`
 		VoiceID string `json:"voice_id"`
+		VoiceProvider string `json:"voice_provider"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -398,12 +381,14 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("TTS Request - Text: %q, VoiceID: %q", request.Text, request.VoiceID)
+	log.Printf("TTS Request - Text: %q, VoiceID: %q, Provider: %q", request.Text, request.VoiceID, request.VoiceProvider)
 
-	// Set default voice ID if empty
-	if request.VoiceID == "" {
-		request.VoiceID = "en"
-		log.Printf("Using default voice ID: %q", request.VoiceID)
+	// Get the requested provider
+	provider, err := tts.GetProvider(request.VoiceProvider)
+	if err != nil {
+		log.Printf("Provider error: %v", err)
+		http.Error(w, fmt.Sprintf("TTS provider error: %v", err), http.StatusBadRequest)
+		return
 	}
 
 	// Split long text into chunks if needed
@@ -424,7 +409,7 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 	// Get audio for all chunks and combine them
 	var combinedAudio string
 	for _, chunk := range chunks {
-		audio, err := s.ttsService.GetAudioBase64(chunk, request.VoiceID, false)
+		audio, err := s.ttsService.GetAudioBase64WithProvider(chunk, request.VoiceID, provider, false)
 		if err != nil {
 			log.Printf("TTS error for chunk %q: %v", chunk, err)
 			http.Error(w, fmt.Sprintf("TTS error: %v", err), http.StatusInternalServerError)
@@ -722,9 +707,16 @@ type ChatMessage struct {
 // Update represents the message sent to display
 type Update struct {
 	Type    string                 `json:"type"`
-	Data    map[string]string      `json:"data,omitempty"`
-	Message ChatMessage            `json:"message"`
-	VoiceID string                `json:"voice_id"`
+	Data    UpdateData             `json:"data"`
+}
+
+// UpdateData represents the data payload for different update types
+type UpdateData struct {
+	Message  *ChatMessage         `json:"message,omitempty"`
+	VoiceID  string              `json:"voice_id,omitempty"`
+	VoiceProvider string         `json:"voice_provider,omitempty"`
+	Path     string              `json:"path,omitempty"`
+	AvatarType string            `json:"avatar_type,omitempty"`
 }
 
 type SSEClient chan string

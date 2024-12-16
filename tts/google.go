@@ -24,6 +24,7 @@ type GoogleTranslateProvider struct {
 
 // NewGoogleTranslateProvider creates a new Google Translate provider instance
 func NewGoogleTranslateProvider() Provider {
+	log.Printf("Initializing %s provider", ProviderGoogle)
 	return &GoogleTranslateProvider{
 		host:    defaultHost,
 		client:  &http.Client{},

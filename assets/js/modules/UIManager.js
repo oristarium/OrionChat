@@ -3,6 +3,18 @@ export class UIManager {
         this.platformSelect = document.getElementById('platform-type');
         this.identifierType = document.getElementById('identifier-type');
         this.channelInput = document.getElementById('channel-id');
+        this.ttsProvider = document.getElementById('tts-provider');
+        this.ttsLanguage = document.getElementById('tts-language');
+        
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        if (this.ttsProvider) {
+            this.ttsProvider.addEventListener('change', () => {
+                console.log('TTS provider changed:', this.ttsProvider.value);
+            });
+        }
     }
 
     initializePlatformUI() {

@@ -773,3 +773,16 @@ button:not(:disabled):hover {
 .w-full {
     flex: 1;
 }
+
+/* Add spacing between provider and language selects */
+.setting-list select {
+    margin-bottom: 1rem;
+}
+
+/* Style the provider select same as language select */
+#tts-provider {
+    width: 100%;
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}

@@ -12,6 +12,7 @@ export class ChatManager {
         this.setupScrollHandlers();
         this.setupMessageHandler();
         this.setupTTSToggle();
+        this.setupCustomEventHandlers();
     }
 
     setupScrollHandlers() {
@@ -35,6 +36,16 @@ export class ChatManager {
                 console.log('TTS All Chat:', this.ttsAllChat ? 'enabled' : 'disabled');
             });
         }
+    }
+
+    setupCustomEventHandlers() {
+        window.addEventListener('sendToTTS', (event) => {
+            this.messageHandler.sendToTTS(event.detail);
+        });
+
+        window.addEventListener('sendToDisplay', (event) => {
+            this.messageHandler.sendToDisplay(event.detail);
+        });
     }
 
     handleScroll() {
@@ -138,10 +149,10 @@ export class ChatManager {
 
     generateMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent) {
         const ttsButton = hasValidContent
-            ? `<button class="tts-button" onclick='sendToTTS(${JSON.stringify(message).replace(/'/g, "&apos;")})'><span>🔉</span></button>`
+            ? `<button class="tts-button" onclick='window.dispatchEvent(new CustomEvent("sendToTTS", { detail: ${JSON.stringify(message).replace(/'/g, "&apos;")} }))'><span>🔉</span></button>`
             : '';
         
-        const displayButton = `<button class="display-button" onclick='sendToDisplay(${JSON.stringify(message).replace(/'/g, "&apos;")})'><span>📌</span></button>`;
+        const displayButton = `<button class="display-button" onclick='window.dispatchEvent(new CustomEvent("sendToDisplay", { detail: ${JSON.stringify(message).replace(/'/g, "&apos;")} }))'><span>📌</span></button>`;
         
         return `
             <div class="message-main">
@@ -162,13 +173,18 @@ export class ChatManager {
 
     async handleChatMessage(message) {
         try {
-            // Use the same helper method for TTS All Chat
             if (this.ttsAllChat && this.canMessageBeTTSed(message)) {
                 console.log('TTS All Chat enabled, sending to TTS:', message);
-                await this.messageHandler.sendToTTS(message);
+                await this.messageHandler.sendToTTS({
+                    type: 'tts',
+                    data: {
+                        message: message,
+                        voice_id: this.messageHandler.languageSelect.value || 'en',
+                        voice_provider: this.messageHandler.providerSelect.value || 'google'
+                    }
+                });
             }
 
-            // Just append to UI, don't broadcast to display
             this.appendMessage(message);
         } catch (error) {
             console.error('Error handling chat message:', error);

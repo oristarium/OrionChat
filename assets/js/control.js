@@ -89,6 +89,14 @@ class Controller {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM loaded - initializing Controller');
     new Controller();
+
+    // Initialize TTS provider select
+    const ttsProvider = document.getElementById('tts-provider');
+    if (ttsProvider) {
+        ttsProvider.addEventListener('change', () => {
+            console.log('TTS provider changed:', ttsProvider.value);
+        });
+    }
 });
 
 // Add this after initializing other components
