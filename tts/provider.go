@@ -12,6 +12,7 @@ type Provider interface {
 // ProviderFactory is a map of provider names to their constructor functions
 var ProviderFactory = map[string]func() Provider{
 	ProviderGoogle: NewGoogleTranslateProvider,
+	ProviderTikTok: NewTikTokProvider,
 }
 
 // GetProvider returns a TTS provider by name

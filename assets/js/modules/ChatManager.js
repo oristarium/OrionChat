@@ -175,14 +175,7 @@ export class ChatManager {
         try {
             if (this.ttsAllChat && this.canMessageBeTTSed(message)) {
                 console.log('TTS All Chat enabled, sending to TTS:', message);
-                await this.messageHandler.sendToTTS({
-                    type: 'tts',
-                    data: {
-                        message: message,
-                        voice_id: this.messageHandler.languageSelect.value || 'en',
-                        voice_provider: this.messageHandler.providerSelect.value || 'google'
-                    }
-                });
+                await this.messageHandler.sendToTTS(message);
             }
 
             this.appendMessage(message);

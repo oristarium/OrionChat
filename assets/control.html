@@ -47,7 +47,8 @@
         <div id="settings-tabs">
           <ul>
             <li><a href="#livechat-tab">Livechat</a></li>
-            <li><a href="#tts-tab">TTS Settings</a></li>
+            <li><a href="#voice-tab">Voice Settings</a></li>
+            <li><a href="#avatar-tab">Avatar Settings</a></li>
           </ul>
 
           <!-- Livechat Tab -->
@@ -90,21 +91,48 @@
             </div>
           </div>
           <!-- TTS Settings Tab -->
-          <div id="tts-tab">
-            <div class="setting-list">
+          <div id="voice-tab">
+            <div class="voice-settings">
               <label for="tts-provider">TTS Provider:</label>
-              <select id="tts-provider">
+              <select id="tts-provider" class="tts-select">
+                <option value="tiktok">TikTok</option>
                 <option value="google">Google Translate</option>
               </select>
-              <label for="tts-language">TTS Language:</label>
-              <select id="tts-language">
-                <option value="id">Indonesian</option>
-                <option value="en">English</option>
-                <option value="ko">Korean</option>
-                <option value="ja">Japanese</option>
-              </select>
+
+              <div class="voice-settings">
+                <!-- TikTok specific selects -->
+                <div
+                  id="tiktok-voice-selects"
+                  class="provider-voice-settings"
+                  style="display: none"
+                >
+                  <label for="tiktok-language">Language:</label>
+                  <select id="tiktok-language" class="tts-select">
+                    <!-- Will be populated dynamically -->
+                  </select>
+
+                  <label for="tiktok-voice">Voice:</label>
+                  <select id="tiktok-voice" class="tts-select">
+                    <!-- Will be populated based on selected language -->
+                  </select>
+                </div>
+
+                <!-- Google specific select -->
+                <div id="google-voice-select" class="provider-voice-settings">
+                  <label for="tts-language">Language:</label>
+                  <select id="tts-language" class="tts-select">
+                    <option value="id">Indonesian</option>
+                    <option value="en">English</option>
+                    <option value="ko">Korean</option>
+                    <option value="ja">Japanese</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div class="setting-group avatar-settings">
+          </div>
+          <!-- Avatar Tab -->
+          <div id="avatar-tab">
+            <div id="avatar-settings" class="setting-group avatar-settings">
               <div id="avatar-sections">
                 <div class="avatar-section">
                   <h3>Idle Avatar</h3>

@@ -786,3 +786,51 @@ button:not(:disabled):hover {
     border-radius: 4px;
     border: 1px solid #ccc;
 }
+
+/* TTS Settings Styles */
+.tts-settings {
+    padding: var(--spacing-xl);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.voice-settings {
+    margin-top: var(--spacing-xl);
+}
+
+.provider-voice-settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.tts-settings label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.tts-select {
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    background-color: var(--color-secondary);
+    font-size: var(--font-sm);
+    transition: var(--transition-default);
+}
+
+.tts-select:hover {
+    border-color: var(--color-primary);
+}
+
+.tts-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+/* Provider-specific styles */
+.provider-voice-settings:not(:first-child) {
+    margin-top: var(--spacing-lg);
+}

@@ -20,6 +20,7 @@ type GoogleTranslateProvider struct {
 	host    string
 	client  *http.Client
 	timeout int
+	sanitizer *TextSanitizer
 }
 
 // NewGoogleTranslateProvider creates a new Google Translate provider instance
@@ -29,6 +30,7 @@ func NewGoogleTranslateProvider() Provider {
 		host:    defaultHost,
 		client:  &http.Client{},
 		timeout: defaultTimeout,
+		sanitizer: NewTextSanitizer(),
 	}
 }
 
@@ -44,6 +46,12 @@ func (p *GoogleTranslateProvider) GetAudioBase64(text string, voiceID string, op
 	if len(text) > MaxTextLength {
 		log.Printf("Text too long: %d characters (max: %d)", len(text), MaxTextLength)
 		return "", fmt.Errorf("text length (%d) should be less than %d characters", len(text), MaxTextLength)
+	}
+
+	text = p.sanitizer.Sanitize(text, ProviderGoogle)
+
+	if strings.TrimSpace(text) == "" {
+		return "", fmt.Errorf("text cannot be empty")
 	}
 
 	innerData := []interface{}{text, voiceID, slow, "null"}

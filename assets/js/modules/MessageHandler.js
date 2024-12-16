@@ -14,12 +14,15 @@ export class MessageHandler {
 
     async sendMessage(message, type) {
         try {
+            const voiceId = window.voiceManager.getCurrentVoiceId();
+            const voiceProvider = window.voiceManager.providerSelect.value || 'google';
+
             const update = {
                 type: type,
                 data: {
                     message: message,
-                    voice_id: this.languageSelect.value || 'en',
-                    voice_provider: this.providerSelect.value || 'google'
+                    voice_id: voiceId,
+                    voice_provider: voiceProvider
                 }
             };
             

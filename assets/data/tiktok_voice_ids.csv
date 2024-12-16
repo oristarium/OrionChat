@@ -1,0 +1,94 @@
+lang_label,voice_name,voice_id
+English,Narrator (Chris),en_uk_001
+English,UK Male 2,en_uk_003
+English,Peaceful,en_female_emotional
+English,Metro (Eddie),en_au_001
+English,Smooth (Alex),en_au_002
+English,Jessie,en_us_002
+English,Joey,en_us_006
+English,Professor,en_us_007
+English,Scientist,en_us_009
+English,Confidence,en_us_010
+English,Empathetic,en_female_samc
+English,Serious,en_male_cody
+English,Story Teller,en_male_narration
+English,Wacky,en_male_funny
+English,Alfred,en_male_jarvis
+English,Author,en_male_santa_narration
+English,Bae,en_female_betty
+English,Beauty Guru,en_female_makeup
+English,Bestie,en_female_richgirl
+English,Cupid,en_male_cupid
+English,Debutante,en_female_shenna
+English,Ghost Host,en_male_ghosthost
+English,Grandma,en_female_grandma
+English,Lord Cringe,en_male_ukneighbor
+English,Magician,en_male_wizard
+English,Marty,en_male_trevor
+English,Mr. GoodGuy (Deadpool),en_male_deadpool
+English,Mr. Meticulous,en_male_ukbutler
+English,Optimus Prime,en_male_petercullen
+English,Pirate,en_male_pirate
+English,Santa,en_male_santa
+English,Santa (w/ effect),en_male_santa_effect
+English,Varsity,en_female_pansino
+English,Trickster (Grinch),en_male_grinch
+English,Ghostface (Scream),en_us_ghostface
+English,Chewbacca (Star Wars),en_us_chewbacca
+English,C-3PO (Star Wars),en_us_c3po
+English,Stormtrooper (Star Wars),en_us_stormtrooper
+English,Stitch (Lilo & Stitch),en_us_stitch
+English,Rocket (Guardians of the Galaxy),en_us_rocket
+English,Madame Leota (Haunted Mansion),en_female_madam_leota
+English,Song: Caroler,en_male_sing_deep_jingle
+English,Song: Classic Electric,en_male_m03_classical
+English,Song: Cottagecore (Salut d'Amour),en_female_f08_salut_damour
+English,Song: Cozy,en_male_m2_xhxs_m03_christmas
+English,Song: Open Mic (Warmy Breeze),en_female_f08_warmy_breeze
+English,Song: Opera (Halloween),en_female_ht_f08_halloween
+English,Song: Euphoric (Glorious),en_female_ht_f08_glorious
+English,Song: Hypetrain (It Goes Up),en_male_sing_funny_it_goes_up
+English,Song: Jingle (Lobby),en_male_m03_lobby
+English,Song: Melodrama (Wonderful World),en_female_ht_f08_wonderful_world
+English,Song: NYE 2023,en_female_ht_f08_newyear
+English,Song: Thanksgiving,en_male_sing_funny_thanksgiving
+English,Song: Toon Beat (Sunshine Soon),en_male_m03_sunshine_soon
+English,Song: Pop Lullaby,en_female_f08_twinkle
+English,Song: Quirky Time,en_male_m2_xhxs_m03_silly
+French,French Male 1,fr_001
+French,French Male 2,fr_002
+German,German Female,de_001
+German,German Male,de_002
+Indonesian,Darma,id_male_darma
+Indonesian,Icha,id_female_icha
+Indonesian,Noor,id_female_noor
+Indonesian,Putra,id_male_putra
+Italian,Italian Male,it_male_m18
+Japanese,Miho,jp_001
+Japanese,Keiko,jp_003
+Japanese,Sakura,jp_005
+Japanese,Naoki,jp_006
+Japanese,Morisuke,jp_male_osada
+Japanese,Matsuo,jp_male_matsuo
+Japanese,Machikoriiita,jp_female_machikoriiita
+Japanese,Matsudake,jp_male_matsudake
+Japanese,Shuichiro,jp_male_shuichiro
+Japanese,Maruyama Rei,jp_female_rei
+Japanese,Hikakin,jp_male_hikakin
+Japanese,Yagi Saki,jp_female_yagishaki
+Korean,Korean Male 1,kr_002
+Korean,Korean Male 2,kr_004
+Korean,Korean Female,kr_003
+Portuguese,Julia,br_003
+Portuguese,Ana,br_004
+Portuguese,Lucas,br_005
+Portuguese,Lhays Macedo,pt_female_lhays
+Portuguese,Laizza,pt_female_laizza
+Portuguese,Optimus Prime (Portuguese),pt_male_transformer
+Spanish,Spanish Male,es_002
+Spanish,Julio,es_male_m3
+Spanish,Alejandra,es_female_f6
+Spanish,Mariana,es_female_fp1
+Spanish,Álex (Warm),es_mx_002
+Spanish,Optimus Prime (Mexican),es_mx_male_transformer
+Spanish,Super Mamá,es_mx_female_supermom

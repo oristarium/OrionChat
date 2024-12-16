@@ -4,6 +4,7 @@ import { ConnectionManager } from './modules/ConnectionManager.js';
 import { UIManager } from './modules/UIManager.js';
 import { MessageHandler } from './modules/MessageHandler.js';
 import { AvatarManager } from './modules/AvatarManager.js';
+import { VoiceManager } from './modules/VoiceManager.js';
 
 class Controller {
     constructor() {
@@ -13,6 +14,8 @@ class Controller {
         this.connection = new ConnectionManager();
         this.messageHandler = new MessageHandler();
         this.avatarManager = new AvatarManager();
+        this.voiceManager = new VoiceManager();
+        window.voiceManager = this.voiceManager;
         
         this.init();
     }

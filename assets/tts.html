@@ -269,7 +269,7 @@
         const audioCache = new Map();
 
         async function processTTSMessage(chatMessage, voiceId, voiceProvider) {
-            console.log(`[${new Date().toISOString()}] Received TTS message:`, chatMessage.message_id);
+            console.log(`Processing TTS message - Voice ID: ${voiceId}, Provider: ${voiceProvider}`);
             
             // Check for duplicate consecutive message
             if (chatMessage.message_id === lastPlayedMessageId) {
@@ -286,7 +286,7 @@
 
             // Add to queue
             ttsQueue.push({ chatMessage, voiceId, voiceProvider });
-            console.log(`[${new Date().toISOString()}] Added to queue. Queue length:`, ttsQueue.length);
+            console.log(`Added to queue with voice settings - ID: ${voiceId}, Provider: ${voiceProvider}`);
             updateDebugBox();
 
             // Start processing if not already processing
@@ -429,16 +429,20 @@
                         voice_provider: voiceProvider
                     })
                 });
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`TTS API error: ${response.status} - ${errorText}`);
+                }
                 const endFetch = performance.now();
-                console.log(`[${new Date().toISOString()}] Network request took ${(endFetch - startTime).toFixed(2)}ms`);
+                console.log(`Network request took ${(endFetch - startTime).toFixed(2)}ms`);
                 
                 const { audio } = await response.json();
                 const endParse = performance.now();
-                console.log(`[${new Date().toISOString()}] JSON parsing took ${(endParse - endFetch).toFixed(2)}ms`);
+                console.log(`JSON parsing took ${(endParse - endFetch).toFixed(2)}ms`);
                 
                 return audio;
             } catch (error) {
-                console.error(`[${new Date().toISOString()}] TTS API error:`, error);
+                console.error(`TTS API error:`, error);
                 throw error;
             }
         }
@@ -467,7 +471,7 @@
 
                 if (data.type === 'avatar_update') {
                     console.log('Avatar update received:', data.data);
-                    AVATAR_STATES[data.data.avatarType] = data.data.path;
+                    AVATAR_STATES[data.data.avatar_type] = data.data.path;
                     console.log('Updated AVATAR_STATES:', AVATAR_STATES);
                     if (!audioPlayer.playing) {
                         ELEMENTS.avatar.src = AVATAR_STATES.idle;
@@ -477,11 +481,26 @@
                 }
 
                 // Handle TTS message
-                await processTTSMessage(
-                    data.data.message, 
-                    data.data.voice_id,
-                    data.data.voice_provider
-                );
+                console.log('Processing TTS message:', {
+                    message: data.data.message,
+                    voice_id: data.data.voice_id,
+                    voice_provider: data.data.voice_provider
+                });
+
+                if (!data.data.voice_id || !data.data.voice_provider) {
+                    console.error('Missing voice settings:', data.data);
+                    return;
+                }
+
+                try {
+                    await processTTSMessage(
+                        data.data.message, 
+                        data.data.voice_id,
+                        data.data.voice_provider
+                    );
+                } catch (error) {
+                    console.error('Error processing TTS message:', error);
+                }
             };
 
             evtSource.onerror = (error) => {
