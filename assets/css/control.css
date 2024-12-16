@@ -568,3 +568,49 @@ button:not(:disabled):hover {
     gap: 10px;
     margin: 10px 0;
 }
+
+/* Add toggle switch styles */
+.toggle-wrapper {
+    display: flex;
+    align-items: center;
+}
+
+.toggle-label {
+    display: inline-flex;
+    align-items: center;
+    cursor: pointer;
+    gap: 8px;
+}
+
+.toggle-input {
+    display: none;
+}
+
+.toggle-display {
+    width: 40px;
+    height: 20px;
+    background: #ccc;
+    border-radius: 20px;
+    position: relative;
+    transition: background 0.3s;
+}
+
+.toggle-display:before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s;
+}
+
+.toggle-input:checked + .toggle-display {
+    background: var(--color-success);
+}
+
+.toggle-input:checked + .toggle-display:before {
+    transform: translateX(20px);
+}

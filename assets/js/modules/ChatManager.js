@@ -1,12 +1,17 @@
+import { MessageHandler } from './MessageHandler.js';
+
 export class ChatManager {
     constructor() {
         this.container = document.getElementById('chat-container');
         this.scrollButton = document.getElementById('scroll-button');
         this.isUserScrolling = false;
         this.scrollTimeout = null;
+        this.messageHandler = new MessageHandler();
+        this.ttsAllChat = false;
         
         this.setupScrollHandlers();
         this.setupMessageHandler();
+        this.setupTTSToggle();
     }
 
     setupScrollHandlers() {
@@ -18,8 +23,18 @@ export class ChatManager {
 
     setupMessageHandler() {
         window.addEventListener('chatMessage', (event) => {
-            this.appendMessage(event.detail);
+            this.handleChatMessage(event.detail);
         });
+    }
+
+    setupTTSToggle() {
+        const ttsToggle = document.getElementById('tts-all-chat');
+        if (ttsToggle) {
+            ttsToggle.addEventListener('change', (e) => {
+                this.ttsAllChat = e.target.checked;
+                console.log('TTS All Chat:', this.ttsAllChat ? 'enabled' : 'disabled');
+            });
+        }
     }
 
     handleScroll() {
@@ -136,5 +151,25 @@ export class ChatManager {
                 ${displayButton}
             </div>
         `;
+    }
+
+    canMessageBeTTSed(message) {
+        const content = message.data.content;
+        return content && content.sanitized && content.sanitized.trim() !== '';
+    }
+
+    async handleChatMessage(message) {
+        try {
+            // Use the same helper method for TTS All Chat
+            if (this.ttsAllChat && this.canMessageBeTTSed(message)) {
+                console.log('TTS All Chat enabled, sending to TTS:', message);
+                await this.messageHandler.sendToTTS(message);
+            }
+
+            // Just append to UI, don't broadcast to display
+            this.appendMessage(message);
+        } catch (error) {
+            console.error('Error handling chat message:', error);
+        }
     }
 } 
