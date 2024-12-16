@@ -569,22 +569,33 @@
         // Add to the script section
         function clearQueue() {
             console.log('Clearing TTS queue...');
-            // Stop current audio if playing
-            if (!audioPlayer.paused) {
-                audioPlayer.pause();
-                audioPlayer.currentTime = 0;
+            
+            // Keep the first item if it's currently playing
+            if (isProcessingQueue && ttsQueue.length > 0) {
+                const currentItem = ttsQueue[0];
+                ttsQueue.length = 0; // Clear the queue
+                ttsQueue.push(currentItem); // Put back the current item
+                console.log('Kept currently playing item:', currentItem.chatMessage.message_id);
+            } else {
+                ttsQueue.length = 0;
+            }
+
+            // Clear cache except for currently playing item
+            if (isProcessingQueue && ttsQueue.length > 0) {
+                const currentMessageId = ttsQueue[0].chatMessage.message_id;
+                const currentAudio = audioCache.get(currentMessageId);
+                audioCache.clear();
+                if (currentAudio) {
+                    audioCache.set(currentMessageId, currentAudio);
+                }
+            } else {
+                audioCache.clear();
             }
             
-            // Clear the queue
-            ttsQueue.length = 0;
-            audioCache.clear();
-            isProcessingQueue = false;
-            
-            // Reset UI
-            updateUIState(false);
+            // Update UI
             updateDebugBox();
             
-            console.log('TTS queue cleared');
+            console.log('TTS queue cleared, remaining items:', ttsQueue.length);
         }
 
         init();
