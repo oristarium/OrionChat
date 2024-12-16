@@ -59,6 +59,24 @@ class Controller {
             console.error('Clear display button not found in Controller');
         }
 
+        // Add clear TTS queue button handler
+        const clearTTSBtn = document.getElementById('clear-tts');
+        if (clearTTSBtn) {
+            console.log('Clear TTS queue button found and handler attached');
+            clearTTSBtn.addEventListener('click', () => {
+                console.log('Clear TTS queue button clicked');
+                try {
+                    this.messageHandler.clearTTSQueue().catch(error => {
+                        console.error('Error in clearTTSQueue:', error);
+                    });
+                } catch (error) {
+                    console.error('Error calling clearTTSQueue:', error);
+                }
+            });
+        } else {
+            console.error('Clear TTS queue button not found');
+        }
+
         // Make necessary methods available globally
         window.sendToDisplay = this.messageHandler.sendToDisplay.bind(this.messageHandler);
         window.sendToTTS = this.messageHandler.sendToTTS.bind(this.messageHandler);

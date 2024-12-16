@@ -92,4 +92,64 @@ export class MessageHandler {
             throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
         }
     }
+
+    async clearTTSQueue() {
+        try {
+            const update = {
+                type: 'clear_tts',
+                data: {},
+                message: {
+                    type: 'chat',
+                    platform: 'system',
+                    timestamp: new Date().toISOString(),
+                    message_id: 'clear_tts_' + Date.now(),
+                    room_id: '',
+                    data: {
+                        author: {
+                            id: 'system',
+                            username: 'system',
+                            display_name: 'System',
+                            avatar_url: '',
+                            roles: {
+                                broadcaster: false,
+                                moderator: false,
+                                subscriber: false,
+                                verified: false
+                            },
+                            badges: []
+                        },
+                        content: {
+                            raw: '',
+                            formatted: '',
+                            sanitized: '',
+                            rawHtml: '',
+                            elements: []
+                        },
+                        metadata: {
+                            type: 'chat'
+                        }
+                    }
+                },
+                lang: this.languageSelect.value
+            };
+
+            console.log('Sending clear TTS queue command:', update);
+
+            const response = await fetch('/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(update)
+            });
+
+            const responseText = await response.text();
+            console.log('Server response:', response.status, responseText);
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
+            }
+        } catch (error) {
+            console.error('Error clearing TTS queue:', error);
+            throw error;
+        }
+    }
 } 

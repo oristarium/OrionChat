@@ -562,3 +562,9 @@ button:not(:disabled):hover {
 .ui-dialog .ui-dialog-content {
     max-height: 70vh !important;
 }
+
+.control-group {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+}

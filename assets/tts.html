@@ -446,8 +446,12 @@
                 const data = JSON.parse(event.data);
                 console.log('SSE message received - Full data:', data);
                 console.log('Message type:', data.type);
-                if (data.type === 'tts') {
-                    console.log('Message ID:', data.message.message_id);
+
+                // Handle clear_tts command
+                if (data.type === 'clear_tts') {
+                    console.log('Clear TTS queue command received');
+                    clearQueue();
+                    return;
                 }
 
                 // Only handle tts and avatar_update types
@@ -560,6 +564,27 @@
         if (debugMode) {
             document.querySelector('.debug-box').classList.add('show');
             console.log('Debug mode enabled');
+        }
+
+        // Add to the script section
+        function clearQueue() {
+            console.log('Clearing TTS queue...');
+            // Stop current audio if playing
+            if (!audioPlayer.paused) {
+                audioPlayer.pause();
+                audioPlayer.currentTime = 0;
+            }
+            
+            // Clear the queue
+            ttsQueue.length = 0;
+            audioCache.clear();
+            isProcessingQueue = false;
+            
+            // Reset UI
+            updateUIState(false);
+            updateDebugBox();
+            
+            console.log('TTS queue cleared');
         }
 
         init();
