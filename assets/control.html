@@ -53,6 +53,9 @@
         <button id="open-avatar-settings" class="btn btn-secondary">
           Avatar Settings
         </button>
+        <button id="clear-display" class="btn btn-secondary">
+          Clear Display
+        </button>
       </section>
 
       <!-- Chat Panel -->
@@ -113,6 +116,25 @@
       </div>
     </div>
 
+    <script>
+        // Add this before the type="module" script
+        console.log('Control page loaded');
+        
+        // Add click event listener with logging
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM fully loaded');
+            
+            const clearBtn = document.getElementById('clear-display');
+            if (clearBtn) {
+                console.log('Clear display button found');
+                clearBtn.addEventListener('click', () => {
+                    console.log('Clear display button clicked');
+                });
+            } else {
+                console.error('Clear display button not found');
+            }
+        });
+    </script>
     <script type="module" src="js/control.js"></script>
   </body>
 </html>
