@@ -182,7 +182,7 @@ export class VoiceManager {
     }
 
     populateVoiceList(data = this.voiceData) {
-        this.voiceList.innerHTML = this.voiceData
+        this.voiceList.innerHTML = data
             .map(voice => `
                 <tr class="voice-row" data-voice-id="${voice.voice_id}">
                     <td>
