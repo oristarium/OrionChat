@@ -35,13 +35,13 @@ func NewManager(storage *Storage) (*Manager, error) {
 	}
 	m.config = config
 
-	// Initialize default avatar if needed
-	if m.config.CurrentID == "" {
-		log.Printf("No current avatar, initializing default")
-		if err := m.initializeDefaultAvatar(); err != nil {
-			return nil, fmt.Errorf("initialize default avatar: %w", err)
-		}
-	}
+	// // Initialize default avatar if needed
+	// if m.config.CurrentID == "" {
+	// 	log.Printf("No current avatar, initializing default")
+	// 	if err := m.initializeDefaultAvatar(); err != nil {
+	// 		return nil, fmt.Errorf("initialize default avatar: %w", err)
+	// 	}
+	// }
 
 	return m, nil
 }
@@ -83,8 +83,8 @@ func (m *Manager) initializeDefaultAvatar() error {
 	}
 
 	m.config.Avatars = []Avatar{defaultAvatar}
-	m.config.DefaultID = defaultAvatar.ID
-	m.config.CurrentID = defaultAvatar.ID
+	// m.config.DefaultID = defaultAvatar.ID
+	// m.config.CurrentID = defaultAvatar.ID
 
 	log.Printf("Saving config with default avatar")
 	return m.Storage.SaveConfig(m.config)
@@ -111,44 +111,44 @@ func (m *Manager) CreateAvatar(name, description string, states map[AvatarState]
 }
 
 // GetCurrentAvatar returns the currently active avatar
-func (m *Manager) GetCurrentAvatar() (*Avatar, error) {
-	// If no current ID set, try to initialize
-	if m.config.CurrentID == "" {
-		if err := m.initializeDefaultAvatar(); err != nil {
-			return nil, fmt.Errorf("failed to initialize default avatar: %w", err)
-		}
-	}
+// func (m *Manager) GetCurrentAvatar() (*Avatar, error) {
+// 	// // If no current ID set, try to initialize
+// 	// if m.config.CurrentID == "" {
+// 	// 	if err := m.initializeDefaultAvatar(); err != nil {
+// 	// 		return nil, fmt.Errorf("failed to initialize default avatar: %w", err)
+// 	// 	}
+// 	// }
 
-	avatar, err := m.Storage.GetAvatar(m.config.CurrentID)
-	if err != nil {
-		return nil, err
-	}
-	return &avatar, nil
-}
+// 	avatar, err := m.Storage.GetAvatar(m.config.CurrentID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return &avatar, nil
+// }
 
 // SetCurrentAvatar sets the active avatar
-func (m *Manager) SetCurrentAvatar(id string) error {
-	// Verify avatar exists
-	if _, err := m.Storage.GetAvatar(id); err != nil {
-		return fmt.Errorf("avatar not found: %w", err)
-	}
+// func (m *Manager) SetCurrentAvatar(id string) error {
+// 	// Verify avatar exists
+// 	if _, err := m.Storage.GetAvatar(id); err != nil {
+// 		return fmt.Errorf("avatar not found: %w", err)
+// 	}
 
-	// Update active states
-	avatars, err := m.Storage.ListAvatars()
-	if err != nil {
-		return fmt.Errorf("list avatars: %w", err)
-	}
+// 	// Update active states
+// 	avatars, err := m.Storage.ListAvatars()
+// 	if err != nil {
+// 		return fmt.Errorf("list avatars: %w", err)
+// 	}
 
-	for _, avatar := range avatars {
-		avatar.IsActive = avatar.ID == id
-		if err := m.Storage.SaveAvatar(avatar); err != nil {
-			return fmt.Errorf("save avatar: %w", err)
-		}
-	}
+// 	for _, avatar := range avatars {
+// 		avatar.IsActive = avatar.ID == id
+// 		if err := m.Storage.SaveAvatar(avatar); err != nil {
+// 			return fmt.Errorf("save avatar: %w", err)
+// 		}
+// 	}
 
-	m.config.CurrentID = id
-	return m.Storage.SaveConfig(m.config)
-}
+// 	m.config.CurrentID = id
+// 	return m.Storage.SaveConfig(m.config)
+// }
 
 // GetAvatarState returns the file path for a specific avatar state
 func (m *Manager) GetAvatarState(id string, state AvatarState) (string, error) {
@@ -209,14 +209,6 @@ func (m *Manager) DeleteAvatar(id string) error {
 
 	if avatar.IsDefault {
 		return fmt.Errorf("cannot delete default avatar")
-	}
-
-	// If deleting current avatar, switch to default
-	if id == m.config.CurrentID {
-		m.config.CurrentID = m.config.DefaultID
-		if err := m.Storage.SaveConfig(m.config); err != nil {
-			return fmt.Errorf("save config: %w", err)
-		}
 	}
 
 	// Remove avatar from list

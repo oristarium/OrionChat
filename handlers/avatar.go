@@ -61,36 +61,19 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 		
 		response := struct {
 			Avatars   []avatar.Avatar `json:"avatars"`
-			CurrentID string          `json:"current_id"`
 		}{
 			Avatars:   []avatar.Avatar{defaultAvatar},
-			CurrentID: defaultAvatar.ID,
 		}
 		
 		json.NewEncoder(w).Encode(response)
 		return
 	}
 
-	// Get current avatar for marking default
-	currentAvatar, err := h.avatarManager.GetCurrentAvatar()
-	if err != nil {
-		log.Printf("Error getting current avatar: %v", err)
-		if len(avatars) > 0 {
-			currentAvatar = &avatars[0]
-		}
-	}
 
 	response := struct {
 		Avatars   []avatar.Avatar `json:"avatars"`
-		CurrentID string          `json:"current_id"`
 	}{
 		Avatars:   avatars,
-		CurrentID: func() string {
-			if currentAvatar != nil {
-				return currentAvatar.ID
-			}
-			return avatars[0].ID
-		}(),
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
