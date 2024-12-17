@@ -3,14 +3,10 @@ package avatar
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 
 	"go.etcd.io/bbolt"
-)
-
-const (
-	AvatarBucket = "avatars"
-	ConfigKey    = "config"
 )
 
 // Storage handles avatar data persistence
@@ -72,7 +68,20 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(AvatarBucket))
 		if b == nil {
-			return nil // No avatars yet
+			// Initialize with default avatar
+			defaultAvatar := Avatar{
+				ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
+				Name:        "Default",
+				Description: "Default avatar",
+				States: map[AvatarState]string{
+					StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
+					StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
+				},
+				IsDefault: true,
+				CreatedAt: time.Now().Unix(),
+			}
+			avatars = append(avatars, defaultAvatar)
+			return nil
 		}
 
 		return b.ForEach(func(k, v []byte) error {
@@ -82,12 +91,30 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 
 			var avatar Avatar
 			if err := json.Unmarshal(v, &avatar); err != nil {
+				log.Printf("Error unmarshaling avatar data %q: %v", string(v), err)
 				return fmt.Errorf("unmarshal avatar: %w", err)
 			}
 			avatars = append(avatars, avatar)
 			return nil
 		})
 	})
+
+	// If no avatars found, return default
+	if len(avatars) == 0 {
+		defaultAvatar := Avatar{
+			ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
+			Name:        "Default",
+			Description: "Default avatar",
+			States: map[AvatarState]string{
+				StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
+				StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
+			},
+			IsDefault: true,
+			CreatedAt: time.Now().Unix(),
+		}
+		avatars = append(avatars, defaultAvatar)
+	}
+
 	return avatars, err
 }
 
@@ -125,4 +152,62 @@ func (s *Storage) GetConfig() (AvatarList, error) {
 		return json.Unmarshal(data, &config)
 	})
 	return config, err
+}
+
+// SaveAvatarImage records a new avatar image in the database
+func (s *Storage) SaveAvatarImage(image AvatarImage) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		b, err := tx.CreateBucketIfNotExists([]byte(ImagesBucket))
+		if err != nil {
+			return fmt.Errorf("create images bucket: %w", err)
+		}
+
+		// Use path as key
+		data, err := json.Marshal(image)
+		if err != nil {
+			return fmt.Errorf("marshal image: %w", err)
+		}
+
+		return b.Put([]byte(image.Path), data)
+	})
+}
+
+// GetAvatarImage retrieves an avatar image by path
+func (s *Storage) GetAvatarImage(path string) (AvatarImage, error) {
+	var image AvatarImage
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(ImagesBucket))
+		if b == nil {
+			return fmt.Errorf("images bucket not found")
+		}
+
+		data := b.Get([]byte(path))
+		if data == nil {
+			return fmt.Errorf("image not found")
+		}
+
+		return json.Unmarshal(data, &image)
+	})
+	return image, err
+}
+
+// ListAvatarImages returns all available avatar images
+func (s *Storage) ListAvatarImages() ([]AvatarImage, error) {
+	var images []AvatarImage
+	err := s.db.View(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(ImagesBucket))
+		if b == nil {
+			return nil // No images yet
+		}
+
+		return b.ForEach(func(k, v []byte) error {
+			var image AvatarImage
+			if err := json.Unmarshal(v, &image); err != nil {
+				return fmt.Errorf("unmarshal image: %w", err)
+			}
+			images = append(images, image)
+			return nil
+		})
+	})
+	return images, err
 } 

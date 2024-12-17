@@ -23,4 +23,11 @@ type AvatarList struct {
     Avatars     []Avatar `json:"avatars"`
     DefaultID   string   `json:"default_id"`
     CurrentID   string   `json:"current_id"`
+}
+
+// AvatarImage represents a physical image file that can be used as an avatar state
+type AvatarImage struct {
+    Path      string `json:"path"`
+    Type      string `json:"type"` // file type (png, gif, etc)
+    CreatedAt int64  `json:"created_at"`
 } 

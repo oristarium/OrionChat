@@ -10,58 +10,126 @@ export class AvatarManager {
 
     async loadAvatars() {
         try {
-            const response = await fetch('/get-avatars');
-            const states = await response.json();
-            const listResponse = await fetch('/list-avatars');
-            const { avatars } = await listResponse.json();
+            // Get all uploaded avatar images
+            const listResponse = await fetch('/list-avatar-images');
+            const { avatars: avatarImages } = await listResponse.json();
             
-            // Show all avatars in both grids
-            this.populateAvatarGrid('idle', avatars, states.idle);
-            this.populateAvatarGrid('talking', avatars, states.talking);
+            // Get configured avatars (sets of idle/talking states)
+            const avatarResponse = await fetch('/api/avatars');
+            const { avatars: configuredAvatars, current_id } = await avatarResponse.json();
+            
+            // Store current avatar ID
+            this.currentAvatarId = current_id;
+            
+            // Populate the grid with all available images
+            this.populateAvatarGrid(avatarImages, configuredAvatars);
         } catch (error) {
             console.error('Error loading avatars:', error);
         }
     }
 
     initializeUI() {
-        this.avatarList = document.querySelector('.avatar-list');
-        this.addAvatarBtn = document.getElementById('add-avatar');
-        this.avatarDetails = document.querySelector('.avatar-details');
+        // Create modal dialog
+        this.modal = $('<div>', {
+            title: 'Edit Avatar States',
+            class: 'avatar-edit-modal'
+        }).dialog({
+            autoOpen: false,
+            modal: true,
+            width: 500,
+            buttons: {
+                Save: () => this.saveAvatarStates(),
+                Cancel: () => this.modal.dialog('close')
+            }
+        });
+
+        // Create modal content
+        this.modal.html(`
+            <div class="avatar-states-editor">
+                <div class="state-section">
+                    <h3>Idle State</h3>
+                    <input type="file" class="state-file" id="idle-state" accept="image/*">
+                    <div class="preview">
+                        <img id="idle-preview" src="" alt="Idle preview">
+                    </div>
+                </div>
+                <div class="state-section">
+                    <h3>Talking State</h3>
+                    <input type="file" class="state-file" id="talking-state" accept="image/*">
+                    <div class="preview">
+                        <img id="talking-preview" src="" alt="Talking preview">
+                    </div>
+                </div>
+            </div>
+        `);
     }
 
     setupEventListeners() {
-        this.setupUploadHandlers();
-        this.setupAvatarSelection();
-        
-        // Add new avatar
-        this.addAvatarBtn?.addEventListener('click', () => this.showAddAvatarDialog());
-    }
+        // Handle avatar grid clicks
+        const grid = document.getElementById('avatar-grid');
+        if (grid) {
+            grid.addEventListener('click', e => {
+                const item = e.target.closest('.avatar-item');
+                if (item) {
+                    this.editAvatar(item.dataset.id);
+                }
+            });
+        }
 
-    setupUploadHandlers() {
-        const uploadButtons = {
-            idle: document.getElementById('upload-idle'),
-            talking: document.getElementById('upload-talking')
-        };
+        // Handle new avatar button
+        const addBtn = document.getElementById('add-avatar');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.createNewAvatar());
+        }
 
-        const fileInputs = {
-            idle: document.getElementById('idle-avatar'),
-            talking: document.getElementById('talking-avatar')
-        };
-
-        Object.entries(uploadButtons).forEach(([type, button]) => {
-            if (button) {
-                button.addEventListener('click', () => this.handleUpload(type, fileInputs[type]));
+        // Handle file input changes
+        this.modal.find('input[type="file"]').on('change', function() {
+            const preview = $(this).siblings('.preview').find('img');
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => preview.attr('src', e.target.result);
+                reader.readAsDataURL(this.files[0]);
             }
         });
     }
 
-    handleUpload(type, fileInput) {
-        if (!fileInput.files.length) {
-            console.warn('No file selected');
-            alert('Please select a file first');
-            return;
+    async createNewAvatar() {
+        const avatar = {
+            id: `avatar_${Date.now()}`,
+            states: {}
+        };
+        this.editAvatar(avatar.id);
+    }
+
+    async editAvatar(id) {
+        this.currentEditingId = id;
+        const avatar = await this.getAvatar(id);
+        
+        // Set preview images
+        $('#idle-preview').attr('src', avatar?.states?.idle || '');
+        $('#talking-preview').attr('src', avatar?.states?.talking || '');
+        
+        this.modal.dialog('open');
+    }
+
+    async saveAvatarStates() {
+        const idleFile = $('#idle-state')[0].files[0];
+        const talkingFile = $('#talking-state')[0].files[0];
+        
+        try {
+            if (idleFile) {
+                await this.uploadAvatarState('idle', idleFile);
+            }
+            if (talkingFile) {
+                await this.uploadAvatarState('talking', talkingFile);
+            }
+            
+            this.modal.dialog('close');
+            await this.loadAvatars();
+        } catch (error) {
+            console.error('Failed to save avatar states:', error);
+            alert('Failed to save avatar states');
         }
-        this.uploadAvatar(type, fileInput.files[0]);
     }
 
     async uploadAvatar(type, file) {
@@ -159,13 +227,35 @@ export class AvatarManager {
         }
     }
 
-    populateAvatarGrid(type, paths, currentPath) {
-        const grid = document.getElementById(`${type}-avatar-grid`);
-        if (!grid) return;
+    populateAvatarGrid(avatarImages, configuredAvatars) {
+        const grid = document.getElementById('avatar-grid');
+        if (!grid) {
+            console.error('Avatar grid element not found');
+            return;
+        }
 
-        grid.innerHTML = paths.map(path => `
-            <div class="avatar-item ${path === currentPath ? 'selected' : ''}">
-                <img src="${path}" alt="Avatar option">
+        if (!avatarImages || !configuredAvatars) {
+            console.error('Missing avatar data:', { avatarImages, configuredAvatars });
+            return;
+        }
+
+        // Get the current avatar's states
+        const currentAvatar = configuredAvatars.find(a => a.id === this.currentAvatarId);
+        const currentStates = currentAvatar?.states || {};
+
+        // Create grid items for each image
+        grid.innerHTML = avatarImages.map(path => `
+            <div class="avatar-item ${path === currentStates.idle || path === currentStates.talking ? 'selected' : ''}"
+                 data-path="${path}">
+                <div class="avatar-preview">
+                    <img src="${path}" alt="Avatar image">
+                </div>
+                <div class="avatar-info">
+                    <div class="avatar-states">
+                        ${path === currentStates.idle ? '<span class="state-badge">Idle</span>' : ''}
+                        ${path === currentStates.talking ? '<span class="state-badge">Talking</span>' : ''}
+                    </div>
+                </div>
             </div>
         `).join('');
     }

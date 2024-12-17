@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,9 +35,6 @@ import (
 // Constants
 const (
 	ServerPort    = ":7777"
-	AssetsDir     = "assets"
-	DBPath        = "avatars.db"
-	AvatarBucket  = "avatars"
 	AppName       = "OrionChat"
 	AppIcon       = "assets/icon.ico"
 
@@ -47,15 +45,9 @@ const (
 	// Text sizes
 	DefaultTextSize = 14
 
-	// Avatar keys
-	AvatarIdleKey    = "avatar_idle"
-	AvatarTalkingKey = "avatar_talking"
-	
-	// Default avatar paths
-	DefaultIdleAvatar    = "/avatars/idle.png"
-	DefaultTalkingAvatar = "/avatars/talking.gif"
+	CopyLabel = "Copy %s URL 📋"
+	CopiedLabel = "Copied! ✓"
 
-	// Donation info
 	DonationLabel = "Support us on"
 	DonationLink = "https://trakteer.id/oristarium"
 	DonationText = "Trakteer ☕"
@@ -65,8 +57,7 @@ const (
 	ButtonSpacing = 60
 
 	// Button labels
-	CopyLabel = "Copy %s URL 📋"
-	CopiedLabel = "Copied! ✓"
+
 )
 
 // Config holds server configuration
@@ -88,7 +79,7 @@ type Server struct {
 
 // NewServer creates and configures a new server instance
 func NewServer() *Server {
-	storage, err := NewBBoltStorage(DBPath)
+	storage, err := NewBBoltStorage(avatar.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -102,7 +93,7 @@ func NewServer() *Server {
 	return &Server{
 		config: Config{
 			Port:      ServerPort,
-				AssetsDir: AssetsDir,
+				AssetsDir: avatar.AssetsDir,
 				Routes: map[string]string{
 					"/control": "/control.html",
 					"/display": "/display.html",
@@ -157,10 +148,10 @@ func (s *Server) setupRoutes() {
 			http.ServeFile(w, r, filePath)
 		})
 	}
-	http.HandleFunc("/upload-avatar", s.handleAvatarUpload)
-	http.HandleFunc("/get-avatars", s.handleGetAvatars)
-	http.HandleFunc("/list-avatars", s.handleListAvatars)
-	http.HandleFunc("/set-avatar", s.handleSetAvatar)
+	http.HandleFunc("/api/avatars", s.handleAvatars)
+	http.HandleFunc("/api/avatars/", s.handleAvatarDetail)
+	http.HandleFunc("/api/avatar-images", s.handleAvatarImages)
+	http.HandleFunc("/api/avatar-images/upload", s.handleAvatarImageUpload)
 	http.HandleFunc("/tts-service", s.handleTTS)
 }
 
@@ -249,6 +240,7 @@ func (s *Server) removeClient(client SSEClient) {
 }
 
 func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
+	// First save the file
 	s.fileHandler.HandleUpload(w, r, struct {
 		FileField  string
 		TypeField  string
@@ -259,15 +251,20 @@ func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
 	}{
 		FileField:  "avatar",
 		TypeField:  "type",
-		Directory:  "avatars",
-		Bucket:     AvatarBucket,
+		Directory:  avatar.AvatarAssetsDir,
+		Bucket:     avatar.AvatarBucket,
 		KeyPrefix:  "avatar",
 		OnSuccess: func(path string) error {
+			// Register the image in our database
+			if err := s.avatarManager.RegisterAvatarImage(path); err != nil {
+				return fmt.Errorf("register avatar image: %w", err)
+			}
+
 			update := Update{
 				Type: "avatar_update",
 				Data: UpdateData{
 					AvatarType: r.FormValue("type"),
-					Path: path,
+						Path: path,
 				},
 			}
 			return s.broadcastUpdate(update)
@@ -282,8 +279,8 @@ func (s *Server) handleGetAvatars(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		// Return default paths if no avatar found
 		json.NewEncoder(w).Encode(map[string]string{
-			"idle":    DefaultIdleAvatar,
-			"talking": DefaultTalkingAvatar,
+			"idle":    avatar.DefaultIdleAvatar,
+			"talking": avatar.DefaultTalkingAvatar,
 		})
 		return
 	}
@@ -296,26 +293,87 @@ func (s *Server) handleGetAvatars(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-func (s *Server) handleListAvatars(w http.ResponseWriter, r *http.Request) {
-	avatarDir := filepath.Join(AssetsDir, "avatars")
-	files, err := os.ReadDir(avatarDir)
+func (s *Server) handleListAvatarImages(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	// Get images from database
+	images, err := s.avatarManager.Storage.ListAvatarImages()
 	if err != nil {
-		log.Printf("Error reading avatar directory: %v", err)
-		http.Error(w, "Failed to read avatars", http.StatusInternalServerError)
+		log.Printf("Error listing avatar images: %v", err)
+		http.Error(w, "Failed to list avatar images", http.StatusInternalServerError)
 		return
 	}
 
-	var avatars []string
-	for _, file := range files {
-		if !file.IsDir() {
-			avatars = append(avatars, fmt.Sprintf("/avatars/%s", file.Name()))
+	// Convert to paths array for backwards compatibility
+	var paths []string
+	for _, img := range images {
+		paths = append(paths, img.Path)
+	}
+
+	json.NewEncoder(w).Encode(map[string][]string{
+		"avatars": paths,
+	})
+}
+
+func (s *Server) handleListAvatars(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	avatars, err := s.avatarManager.ListAvatars()
+	if err != nil {
+		log.Printf("Error listing avatars: %v", err)
+		// Return default avatar instead of error
+		defaultAvatar := avatar.Avatar{
+			ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
+			Name:        "Default",
+			Description: "Default avatar",
+			States: map[avatar.AvatarState]string{
+				avatar.StateIdle:    avatar.DefaultIdleAvatar,
+				avatar.StateTalking: avatar.DefaultTalkingAvatar,
+			},
+			IsDefault: true,
+			CreatedAt: time.Now().Unix(),
+		}
+		
+		response := struct {
+			Avatars   []avatar.Avatar `json:"avatars"`
+			CurrentID string          `json:"current_id"`
+		}{
+			Avatars:   []avatar.Avatar{defaultAvatar},
+			CurrentID: defaultAvatar.ID,
+		}
+		
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get current avatar for marking default
+	currentAvatar, err := s.avatarManager.GetCurrentAvatar()
+	if err != nil {
+		log.Printf("Error getting current avatar: %v", err)
+		// Use first avatar as current if none set
+		if len(avatars) > 0 {
+			currentAvatar = &avatars[0]
 		}
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string][]string{
-		"avatars": avatars,
-	})
+	// Convert to response format
+	response := struct {
+		Avatars   []avatar.Avatar `json:"avatars"`
+		CurrentID string          `json:"current_id"`
+	}{
+		Avatars:   avatars,
+		CurrentID: func() string {
+			if currentAvatar != nil {
+				return currentAvatar.ID
+			}
+			return avatars[0].ID
+		}(),
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
 }
 
 func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
@@ -339,8 +397,8 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var request struct {
-		Type string `json:"type"`  // maps to AvatarState
-		Path string `json:"path"`  // path to existing avatar
+		Type string `json:"type"`
+		Path string `json:"path"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -359,17 +417,31 @@ func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Current avatar ID: %s", currentAvatar.ID)
-
 	// Update state
 	state := avatar.AvatarState(request.Type)
 	log.Printf("Updating avatar state - ID: %s, State: %s, Path: %s", 
 		currentAvatar.ID, state, request.Path)
 
 	if err := s.avatarManager.UpdateAvatarState(currentAvatar.ID, state, request.Path); err != nil {
-		log.Printf("Failed to update avatar state: %v", err)
-		http.Error(w, "Failed to save avatar setting", http.StatusInternalServerError)
-		return
+		if err.Error() == "image not found" {
+			log.Printf("Image not registered, attempting to register: %s", request.Path)
+			// Try to register the image first
+			if err := s.avatarManager.RegisterAvatarImage(request.Path); err != nil {
+				log.Printf("Failed to register image: %v", err)
+				http.Error(w, "Failed to register image", http.StatusInternalServerError)
+				return
+			}
+			// Try update again
+			if err := s.avatarManager.UpdateAvatarState(currentAvatar.ID, state, request.Path); err != nil {
+				log.Printf("Failed to update avatar state after registration: %v", err)
+				http.Error(w, "Failed to save avatar setting", http.StatusInternalServerError)
+				return
+			}
+		} else {
+			log.Printf("Failed to update avatar state: %v", err)
+			http.Error(w, "Failed to save avatar setting", http.StatusInternalServerError)
+			return
+		}
 	}
 
 	log.Printf("Successfully updated avatar state")
@@ -768,11 +840,29 @@ func NewBBoltStorage(dbPath string) (*BBoltStorage, error) {
 		return nil, err
 	}
 
+	// Initialize required buckets
+	err = db.Update(func(tx *bbolt.Tx) error {
+		// Create avatar bucket
+		if _, err := tx.CreateBucketIfNotExists([]byte(avatar.AvatarBucket)); err != nil {
+			return fmt.Errorf("create avatar bucket: %w", err)
+		}
+		
+		// Create images bucket
+		if _, err := tx.CreateBucketIfNotExists([]byte(avatar.ImagesBucket)); err != nil {
+			return fmt.Errorf("create images bucket: %w", err)
+		}
+		
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("initialize buckets: %w", err)
+	}
+
 	return &BBoltStorage{db: db}, nil
 }
 
 func (s *BBoltStorage) Upload(file *multipart.File, filename string, directory string) (string, error) {
-	filepath := filepath.Join(AssetsDir, directory, filename)
+	filepath := filepath.Join(avatar.AssetsDir, directory, filename)
 	
 	// Create directory if it doesn't exist
 	if err := os.MkdirAll(directory, 0755); err != nil {
@@ -893,3 +983,192 @@ func (s *spacingLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
 }
 
 //go:generate goversioninfo -icon=AppIcon -manifest=manifest.xml
+
+// handleAvatars handles GET /api/avatars
+func (s *Server) handleAvatars(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	avatars, err := s.avatarManager.ListAvatars()
+	if err != nil {
+		log.Printf("Error listing avatars: %v", err)
+		// Return default avatar instead of error
+		defaultAvatar := avatar.Avatar{
+			ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
+			Name:        "Default",
+			Description: "Default avatar",
+			States: map[avatar.AvatarState]string{
+				avatar.StateIdle:    fmt.Sprintf("/%s/idle.png", avatar.AvatarAssetsDir),
+				avatar.StateTalking: fmt.Sprintf("/%s/talking.gif", avatar.AvatarAssetsDir),
+			},
+			IsDefault: true,
+			CreatedAt: time.Now().Unix(),
+		}
+		
+		response := struct {
+			Avatars   []avatar.Avatar `json:"avatars"`
+			CurrentID string          `json:"current_id"`
+		}{
+			Avatars:   []avatar.Avatar{defaultAvatar},
+			CurrentID: defaultAvatar.ID,
+		}
+		
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Get current avatar for marking default
+	currentAvatar, err := s.avatarManager.GetCurrentAvatar()
+	if err != nil {
+		log.Printf("Error getting current avatar: %v", err)
+		if len(avatars) > 0 {
+			currentAvatar = &avatars[0]
+		}
+	}
+
+	response := struct {
+		Avatars   []avatar.Avatar `json:"avatars"`
+		CurrentID string          `json:"current_id"`
+	}{
+		Avatars:   avatars,
+		CurrentID: func() string {
+			if currentAvatar != nil {
+				return currentAvatar.ID
+			}
+			return avatars[0].ID
+		}(),
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// handleAvatarDetail handles /api/avatars/{id}/(get|set)
+func (s *Server) handleAvatarDetail(w http.ResponseWriter, r *http.Request) {
+	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(segments) != 4 { // api/avatars/{id}/{action}
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	id := segments[2]
+	action := segments[3]
+
+	switch action {
+	case "get":
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		s.handleGetAvatar(w, r, id)
+	case "set":
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		s.handleSetAvatarDetail(w, r, id)
+	default:
+		http.Error(w, "Invalid action", http.StatusBadRequest)
+	}
+}
+
+// handleAvatarImages handles GET /api/avatar-images
+func (s *Server) handleAvatarImages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	// Read directly from avatars directory
+	avatarDir := filepath.Join(avatar.AssetsDir, avatar.AvatarAssetsDir)
+	files, err := os.ReadDir(avatarDir)
+	if err != nil {
+		log.Printf("Error reading avatar directory: %v", err)
+		// Return default images instead of error
+		defaultImages := []string{
+			fmt.Sprintf("/%s/idle.png", avatar.AvatarAssetsDir),
+			fmt.Sprintf("/%s/talking.gif", avatar.AvatarAssetsDir),
+		}
+		json.NewEncoder(w).Encode(map[string][]string{
+			"avatar-images": defaultImages,
+		})
+		return
+	}
+
+	// Convert to paths array for backwards compatibility
+	var paths []string
+	for _, file := range files {
+		if !file.IsDir() {
+			paths = append(paths, fmt.Sprintf("/%s/%s", avatar.AvatarAssetsDir, file.Name()))
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string][]string{
+		"avatar-images": paths,
+	})
+}
+
+// handleAvatarImageUpload handles POST /api/avatar-images/upload
+func (s *Server) handleAvatarImageUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Handle file upload and registration
+	s.fileHandler.HandleUpload(w, r, struct {
+		FileField  string
+		TypeField  string
+		Directory  string
+		Bucket     string
+		KeyPrefix  string
+		OnSuccess  func(string) error
+	}{
+		FileField:  "avatar",
+		TypeField:  "type",
+		Directory:  avatar.AvatarAssetsDir,
+		Bucket:     avatar.AvatarBucket,
+		KeyPrefix:  "avatar",
+		OnSuccess: func(path string) error {
+			return s.avatarManager.RegisterAvatarImage(path)
+		},
+	})
+}
+
+// handleGetAvatar handles GET /api/avatars/{id}/get
+func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request, id string) {
+	avatar, err := s.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		log.Printf("Error getting avatar: %v", err)
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(avatar)
+}
+
+// handleSetAvatarDetail handles PUT /api/avatars/{id}/set
+func (s *Server) handleSetAvatarDetail(w http.ResponseWriter, r *http.Request, id string) {
+	var request struct {
+		States map[avatar.AvatarState]string `json:"states"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+	
+	for state, path := range request.States {
+		if err := s.avatarManager.UpdateAvatarState(id, state, path); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusOK)
+}
