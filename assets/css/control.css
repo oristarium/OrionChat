@@ -834,3 +834,133 @@ button:not(:disabled):hover {
 .provider-voice-settings:not(:first-child) {
     margin-top: var(--spacing-lg);
 }
+
+/* Voice table styles */
+.voice-filter {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.tts-input {
+    flex: 2;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--border-color);
+    font-size: var(--font-sm);
+}
+
+.voice-table-container {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+.voice-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.voice-table th,
+.voice-table td {
+    padding: var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.voice-table th {
+    background: var(--color-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.voice-table tr:hover {
+    background: var(--color-secondary);
+}
+
+.voice-table .play-sample {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: var(--spacing-sm);
+}
+
+.voice-table .play-sample:hover {
+    color: var(--color-primary-dark);
+}
+
+/* Style the audio player */
+.voice-sample {
+    height: 30px;
+    width: 150px;
+}
+
+/* Make the sample column wide enough */
+.voice-table td:last-child {
+    min-width: 160px;
+}
+
+.voice-filter .tts-select {
+    flex: 1;
+}
+
+.voice-counter {
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+    font-weight: 500;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.voice-counter span {
+    color: var(--color-primary);
+    font-weight: 600;
+}
+
+.clear-voices-btn {
+    border: none;
+    background: none;
+    color: var(--color-danger);
+    font-size: var(--font-xs);
+    cursor: pointer;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition-default);
+}
+
+.clear-voices-btn:hover {
+    background: var(--color-danger);
+    color: white;
+}
+
+.voice-table tr:hover {
+    background: var(--color-secondary);
+}
+
+.voice-row {
+    cursor: pointer;
+}
+
+.voice-row .sample-cell {
+    cursor: default;
+}
+
+/* Prevent text selection when clicking rows */
+.voice-row td:not(.sample-cell) {
+    user-select: none;
+}
+
+/* Make all cells except sample cell clickable */
+.voice-row td:not(.sample-cell) {
+    cursor: pointer;
+    user-select: none;
+}
+
+.voice-row .sample-cell {
+    cursor: default;
+}

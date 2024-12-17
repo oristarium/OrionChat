@@ -106,16 +106,42 @@
                   class="provider-voice-settings"
                   style="display: none"
                 >
-                  <label for="tiktok-language">Language:</label>
-                  <select id="tiktok-language" class="tts-select">
-                    <!-- Will be populated dynamically -->
-                  </select>
-
-                  <label for="tiktok-voice">Voice:</label>
-                  <select id="tiktok-voice" class="tts-select">
-                    <option value="random">Random</option>
-                    <!-- Will be populated based on selected language -->
-                  </select>
+                  <div class="voice-filter">
+                    <input type="text" id="voice-search" class="tts-input" placeholder="Search voices...">
+                    <select id="language-filter" class="tts-select">
+                      <option value="all">All Languages</option>
+                      <!-- Languages will be populated dynamically -->
+                    </select>
+                    <select id="gender-filter" class="tts-select">
+                      <option value="all">All Genders</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="neutral">Neutral</option>
+                    </select>
+                  </div>
+                  <div class="voice-counter">
+                    <div class="counter-text">
+                      Selected Voices: <span id="selected-voice-count">0</span>
+                    </div>
+                    <button id="clear-voices" class="clear-voices-btn">✕ Clear Voices</button>
+                  </div>
+                  
+                  <div class="voice-table-container">
+                    <table class="voice-table">
+                      <thead>
+                        <tr>
+                          <th><input type="checkbox" id="select-all-voices"></th>
+                          <th>Language</th>
+                          <th>Voice</th>
+                          <th>Gender</th>
+                          <th>Sample</th>
+                        </tr>
+                      </thead>
+                      <tbody id="voice-list">
+                        <!-- Voice rows will be populated dynamically -->
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <!-- Google specific select -->
