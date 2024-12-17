@@ -151,6 +151,7 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/api/avatars", s.handleAvatars)
 	http.HandleFunc("/api/avatars/", s.handleAvatarDetail)
 	http.HandleFunc("/api/avatars/active", s.handleActiveAvatars)
+	http.HandleFunc("/api/avatars/create", s.handleCreateAvatar)
 	http.HandleFunc("/api/avatar-images", s.handleAvatarImages)
 	http.HandleFunc("/api/avatar-images/upload", s.handleAvatarImageUpload)
 	http.HandleFunc("/api/avatar-images/delete/", s.handleAvatarImageDelete)
@@ -1265,4 +1266,52 @@ func (s *Server) handleDeleteAvatar(w http.ResponseWriter, r *http.Request, id s
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+}
+
+// handleCreateAvatar handles POST /api/avatars/create
+func (s *Server) handleCreateAvatar(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Generate ID first
+	id := fmt.Sprintf("avatar_%d", time.Now().UnixNano())
+	
+	newAvatar := avatar.Avatar{
+		ID:          id,  // Set the ID explicitly
+		Name:        "New Avatar",
+		Description: "New avatar",
+		States: map[avatar.AvatarState]string{
+			avatar.StateIdle:    "/avatars/idle.png",
+			avatar.StateTalking: "/avatars/talking.gif",
+		},
+		IsDefault: false,
+		IsActive:  false,
+		CreatedAt: time.Now().Unix(),
+	}
+
+	if err := s.avatarManager.Storage.SaveAvatar(newAvatar); err != nil {
+		log.Printf("Error saving new avatar: %v", err)
+		http.Error(w, "Failed to create avatar", http.StatusInternalServerError)
+		return
+	}
+
+	// Update config to include new avatar
+	config, err := s.avatarManager.Storage.GetConfig()
+	if err != nil {
+		log.Printf("Error getting config: %v", err)
+		http.Error(w, "Failed to update config", http.StatusInternalServerError)
+		return
+	}
+
+	config.Avatars = append(config.Avatars, newAvatar)
+	if err := s.avatarManager.Storage.SaveConfig(config); err != nil {
+		log.Printf("Error saving config: %v", err)
+		http.Error(w, "Failed to update config", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(newAvatar)
 }

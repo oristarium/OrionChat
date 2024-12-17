@@ -6,6 +6,7 @@ export class AvatarManager {
         this.loadAvatars();
         this.setupEventListeners();
         this.createUploadModal();
+        this.setupAddAvatarButton();
     }
 
     createUploadModal() {
@@ -94,6 +95,17 @@ export class AvatarManager {
                 reader.readAsDataURL(file);
             }
         });
+
+        // Add click handler for delete buttons
+        document.addEventListener('click', async (e) => {
+            const deleteBtn = e.target.closest('.delete-avatar-btn');
+            if (!deleteBtn) return;
+
+            const avatarId = deleteBtn.dataset.avatarId;
+            if (confirm('Are you sure you want to delete this avatar?')) {
+                await this.deleteAvatar(avatarId);
+            }
+        });
     }
 
     async loadAvatars() {
@@ -118,6 +130,11 @@ export class AvatarManager {
     }
 
     createAvatarRow(avatar) {
+        if (!avatar || !avatar.id) {
+            console.error('Invalid avatar data:', avatar);
+            return '';
+        }
+
         return `
             <tr class="avatar-row" data-avatar-id="${avatar.id}">
                 <td>
@@ -126,16 +143,26 @@ export class AvatarManager {
                            data-avatar-id="${avatar.id}" 
                            ${avatar.is_active ? 'checked' : ''}>
                 </td>
-                <td>${avatar.name}</td>
                 <td>
                     <div class="avatar-preview" data-state-type="idle">
-                        <img src="${avatar.states.idle}" alt="Idle state" class="preview-img">
+                        <img src="${avatar.states?.idle || ''}" alt="Idle state" class="preview-img">
                     </div>
                 </td>
                 <td>
                     <div class="avatar-preview" data-state-type="talking">
-                        <img src="${avatar.states.talking}" alt="Talking state" class="preview-img">
+                        <img src="${avatar.states?.talking || ''}" alt="Talking state" class="preview-img">
                     </div>
+                </td>
+                <td>
+                    <button class="delete-avatar-btn" data-avatar-id="${avatar.id}" ${avatar.is_default ? 'disabled' : ''}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M2 4h12M5.333 4V2.667a1.333 1.333 0 011.334-1.334h2.666a1.333 1.333 0 011.334 1.334V4m2 0v9.333a1.333 1.333 0 01-1.334 1.334H4.667a1.333 1.333 0 01-1.334-1.334V4h9.334z" 
+                                  stroke="currentColor" 
+                                  stroke-width="1.5" 
+                                  stroke-linecap="round" 
+                                  stroke-linejoin="round"/>
+                        </svg>
+                    </button>
                 </td>
             </tr>
         `;
@@ -151,9 +178,10 @@ export class AvatarManager {
             const row = checkbox.closest('.avatar-row');
             if (row) row.classList.add('loading');
         }
-
+    
         try {
-            const response = await fetch(`/api/avatars/${avatarId}/set`, {
+            // Fix: Use the correct URL format with avatarId in the path
+            const response = await fetch(`/api/avatars/${avatarId}/set`, {  // Changed from /api/avatars/set
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -162,11 +190,11 @@ export class AvatarManager {
                     is_active: isActive
                 })
             });
-
+    
             if (!response.ok) {
                 throw new Error('Failed to update avatar active state');
             }
-
+    
             // Update local state
             const avatar = this.avatars.find(a => a.id === avatarId);
             if (avatar) {
@@ -318,6 +346,130 @@ export class AvatarManager {
         } catch (error) {
             console.error('Error uploading image:', error);
             alert('Failed to upload image. Please try again.');
+        }
+    }
+
+    setupAddAvatarButton() {
+        // Add button to the avatar management header
+        const avatarManagement = document.querySelector('.avatar-management');
+        const headerHtml = `
+            <div class="avatar-header">
+                <h3>Avatar Management</h3>
+                <button id="add-avatar-btn" class="btn btn-primary btn-sm">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M6 1V11M1 6H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    New Avatar
+                </button>
+            </div>
+        `;
+        avatarManagement.insertAdjacentHTML('afterbegin', headerHtml);
+
+        // Add click handler
+        document.getElementById('add-avatar-btn')?.addEventListener('click', () => {
+            this.createNewAvatar();
+        });
+    }
+
+    async createNewAvatar() {
+        const button = document.getElementById('add-avatar-btn');
+        if (!button) return;
+
+        try {
+            // Disable button and show loading state
+            button.disabled = true;
+            button.innerHTML = `
+                <svg class="spinner" width="12" height="12" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"/>
+                </svg>
+                Creating...
+            `;
+
+            // Make API request
+            const response = await fetch('/api/avatars/create', {
+                method: 'POST'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to create avatar');
+            }
+
+            // Get created avatar data
+            const newAvatar = await response.json();
+
+            // Add to local state
+            this.avatars.push(newAvatar);
+            
+            // Update UI
+            this.renderAvatarList();
+
+            // Scroll to new avatar
+            const newRow = document.querySelector(`[data-avatar-id="${newAvatar.id}"]`);
+            if (newRow) {
+                newRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                newRow.classList.add('highlight');
+                setTimeout(() => newRow.classList.remove('highlight'), 2000);
+            }
+
+        } catch (error) {
+            console.error('Error creating avatar:', error);
+            alert('Failed to create new avatar. Please try again.');
+        } finally {
+            // Reset button state
+            button.disabled = false;
+            button.innerHTML = `
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M6 1V11M1 6H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                New Avatar
+            `;
+        }
+    }
+
+    async deleteAvatar(avatarId) {
+        const row = document.querySelector(`tr[data-avatar-id="${avatarId}"]`);
+        if (!row) return;
+
+        try {
+            // Add loading state
+            row.classList.add('loading');
+            const deleteBtn = row.querySelector('.delete-avatar-btn');
+            if (deleteBtn) {
+                deleteBtn.disabled = true;
+            }
+
+            const response = await fetch(`/api/avatars/${avatarId}/delete`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to delete avatar');
+            }
+
+            // Remove from local state
+            this.avatars = this.avatars.filter(a => a.id !== avatarId);
+            
+            // Animate row removal
+            row.style.transition = 'opacity 0.3s, transform 0.3s';
+            row.style.opacity = '0';
+            row.style.transform = 'translateX(-10px)';
+            
+            // Remove row after animation
+            setTimeout(() => {
+                this.renderAvatarList();
+            }, 300);
+
+        } catch (error) {
+            console.error('Error deleting avatar:', error);
+            alert(error.message || 'Failed to delete avatar. Please try again.');
+            
+            // Remove loading state on error
+            row.classList.remove('loading');
+            const deleteBtn = row.querySelector('.delete-avatar-btn');
+            if (deleteBtn) {
+                deleteBtn.disabled = false;
+            }
         }
     }
 } 

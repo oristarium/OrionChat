@@ -60,7 +60,7 @@ export class VoiceManager {
                     sample_sentence: values[4] || '',
                     sample_voice: values[5] ? values[5].replace(/\\n/g, '\n').replace(/\\"/g, '"') : ''
                 };
-                console.log('Parsed voice entry:', result);
+                // console.log('Parsed voice entry:', result);
                 return result;
             });
         return parsed;
