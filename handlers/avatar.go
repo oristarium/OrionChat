@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/oristarium/orionchat/avatar" // Update with your actual module name
+	"github.com/oristarium/orionchat/broadcast"
 )
 
 // AvatarHandler handles all avatar-related HTTP requests
@@ -22,22 +23,7 @@ type AvatarHandler struct {
 
 // Broadcaster interface defines methods for broadcasting updates
 type Broadcaster interface {
-	BroadcastUpdate(update Update) error
-}
-
-// Update represents the message sent to display
-type Update struct {
-	Type string     `json:"type"`
-	Data UpdateData `json:"data"`
-}
-
-// UpdateData represents the data payload for different update types
-type UpdateData struct {
-	Path          string      `json:"path,omitempty"`
-	AvatarType    string      `json:"avatar_type,omitempty"`
-	Message       interface{} `json:"message,omitempty"`
-	VoiceID       string      `json:"voice_id,omitempty"`
-	VoiceProvider string      `json:"voice_provider,omitempty"`
+	Broadcast(update broadcast.Update) error
 }
 
 // NewAvatarHandler creates a new AvatarHandler instance
@@ -310,14 +296,14 @@ func (h *AvatarHandler) HandleAvatarUpload(w http.ResponseWriter, r *http.Reques
 				return fmt.Errorf("register avatar image: %w", err)
 			}
 
-			update := Update{
+			update := broadcast.Update{
 				Type: "avatar_update",
-				Data: UpdateData{
+				Data: broadcast.UpdateData{
 					AvatarType: r.FormValue("type"),
 					Path:       path,
 				},
 			}
-			return h.broadcaster.BroadcastUpdate(update)
+			return h.broadcaster.Broadcast(update)
 		},
 	})
 }

@@ -96,9 +96,11 @@ type UpdateData struct {
 
 type SSEClient chan string
 
+type File = multipart.File
+
 // FileStorage interface defines methods for file operations
 type FileStorage interface {
-	Upload(file *multipart.File, filename string, directory string) (string, error)
+	Upload(file *File, filename string, directory string) (string, error)
 	Get(key string, bucket string) (string, error)
 	Save(key string, value string, bucket string) error
 } 

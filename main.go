@@ -4,11 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"mime/multipart"
 	"net/http"
-	"os"
 	"path/filepath"
 	"sync"
 	"time"
@@ -17,9 +14,10 @@ import (
 	"github.com/oristarium/orionchat/tts"    // Replace with your actual module name
 	"github.com/oristarium/orionchat/ui"     // Add this import
 
+	"github.com/oristarium/orionchat/broadcast"
 	"github.com/oristarium/orionchat/handlers"
+	"github.com/oristarium/orionchat/storage"
 	"github.com/oristarium/orionchat/types"
-	"go.etcd.io/bbolt"
 )
 
 // Constants
@@ -30,28 +28,27 @@ const (
 // Server represents the application server
 type Server struct {
 	config  types.Config
-	clients map[types.SSEClient]bool
-	mu      sync.RWMutex
 	fileHandler *handlers.FileHandler
 	ttsService *tts.TTSService
 	avatarManager *avatar.Manager
 	avatarHandler *handlers.AvatarHandler
+	broadcaster *broadcast.Broadcaster
 }
 
 // NewServer creates and configures a new server instance
 func NewServer() *Server {
-	storage, err := NewBBoltStorage(avatar.DBPath)
+	store, err := storage.NewBBoltStorage(avatar.DBPath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	// Initialize avatar manager
-	avatarManager, err := avatar.NewManager(avatar.NewStorage(storage.db))
+	avatarManager, err := avatar.NewManager(avatar.NewStorage(store.GetDB()))
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fileHandler := handlers.NewFileHandler(storage)
+	fileHandler := handlers.NewFileHandler(store)
 
 	server := &Server{
 		config: types.Config{
@@ -64,10 +61,10 @@ func NewServer() *Server {
 				"/tutorial": "/tutorial.html",
 			},
 		},
-		clients:       make(map[types.SSEClient]bool),
 		fileHandler:   fileHandler,
 		ttsService:    tts.NewTTSService(),
 		avatarManager: avatarManager,
+		broadcaster: broadcast.New(),
 	}
 
 	server.avatarHandler = handlers.NewAvatarHandler(
@@ -109,7 +106,7 @@ func (s *Server) setupRoutes() {
 	})
 	
 	// Configure SSE and update endpoints
-	http.HandleFunc("/sse", s.handleSSE)
+	http.HandleFunc("/sse", s.broadcaster.HandleSSE)
 	http.HandleFunc("/update", s.handleUpdate)
 	
 	// Configure page routes
@@ -130,88 +127,24 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/tts-service", s.handleTTS)
 }
 
-func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
-	headers := map[string]string{
-		"Content-Type":                "text/event-stream",
-		"Cache-Control":               "no-cache",
-		"Connection":                  "keep-alive",
-		"Access-Control-Allow-Origin": "*",
-	}
-	
-	for key, value := range headers {
-		w.Header().Set(key, value)
-	}
-
-	client := make(types.SSEClient)
-	
-	s.addClient(client)
-
-	notify := w.(http.CloseNotifier).CloseNotify()
-	go func() {
-		<-notify
-		s.removeClient(client)
-	}()
-
-	for msg := range client {
-		fmt.Fprintf(w, "data: %s\n\n", msg)
-		w.(http.Flusher).Flush()
-	}
-
-	s.removeClient(client)
-}
-
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	var update types.Update
+	var update broadcast.Update
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := s.broadcastUpdate(update); err != nil {
+	if err := s.broadcaster.Broadcast(update); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (s *Server) broadcastUpdate(update types.Update) error {
-	log.Println("Starting broadcast...")
-	message, err := json.Marshal(update)
-	if err != nil {
-		log.Printf("JSON marshal error: %v", err)
-		return err
-	}
-	
-	log.Printf("Broadcasting message: %s", string(message))
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	
-	for client := range s.clients {
-		client <- string(message)
-	}
-	log.Printf("Broadcast completed to %d clients", len(s.clients))
-	return nil
-}
-
-func (s *Server) addClient(client types.SSEClient) {
-	s.mu.Lock()
-	s.clients[client] = true
-	s.mu.Unlock()
-}
-
-func (s *Server) removeClient(client types.SSEClient) {
-	s.mu.Lock()
-	if _, exists := s.clients[client]; exists {
-		delete(s.clients, client)
-		close(client)
-	}
-	s.mu.Unlock()
 }
 
 func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
@@ -288,6 +221,10 @@ func (s *Server) handleTTS(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Successfully sent response with audio length: %d", len(combinedAudio))
 }
 
+func (s *Server) Broadcast(update broadcast.Update) error {
+	return s.broadcaster.Broadcast(update)
+}
+
 func main() {
 	// Create channels to coordinate shutdown
 	shutdown := make(chan bool)
@@ -336,101 +273,4 @@ func main() {
 
 	// Start the UI
 	ui.RunUI(ServerPort, shutdown, serverStarted, &wg)
-}
-
-// FileStorage interface defines methods for file operations
-type FileStorage interface {
-	Upload(file *multipart.File, filename string, directory string) (string, error)
-	Get(key string, bucket string) (string, error)
-	Save(key string, value string, bucket string) error
-}
-
-// BBoltStorage implements FileStorage using BBolt
-type BBoltStorage struct {
-	db *bbolt.DB
-}
-
-func NewBBoltStorage(dbPath string) (*BBoltStorage, error) {
-	db, err := bbolt.Open(dbPath, 0600, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Initialize required buckets
-	err = db.Update(func(tx *bbolt.Tx) error {
-		// Create avatar bucket
-		if _, err := tx.CreateBucketIfNotExists([]byte(avatar.AvatarBucket)); err != nil {
-			return fmt.Errorf("create avatar bucket: %w", err)
-		}
-		
-		// Create images bucket
-		if _, err := tx.CreateBucketIfNotExists([]byte(avatar.ImagesBucket)); err != nil {
-			return fmt.Errorf("create images bucket: %w", err)
-		}
-		
-		return nil
-	})
-	if err != nil {
-		return nil, fmt.Errorf("initialize buckets: %w", err)
-	}
-
-	return &BBoltStorage{db: db}, nil
-}
-
-func (s *BBoltStorage) Upload(file *multipart.File, filename string, directory string) (string, error) {
-	filepath := filepath.Join(avatar.AssetsDir, directory, filename)
-	
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(directory, 0755); err != nil {
-		return "", err
-	}
-
-	dst, err := os.Create(filepath)
-	if err != nil {
-		return "", err
-	}
-	defer dst.Close()
-
-	if _, err = io.Copy(dst, *file); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("/%s/%s", directory, filename), nil
-}
-
-func (s *BBoltStorage) Get(key string, bucket string) (string, error) {
-	var value string
-	err := s.db.View(func(tx *bbolt.Tx) error {
-		b := tx.Bucket([]byte(bucket))
-		if b == nil {
-			return fmt.Errorf("bucket %s not found", bucket)
-		}
-		value = string(b.Get([]byte(key)))
-		return nil
-	})
-	return value, err
-}
-
-func (s *BBoltStorage) Save(key string, value string, bucket string) error {
-	return s.db.Update(func(tx *bbolt.Tx) error {
-		b, err := tx.CreateBucketIfNotExists([]byte(bucket))
-		if err != nil {
-			return err
-		}
-		return b.Put([]byte(key), []byte(value))
-	})
-}
-
-// Add this method to Server struct
-func (s *Server) BroadcastUpdate(update handlers.Update) error {
-	return s.broadcastUpdate(types.Update{
-		Type: update.Type,
-		Data: types.UpdateData{
-			Path:       update.Data.Path,
-			AvatarType: update.Data.AvatarType,
-			Message:    update.Data.Message,
-			VoiceID:    update.Data.VoiceID,
-			VoiceProvider: update.Data.VoiceProvider,
-		},
-	})
 }
