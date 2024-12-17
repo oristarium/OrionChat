@@ -982,6 +982,12 @@ button:not(:disabled):hover {
 }
 
 /* Avatar Management Styles */
+.avatar-management {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
 .avatar-header {
     display: flex;
     justify-content: space-between;
@@ -989,88 +995,182 @@ button:not(:disabled):hover {
     margin-bottom: var(--spacing-lg);
 }
 
-.avatar-list {
-    max-height: 200px;
+.avatar-table-container {
+    flex: 1;
     overflow-y: auto;
-    margin-bottom: var(--spacing-xl);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
 }
 
-.avatar-item {
-    display: flex;
-    align-items: center;
-    padding: var(--spacing-md);
-    border-bottom: 1px solid var(--border-color);
-    gap: var(--spacing-md);
+.avatar-table {
+    width: 100%;
+    border-collapse: collapse;
 }
 
-.avatar-item:last-child {
-    border-bottom: none;
+.avatar-table th,
+.avatar-table td {
+    padding: var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.avatar-table th {
+    background: var(--color-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.avatar-row:hover {
+    background: var(--color-secondary);
 }
 
 .avatar-preview {
-    width: 48px;
-    height: 48px;
+    width: 80px;
+    height: 80px;
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.avatar-name {
+    font-weight: 500;
+}
+
+.avatar-description {
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+.avatar-default {
+    color: var(--color-success);
+    font-size: var(--font-lg);
+    text-align: center;
+}
+
+.avatar-created {
+    font-size: var(--font-sm);
+    color: var(--text-secondary);
+}
+
+.avatar-row.active {
+    background-color: var(--color-secondary);
+}
+
+.avatar-active {
+    color: var(--color-primary);
+    font-size: var(--font-lg);
+    text-align: center;
+}
+
+/* Update avatar table styles */
+.avatar-table td {
+    vertical-align: middle;
+}
+
+.avatar-active-toggle {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.avatar-preview {
+    width: 80px;
+    height: 80px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    background: var(--color-secondary);
+}
+
+.preview-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.avatar-row:hover {
+    background-color: var(--color-secondary);
+}
+
+/* Add loading state styles */
+.avatar-row.loading {
+    opacity: 0.7;
+    pointer-events: none;
+    position: relative;
+}
+
+.avatar-row.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(1px);
+}
+
+/* Improve checkbox styling */
+.avatar-active-toggle {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--color-primary);
+}
+
+.avatar-active-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* Avatar upload modal styles */
+#avatar-upload-modal {
+    padding: var(--spacing-lg);
+}
+
+#avatar-upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.upload-preview {
+    max-width: 200px;
+    max-height: 200px;
+    margin: 0 auto;
+    border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
     overflow: hidden;
 }
 
-.avatar-preview img {
+#upload-preview-img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-}
-
-.avatar-info {
-    flex: 1;
-}
-
-.avatar-info h4 {
-    margin: 0;
-    font-size: var(--font-sm);
-    color: var(--text-primary);
-}
-
-.avatar-info p {
-    margin: var(--spacing-xs) 0 0;
-    font-size: var(--font-xs);
-    color: var(--text-secondary);
-}
-
-.avatar-actions {
-    display: flex;
-    gap: var(--spacing-sm);
-}
-
-.avatar-item.active {
-    background: var(--color-secondary);
-}
-
-/* Avatar Edit Modal */
-.avatar-edit-modal .avatar-states-editor {
-    display: flex;
-    gap: 20px;
-}
-
-.avatar-states-editor .state-section {
-    flex: 1;
-    text-align: center;
-}
-
-.avatar-states-editor .preview {
-    margin-top: 10px;
-    border: 1px solid var(--border-color);
-    padding: 10px;
-    border-radius: var(--border-radius-sm);
-}
-
-.avatar-states-editor .preview img {
-    max-width: 100%;
-    max-height: 200px;
     object-fit: contain;
 }
 
-.ui-dialog {
-    z-index: 1000;
+/* Make preview images look clickable */
+.avatar-preview {
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.avatar-preview:hover {
+    transform: scale(1.05);
+}
+
+/* Style file input */
+#avatar-image-input {
+    padding: var(--spacing-md);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-md);
+    cursor: pointer;
 }

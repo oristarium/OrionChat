@@ -3,6 +3,7 @@ package avatar
 import (
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
 	"time"
 )
@@ -72,6 +73,8 @@ func (m *Manager) initializeDefaultAvatar() error {
 			StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
 		},
 		IsDefault: true,
+		IsActive:  true,
+		CreatedAt: time.Now().Unix(),
 	}
 
 	log.Printf("Saving default avatar with ID: %s", defaultAvatar.ID)
@@ -128,6 +131,19 @@ func (m *Manager) SetCurrentAvatar(id string) error {
 	// Verify avatar exists
 	if _, err := m.Storage.GetAvatar(id); err != nil {
 		return fmt.Errorf("avatar not found: %w", err)
+	}
+
+	// Update active states
+	avatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return fmt.Errorf("list avatars: %w", err)
+	}
+
+	for _, avatar := range avatars {
+		avatar.IsActive = avatar.ID == id
+		if err := m.Storage.SaveAvatar(avatar); err != nil {
+			return fmt.Errorf("save avatar: %w", err)
+		}
 	}
 
 	m.config.CurrentID = id
@@ -241,4 +257,51 @@ func (m *Manager) RegisterAvatarImage(path string) error {
 		CreatedAt: time.Now().Unix(),
 	}
 	return m.Storage.SaveAvatarImage(image)
+}
+
+// GetActiveAvatars returns all active avatars
+func (m *Manager) GetActiveAvatars() ([]Avatar, error) {
+	avatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return nil, fmt.Errorf("list avatars: %w", err)
+	}
+
+	var activeAvatars []Avatar
+	for _, avatar := range avatars {
+		if avatar.IsActive {
+			activeAvatars = append(activeAvatars, avatar)
+		}
+	}
+
+	return activeAvatars, nil
+}
+
+// DeleteAvatarImage removes an avatar image from the system
+func (m *Manager) DeleteAvatarImage(path string) error {
+	// First check if image is in use by any avatar
+	avatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return fmt.Errorf("list avatars: %w", err)
+	}
+
+	for _, avatar := range avatars {
+		for _, statePath := range avatar.States {
+			if statePath == path {
+				return fmt.Errorf("image is in use by avatar %s", avatar.ID)
+			}
+		}
+	}
+
+	// Delete from storage
+	if err := m.Storage.DeleteAvatarImage(path); err != nil {
+		return fmt.Errorf("delete from storage: %w", err)
+	}
+
+	// Delete physical file
+	filePath := filepath.Join(AssetsDir, path)
+	if err := os.Remove(filePath); err != nil {
+		log.Printf("Warning: Failed to delete physical file: %v", err)
+	}
+
+	return nil
 } 

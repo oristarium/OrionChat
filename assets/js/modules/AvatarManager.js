@@ -2,261 +2,237 @@ export class AvatarManager {
     constructor() {
         console.log('AvatarManager initialized');
         this.avatars = [];
-        this.currentAvatar = null;
-        this.initializeUI();
-        this.setupEventListeners();
+        this.currentAvatarId = null;
         this.loadAvatars();
+        this.setupEventListeners();
+        this.createUploadModal();
+    }
+
+    createUploadModal() {
+        const modalHtml = `
+            <div id="avatar-upload-modal" title="Upload Avatar Image" style="display:none;">
+                <form id="avatar-upload-form">
+                    <input type="file" id="avatar-image-input" accept="image/png,image/gif,image/jpeg" />
+                    <div class="upload-preview">
+                        <img id="upload-preview-img" style="display:none;" />
+                    </div>
+                </form>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        this.uploadModal = $('#avatar-upload-modal').dialog({
+            autoOpen: false,
+            modal: true,
+            width: 400,
+            buttons: {
+                Upload: () => this.handleImageUpload(),
+                Cancel: () => this.uploadModal.dialog('close')
+            }
+        });
+    }
+
+    setupEventListeners() {
+        // Listen for changes on avatar checkboxes
+        document.addEventListener('change', async (e) => {
+            if (e.target.classList.contains('avatar-active-toggle')) {
+                const avatarId = e.target.dataset.avatarId;
+                const isActive = e.target.checked;
+                await this.updateAvatarActive(avatarId, isActive);
+            }
+        });
+
+        // Add click handlers for avatar images
+        document.addEventListener('click', (e) => {
+            const previewImg = e.target.closest('.preview-img');
+            if (!previewImg) return;
+
+            const row = previewImg.closest('.avatar-row');
+            if (!row) return;
+
+            const avatarId = row.dataset.avatarId;
+            const stateType = previewImg.closest('[data-state-type]')?.dataset.stateType;
+            
+            if (avatarId && stateType) {
+                this.openUploadModal(avatarId, stateType);
+            }
+        });
+
+        // Add preview for selected file
+        document.getElementById('avatar-image-input')?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const previewImg = document.getElementById('upload-preview-img');
+                    previewImg.src = e.target.result;
+                    previewImg.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
     }
 
     async loadAvatars() {
         try {
-            // Get all uploaded avatar images
-            const listResponse = await fetch('/list-avatar-images');
-            const { avatars: avatarImages } = await listResponse.json();
+            const response = await fetch('/api/avatars');
+            const data = await response.json();
             
-            // Get configured avatars (sets of idle/talking states)
-            const avatarResponse = await fetch('/api/avatars');
-            const { avatars: configuredAvatars, current_id } = await avatarResponse.json();
+            this.avatars = data.avatars;
+            this.currentAvatarId = data.current_id;
             
-            // Store current avatar ID
-            this.currentAvatarId = current_id;
-            
-            // Populate the grid with all available images
-            this.populateAvatarGrid(avatarImages, configuredAvatars);
+            this.renderAvatarList();
         } catch (error) {
             console.error('Error loading avatars:', error);
         }
     }
 
-    initializeUI() {
-        // Create modal dialog
-        this.modal = $('<div>', {
-            title: 'Edit Avatar States',
-            class: 'avatar-edit-modal'
-        }).dialog({
-            autoOpen: false,
-            modal: true,
-            width: 500,
-            buttons: {
-                Save: () => this.saveAvatarStates(),
-                Cancel: () => this.modal.dialog('close')
-            }
-        });
+    renderAvatarList() {
+        const tbody = document.getElementById('avatar-list');
+        if (!tbody) return;
 
-        // Create modal content
-        this.modal.html(`
-            <div class="avatar-states-editor">
-                <div class="state-section">
-                    <h3>Idle State</h3>
-                    <input type="file" class="state-file" id="idle-state" accept="image/*">
-                    <div class="preview">
-                        <img id="idle-preview" src="" alt="Idle preview">
+        tbody.innerHTML = this.avatars.map(avatar => this.createAvatarRow(avatar)).join('');
+    }
+
+    createAvatarRow(avatar) {
+        return `
+            <tr class="avatar-row" data-avatar-id="${avatar.id}">
+                <td>
+                    <input type="checkbox" 
+                           class="avatar-active-toggle" 
+                           data-avatar-id="${avatar.id}" 
+                           ${avatar.is_active ? 'checked' : ''}>
+                </td>
+                <td>${avatar.name}</td>
+                <td>
+                    <div class="avatar-preview" data-state-type="idle">
+                        <img src="${avatar.states.idle}" alt="Idle state" class="preview-img">
                     </div>
-                </div>
-                <div class="state-section">
-                    <h3>Talking State</h3>
-                    <input type="file" class="state-file" id="talking-state" accept="image/*">
-                    <div class="preview">
-                        <img id="talking-preview" src="" alt="Talking preview">
+                </td>
+                <td>
+                    <div class="avatar-preview" data-state-type="talking">
+                        <img src="${avatar.states.talking}" alt="Talking state" class="preview-img">
                     </div>
-                </div>
-            </div>
-        `);
+                </td>
+            </tr>
+        `;
     }
 
-    setupEventListeners() {
-        // Handle avatar grid clicks
-        const grid = document.getElementById('avatar-grid');
-        if (grid) {
-            grid.addEventListener('click', e => {
-                const item = e.target.closest('.avatar-item');
-                if (item) {
-                    this.editAvatar(item.dataset.id);
-                }
-            });
-        }
-
-        // Handle new avatar button
-        const addBtn = document.getElementById('add-avatar');
-        if (addBtn) {
-            addBtn.addEventListener('click', () => this.createNewAvatar());
-        }
-
-        // Handle file input changes
-        this.modal.find('input[type="file"]').on('change', function() {
-            const preview = $(this).siblings('.preview').find('img');
-            if (this.files && this.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => preview.attr('src', e.target.result);
-                reader.readAsDataURL(this.files[0]);
-            }
-        });
-    }
-
-    async createNewAvatar() {
-        const avatar = {
-            id: `avatar_${Date.now()}`,
-            states: {}
-        };
-        this.editAvatar(avatar.id);
-    }
-
-    async editAvatar(id) {
-        this.currentEditingId = id;
-        const avatar = await this.getAvatar(id);
-        
-        // Set preview images
-        $('#idle-preview').attr('src', avatar?.states?.idle || '');
-        $('#talking-preview').attr('src', avatar?.states?.talking || '');
-        
-        this.modal.dialog('open');
-    }
-
-    async saveAvatarStates() {
-        const idleFile = $('#idle-state')[0].files[0];
-        const talkingFile = $('#talking-state')[0].files[0];
-        
-        try {
-            if (idleFile) {
-                await this.uploadAvatarState('idle', idleFile);
-            }
-            if (talkingFile) {
-                await this.uploadAvatarState('talking', talkingFile);
-            }
+    async updateAvatarActive(avatarId, isActive) {
+        const checkbox = document.querySelector(`.avatar-active-toggle[data-avatar-id="${avatarId}"]`);
+        if (checkbox) {
+            // Disable checkbox during update
+            checkbox.disabled = true;
             
-            this.modal.dialog('close');
-            await this.loadAvatars();
-        } catch (error) {
-            console.error('Failed to save avatar states:', error);
-            alert('Failed to save avatar states');
+            // Add loading state to row
+            const row = checkbox.closest('.avatar-row');
+            if (row) row.classList.add('loading');
         }
-    }
-
-    async uploadAvatar(type, file) {
-        console.log(`Uploading ${type} avatar:`, file);
-        const formData = new FormData();
-        formData.append('avatar', file);
-        formData.append('type', type);
 
         try {
-            const response = await fetch('/upload-avatar', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (!response.ok) {
-                throw new Error('Upload failed');
-            }
-
-            const result = await response.json();
-            console.log('Upload successful:', result);
-
-            // Update grid
-            await this.loadCurrentAvatarStates();
-        } catch (error) {
-            console.error('Upload error:', error);
-            alert('Failed to upload avatar');
-        }
-    }
-
-    setupAvatarSelection() {
-        ['idle', 'talking'].forEach(type => {
-            const grid = document.getElementById(`${type}-avatar-grid`);
-            if (grid) {
-                grid.addEventListener('click', async (e) => {
-                    const item = e.target.closest('.avatar-item');
-                    if (item) {
-                        const img = item.querySelector('img');
-                        const path = img.src.substring(img.src.indexOf('/avatars/'));
-                        await this.updateAvatarState(type, path);
-                    }
-                });
-            }
-        });
-    }
-
-    async updateAvatarState(type, path) {
-        try {
-            console.log(`Updating ${type} state to:`, path);
-            const response = await fetch('/set-avatar', {
-                method: 'POST',
+            const response = await fetch(`/api/avatars/${avatarId}/set`, {
+                method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
-                    type, 
-                    path 
+                body: JSON.stringify({
+                    is_active: isActive
                 })
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Server error:', errorText);
+                throw new Error('Failed to update avatar active state');
+            }
+
+            // Update local state
+            const avatar = this.avatars.find(a => a.id === avatarId);
+            if (avatar) {
+                avatar.is_active = isActive;
+            }
+        } catch (error) {
+            console.error('Error updating avatar active state:', error);
+            // Revert the checkbox state on error
+            if (checkbox) {
+                checkbox.checked = !isActive;
+            }
+        } finally {
+            // Re-enable checkbox and remove loading state
+            if (checkbox) {
+                checkbox.disabled = false;
+                const row = checkbox.closest('.avatar-row');
+                if (row) row.classList.remove('loading');
+            }
+        }
+    }
+
+    openUploadModal(avatarId, stateType) {
+        // Reset form and store current context
+        document.getElementById('avatar-upload-form').reset();
+        document.getElementById('upload-preview-img').style.display = 'none';
+        
+        this.currentUpload = { avatarId, stateType };
+        
+        // Open modal
+        this.uploadModal.dialog('open');
+    }
+
+    async handleImageUpload() {
+        const fileInput = document.getElementById('avatar-image-input');
+        const file = fileInput.files[0];
+        
+        if (!file || !this.currentUpload) {
+            return;
+        }
+
+        const { avatarId, stateType } = this.currentUpload;
+        
+        try {
+            // First upload the file
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('type', stateType);
+
+            const uploadResponse = await fetch('/api/avatar-images/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image');
+            }
+
+            const { path } = await uploadResponse.json();
+
+            // Then update the avatar state
+            const updateResponse = await fetch(`/api/avatars/${avatarId}/set`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    states: {
+                        [stateType]: path
+                    }
+                })
+            });
+
+            if (!updateResponse.ok) {
                 throw new Error('Failed to update avatar state');
             }
 
-            // Update grid selection
-            const grid = document.getElementById(`${type}-avatar-grid`);
-            grid.querySelectorAll('.avatar-item').forEach(item => {
-                item.classList.toggle('selected', 
-                    item.querySelector('img').src.endsWith(path));
-            });
+            // Update local state and UI
+            const avatar = this.avatars.find(a => a.id === avatarId);
+            if (avatar) {
+                avatar.states[stateType] = path;
+                this.renderAvatarList();
+            }
 
-            // Update current avatar states
-            await this.loadCurrentAvatarStates();
-            
-            console.log(`Successfully updated ${type} state to:`, path);
+            // Close modal
+            this.uploadModal.dialog('close');
+
         } catch (error) {
-            console.error('Error updating avatar state:', error);
-            alert('Failed to update avatar state');
+            console.error('Error updating avatar image:', error);
+            alert('Failed to update avatar image. Please try again.');
         }
-    }
-
-    async loadCurrentAvatarStates() {
-        try {
-            const response = await fetch('/get-avatars');
-            const states = await response.json();
-            const listResponse = await fetch('/list-avatars');
-            const { avatars } = await listResponse.json();
-            
-            // Show all avatars in both grids
-            this.populateAvatarGrid('idle', avatars, states.idle);
-            this.populateAvatarGrid('talking', avatars, states.talking);
-        } catch (error) {
-            console.error('Error loading avatar states:', error);
-        }
-    }
-
-    populateAvatarGrid(avatarImages, configuredAvatars) {
-        const grid = document.getElementById('avatar-grid');
-        if (!grid) {
-            console.error('Avatar grid element not found');
-            return;
-        }
-
-        if (!avatarImages || !configuredAvatars) {
-            console.error('Missing avatar data:', { avatarImages, configuredAvatars });
-            return;
-        }
-
-        // Get the current avatar's states
-        const currentAvatar = configuredAvatars.find(a => a.id === this.currentAvatarId);
-        const currentStates = currentAvatar?.states || {};
-
-        // Create grid items for each image
-        grid.innerHTML = avatarImages.map(path => `
-            <div class="avatar-item ${path === currentStates.idle || path === currentStates.talking ? 'selected' : ''}"
-                 data-path="${path}">
-                <div class="avatar-preview">
-                    <img src="${path}" alt="Avatar image">
-                </div>
-                <div class="avatar-info">
-                    <div class="avatar-states">
-                        ${path === currentStates.idle ? '<span class="state-badge">Idle</span>' : ''}
-                        ${path === currentStates.talking ? '<span class="state-badge">Talking</span>' : ''}
-                    </div>
-                </div>
-            </div>
-        `).join('');
     }
 } 

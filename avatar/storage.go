@@ -89,6 +89,11 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 				return nil // Skip config
 			}
 
+			// Skip if value appears to be a file path (starts with /)
+			if len(v) > 0 && v[0] == '/' {
+				return nil
+			}
+
 			var avatar Avatar
 			if err := json.Unmarshal(v, &avatar); err != nil {
 				log.Printf("Error unmarshaling avatar data %q: %v", string(v), err)
@@ -210,4 +215,16 @@ func (s *Storage) ListAvatarImages() ([]AvatarImage, error) {
 		})
 	})
 	return images, err
+}
+
+// DeleteAvatarImage removes an avatar image from the database
+func (s *Storage) DeleteAvatarImage(path string) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(ImagesBucket))
+		if b == nil {
+			return fmt.Errorf("images bucket not found")
+		}
+
+		return b.Delete([]byte(path))
+	})
 } 

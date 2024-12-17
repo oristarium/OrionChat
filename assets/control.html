@@ -159,18 +159,22 @@
           </div>
           <!-- Avatar Tab -->
           <div id="avatar-tab">
-            <div id="avatar-settings" class="setting-group avatar-settings">
-              <div class="avatar-header">
-                <h3>Avatar Management</h3>
-                <button id="add-avatar" class="btn btn-primary btn-sm">
-                  <span>➕</span> Add New Avatar
-                </button>
-              </div>
-              <div class="avatar-grid-container">
-                <div id="avatar-grid" class="avatar-grid">
-                  <!-- Avatars will be populated here -->
+            <div class="avatar-management">
+                <div class="avatar-table-container">
+                    <table class="avatar-table">
+                        <thead>
+                            <tr>
+                                <th>Active</th>
+                                <th>Name</th>
+                                <th>Idle State</th>
+                                <th>Talking State</th>
+                            </tr>
+                        </thead>
+                        <tbody id="avatar-list">
+                            <!-- Avatars will be populated here -->
+                        </tbody>
+                    </table>
                 </div>
-              </div>
             </div>
           </div>
         </div>

@@ -150,8 +150,10 @@ func (s *Server) setupRoutes() {
 	}
 	http.HandleFunc("/api/avatars", s.handleAvatars)
 	http.HandleFunc("/api/avatars/", s.handleAvatarDetail)
+	http.HandleFunc("/api/avatars/active", s.handleActiveAvatars)
 	http.HandleFunc("/api/avatar-images", s.handleAvatarImages)
 	http.HandleFunc("/api/avatar-images/upload", s.handleAvatarImageUpload)
+	http.HandleFunc("/api/avatar-images/delete/", s.handleAvatarImageDelete)
 	http.HandleFunc("/tts-service", s.handleTTS)
 }
 
@@ -1072,6 +1074,8 @@ func (s *Server) handleAvatarDetail(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.handleSetAvatarDetail(w, r, id)
+	case "delete":
+		s.handleDeleteAvatar(w, r, id)
 	default:
 		http.Error(w, "Invalid action", http.StatusBadRequest)
 	}
@@ -1157,18 +1161,108 @@ func (s *Server) handleGetAvatar(w http.ResponseWriter, r *http.Request, id stri
 // handleSetAvatarDetail handles PUT /api/avatars/{id}/set
 func (s *Server) handleSetAvatarDetail(w http.ResponseWriter, r *http.Request, id string) {
 	var request struct {
-		States map[avatar.AvatarState]string `json:"states"`
+		Name        string                        `json:"name,omitempty"`
+		Description string                        `json:"description,omitempty"`
+		States      map[avatar.AvatarState]string `json:"states,omitempty"`
+		IsActive    *bool                         `json:"is_active,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
+
+	// Get existing avatar
+	existingAvatar, err := s.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	// Update fields if provided
+	if request.Name != "" {
+		existingAvatar.Name = request.Name
+	}
+	if request.Description != "" {
+		existingAvatar.Description = request.Description
+	}
+	if request.IsActive != nil {
+		existingAvatar.IsActive = *request.IsActive
+	}
 	
-	for state, path := range request.States {
-		if err := s.avatarManager.UpdateAvatarState(id, state, path); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+	// Update states if provided
+	if request.States != nil {
+		// Initialize states map if it doesn't exist
+		if existingAvatar.States == nil {
+			existingAvatar.States = make(map[avatar.AvatarState]string)
 		}
+		// Merge new states with existing ones
+		for state, path := range request.States {
+			existingAvatar.States[state] = path
+		}
+	}
+	
+	// Save updated avatar
+	if err := s.avatarManager.Storage.SaveAvatar(existingAvatar); err != nil {
+		http.Error(w, "Failed to save avatar", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleActiveAvatars handles GET /api/avatars/active
+func (s *Server) handleActiveAvatars(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	avatars, err := s.avatarManager.GetActiveAvatars()
+	if err != nil {
+		log.Printf("Error getting active avatars: %v", err)
+		http.Error(w, "Failed to get active avatars", http.StatusInternalServerError)
+		return
+	}
+
+	if err := json.NewEncoder(w).Encode(map[string][]avatar.Avatar{
+		"avatars": avatars,
+	}); err != nil {
+		log.Printf("Error encoding response: %v", err)
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// handleAvatarImageDelete handles DELETE /api/avatar-images/delete/{path}
+func (s *Server) handleAvatarImageDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract path from URL
+	path := strings.TrimPrefix(r.URL.Path, "/api/avatar-images/delete/")
+	if path == "" {
+		http.Error(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the image
+	if err := s.avatarManager.DeleteAvatarImage(path); err != nil {
+		log.Printf("Error deleting avatar image: %v", err)
+		http.Error(w, "Failed to delete avatar image", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleDeleteAvatar handles DELETE /api/avatars/{id}
+func (s *Server) handleDeleteAvatar(w http.ResponseWriter, r *http.Request, id string) {
+	if err := s.avatarManager.DeleteAvatar(id); err != nil {
+		log.Printf("Error deleting avatar: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusOK)
 }
