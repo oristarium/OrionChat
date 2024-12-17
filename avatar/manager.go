@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/oristarium/orionchat/types"
 )
 
 // Manager handles avatar business logic
@@ -99,6 +101,12 @@ func (m *Manager) initializeDefaultAvatar() error {
 		IsDefault: true,
 		IsActive:  true,
 		CreatedAt: time.Now().Unix(),
+		TTSVoices: []types.TTSVoice{
+			{
+				VoiceID: "id",
+				Provider: "google",
+			},
+		},
 	}
 
 	log.Printf("Saving default avatar with ID: %s", defaultAvatar.ID)

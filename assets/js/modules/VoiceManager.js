@@ -1,17 +1,19 @@
 export class VoiceManager {
-    constructor() {
+    constructor(selectors) {
         this.voiceData = null;
         this.selectedVoices = new Set();
-        this.$providerSelect = $('#tts-provider');
-        this.$googleSelect = $('#google-voice-select');
-        this.$tiktokSelects = $('#tiktok-voice-selects');
-        this.$voiceSearch = $('#voice-search');
-        this.$languageFilter = $('#language-filter');
-        this.$genderFilter = $('#gender-filter');
-        this.$voiceList = $('#voice-list');
-        this.$selectAllCheckbox = $('#select-all-voices');
-        this.$selectedVoiceCount = $('#selected-voice-count');
-        this.$clearVoicesBtn = $('#clear-voices');
+        
+        // Store jQuery elements using passed selectors
+        this.$providerSelect = $(selectors.providerSelect);
+        this.$googleSelect = $(selectors.googleSelect);
+        this.$tiktokSelects = $(selectors.tiktokSelects);
+        this.$voiceSearch = $(selectors.voiceSearch);
+        this.$languageFilter = $(selectors.languageFilter);
+        this.$genderFilter = $(selectors.genderFilter);
+        this.$voiceList = $(selectors.voiceList);
+        this.$selectAllCheckbox = $(selectors.selectAllCheckbox);
+        this.$selectedVoiceCount = $(selectors.selectedVoiceCount);
+        this.$clearVoicesBtn = $(selectors.clearVoicesBtn);
         
         this.init();
     }
@@ -251,5 +253,45 @@ export class VoiceManager {
             return voiceIds[Math.floor(Math.random() * voiceIds.length)];
         }
         return $('#tts-language').val();
+    }
+
+    setSelectedVoices(voices) {
+        this.selectedVoices.clear();
+        voices.forEach(voice => {
+            if (voice.provider === 'tiktok') {
+                this.selectedVoices.add(voice.voice_id);
+            }
+        });
+        
+        // Update UI
+        this.updateVoiceUI(this.$providerSelect.val());
+        this.updateVoiceCount();
+        
+        // Update checkboxes
+        this.$voiceList.find('input[type="checkbox"]').each((_, checkbox) => {
+            checkbox.checked = this.selectedVoices.has(checkbox.value);
+        });
+    }
+
+    getSelectedVoices() {
+        const voices = [];
+        
+        // Add TikTok voices
+        this.selectedVoices.forEach(voiceId => {
+            voices.push({
+                voice_id: voiceId,
+                provider: 'tiktok'
+            });
+        });
+        
+        // Add Google voice if selected
+        if (this.$providerSelect.val() === 'google') {
+            voices.push({
+                voice_id: $('#tts-language').val(),
+                provider: 'google'
+            });
+        }
+        
+        return voices;
     }
 } 

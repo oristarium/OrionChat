@@ -1,4 +1,4 @@
-// Main control.js file
+// Import all required modules
 import { ChatManager } from './modules/ChatManager.js';
 import { ConnectionManager } from './modules/ConnectionManager.js';
 import { UIManager } from './modules/UIManager.js';
@@ -13,8 +13,22 @@ class Controller {
         this.chat = new ChatManager();
         this.connection = new ConnectionManager();
         this.messageHandler = new MessageHandler();
-        this.avatarManager = new AvatarManager();
-        this.voiceManager = new VoiceManager();
+        
+        // Initialize VoiceManager with modal selectors
+        this.voiceManager = new VoiceManager({
+            providerSelect: '#voice-settings-modal #tts-provider',
+            googleSelect: '#voice-settings-modal #google-voice-select',
+            tiktokSelects: '#voice-settings-modal #tiktok-voice-selects',
+            voiceSearch: '#voice-settings-modal #voice-search',
+            languageFilter: '#voice-settings-modal #language-filter',
+            genderFilter: '#voice-settings-modal #gender-filter',
+            voiceList: '#voice-settings-modal #voice-list',
+            selectAllCheckbox: '#voice-settings-modal #select-all-voices',
+            selectedVoiceCount: '#voice-settings-modal #selected-voice-count',
+            clearVoicesBtn: '#voice-settings-modal #clear-voices'
+        });
+        
+        this.avatarManager = new AvatarManager(this.voiceManager);
         window.voiceManager = this.voiceManager;
         
         this.init();
@@ -63,14 +77,6 @@ $(document).ready(() => {
     console.log('DOM loaded - initializing Controller');
     new Controller();
 
-    // Initialize TTS provider select
-    $('#tts-provider').on('change', () => {
-        console.log('TTS provider changed:', $('#tts-provider').val());
-    });
-
     // Initialize tabs
     $("#settings-tabs").tabs();
-    
-    // Remove the avatar settings modal
-    $("#open-avatar-settings").remove();
-}); 
+});

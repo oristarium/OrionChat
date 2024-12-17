@@ -185,6 +185,9 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Broadcast the update
+	h.broadcastAvatarUpdate()
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -257,6 +260,9 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Broadcast the update
+	h.broadcastAvatarUpdate()
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(newAvatar)
 }
@@ -282,6 +288,9 @@ func (h *AvatarHandler) handleDeleteAvatar(w http.ResponseWriter, _ *http.Reques
 		return
 	}
 
+	// Broadcast the update
+	h.broadcastAvatarUpdate()
+
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -300,20 +309,6 @@ func (h *AvatarHandler) HandleAvatarUpload(w http.ResponseWriter, r *http.Reques
 		Directory:  avatar.AvatarAssetsDir,
 		Bucket:     avatar.AvatarBucket,
 		KeyPrefix:  "avatar",
-		OnSuccess: func(path string) error {
-			if err := h.avatarManager.RegisterAvatarImage(path); err != nil {
-				return fmt.Errorf("register avatar image: %w", err)
-			}
-
-			update := broadcast.Update{
-				Type: "avatar_update",
-				Data: broadcast.UpdateData{
-					AvatarType: r.FormValue("type"),
-					Path:       path,
-				},
-			}
-			return h.broadcaster.Broadcast(update)
-		},
 	})
 }
 
@@ -409,7 +404,7 @@ func (h *AvatarHandler) handleGetAvatarVoices(w http.ResponseWriter, _ *http.Req
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string][]types.TTSVoice{
-		"voices": avatar.TTSVoices,
+		"tts_voices": avatar.TTSVoices,
 	})
 }
 
@@ -439,5 +434,36 @@ func (h *AvatarHandler) handleSetAvatarVoices(w http.ResponseWriter, r *http.Req
 		return
 	}
 
+	// Broadcast the update
+	h.broadcastAvatarUpdate()
+
 	w.WriteHeader(http.StatusOK)
+}
+
+// Add this constant at the top of the file
+const (
+	BroadcastTypeAvatarUpdate = "avatar_update"
+)
+
+// Modify the helper method to only send active avatars
+func (h *AvatarHandler) broadcastAvatarUpdate() {
+	// Get active avatars
+	activeAvatars, err := h.avatarManager.GetActiveAvatars()
+	if err != nil {
+		log.Printf("Error getting active avatars for broadcast: %v", err)
+		return
+	}
+
+	// Create update data
+	updateData := map[string]interface{}{
+		"avatars": activeAvatars,
+	}
+
+	// Broadcast the update
+	if err := h.broadcaster.Broadcast(broadcast.Update{
+		Type: BroadcastTypeAvatarUpdate,
+		Data: updateData,
+	}); err != nil {
+		log.Printf("Error broadcasting avatar update: %v", err)
+	}
 } 

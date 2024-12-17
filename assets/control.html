@@ -47,8 +47,7 @@
         <div id="settings-tabs">
           <ul>
             <li><a href="#livechat-tab">Livechat</a></li>
-            <li><a href="#voice-tab">Voice Settings</a></li>
-            <li><a href="#avatar-tab">Avatar Settings</a></li>
+            <li><a href="#tts-tab">TTS Settings</a></li>
           </ul>
 
           <!-- Livechat Tab -->
@@ -90,83 +89,17 @@
               </button>
             </div>
           </div>
-          <!-- TTS Settings Tab -->
-          <div id="voice-tab">
-            <div class="voice-settings">
-              <label for="tts-provider">TTS Provider:</label>
-              <select id="tts-provider" class="tts-select">
-                <option value="tiktok">TikTok</option>
-                <option value="google">Google Translate</option>
-              </select>
-
-              <div class="voice-settings">
-                <!-- TikTok specific selects -->
-                <div
-                  id="tiktok-voice-selects"
-                  class="provider-voice-settings"
-                  style="display: none"
-                >
-                  <div class="voice-filter">
-                    <input type="text" id="voice-search" class="tts-input" placeholder="Search voices...">
-                    <select id="language-filter" class="tts-select">
-                      <option value="all">All Languages</option>
-                      <!-- Languages will be populated dynamically -->
-                    </select>
-                    <select id="gender-filter" class="tts-select">
-                      <option value="all">All Genders</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="neutral">Neutral</option>
-                    </select>
-                  </div>
-                  <div class="voice-counter">
-                    <div class="counter-text">
-                      Selected Voices: <span id="selected-voice-count">0</span>
-                    </div>
-                    <button id="clear-voices" class="clear-voices-btn">✕ Clear Voices</button>
-                  </div>
-                  
-                  <div class="voice-table-container">
-                    <table class="voice-table">
-                      <thead>
-                        <tr>
-                          <th><input type="checkbox" id="select-all-voices"></th>
-                          <th>Language</th>
-                          <th>Voice</th>
-                          <th>Gender</th>
-                          <th>Sample</th>
-                        </tr>
-                      </thead>
-                      <tbody id="voice-list">
-                        <!-- Voice rows will be populated dynamically -->
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <!-- Google specific select -->
-                <div id="google-voice-select" class="provider-voice-settings">
-                  <label for="tts-language">Language:</label>
-                  <select id="tts-language" class="tts-select">
-                    <option value="id">Indonesian</option>
-                    <option value="en">English</option>
-                    <option value="ko">Korean</option>
-                    <option value="ja">Japanese</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
           <!-- Avatar Tab -->
-          <div id="avatar-tab">
+          <div id="tts-tab">
             <div class="avatar-management">
-                <div class="avatar-table-container">
-                    <table class="avatar-table">
+                <div class="tts-table-container">
+                    <table class="tts-table">
                         <thead>
                             <tr>
                                 <th>Active</th>
                                 <th>Idle State</th>
                                 <th>Talking State</th>
+                                <th>Voices</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -179,6 +112,69 @@
           </div>
         </div>
       </section>
+    </div>
+
+    <div id="voice-settings-modal" class="voice-settings-modal" title="Manage Avatar Voices">
+        <div class="voice-settings">
+            <label for="tts-provider">TTS Provider:</label>
+            <select id="tts-provider" class="tts-select">
+                <option value="tiktok">TikTok</option>
+                <option value="google">Google Translate</option>
+            </select>
+
+            <div class="voice-settings">
+                <!-- TikTok specific selects -->
+                <div id="tiktok-voice-selects" class="provider-voice-settings" style="display: none">
+                    <div class="voice-filter">
+                        <input type="text" id="voice-search" class="tts-input" placeholder="Search voices...">
+                        <select id="language-filter" class="tts-select">
+                            <option value="all">All Languages</option>
+                            <!-- Languages will be populated dynamically -->
+                        </select>
+                        <select id="gender-filter" class="tts-select">
+                            <option value="all">All Genders</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="neutral">Neutral</option>
+                        </select>
+                    </div>
+                    <div class="voice-counter">
+                        <div class="counter-text">
+                            Selected Voices: <span id="selected-voice-count">0</span>
+                        </div>
+                        <button id="clear-voices" class="clear-voices-btn">✕ Clear Voices</button>
+                    </div>
+                    
+                    <div class="voice-table-container">
+                        <table class="voice-table">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="select-all-voices"></th>
+                                    <th>Language</th>
+                                    <th>Voice</th>
+                                    <th>Gender</th>
+                                    <th>Sample</th>
+                                </tr>
+                            </thead>
+                            <tbody id="voice-list">
+                                <!-- Voice rows will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Google specific select -->
+                <div id="google-voice-select" class="provider-voice-settings">
+                    <label for="tts-language">Language:</label>
+                    <select id="tts-language" class="tts-select">
+                        <option value="id">Indonesian</option>
+                        <option value="en">English</option>
+                        <option value="ko">Korean</option>
+                        <option value="ja">Japanese</option>
+                    </select>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>

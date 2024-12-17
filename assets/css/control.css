@@ -628,12 +628,12 @@ button:not(:disabled):hover {
 }
 
 /* Override jQuery UI tab styles for our use case */
-#avatar-tabs {
+#tts-tabs {
     border: none;
     padding: 0;
 }
 
-#avatar-tabs .ui-tabs-panel {
+#tts-tabs .ui-tabs-panel {
     padding: 10px 0;
 }
 
@@ -677,12 +677,12 @@ button:not(:disabled):hover {
 }
 
 /* Tabs Styling */
-#avatar-tabs.ui-tabs, .tabs {
+#tts-tabs.ui-tabs, .tabs {
     padding: 0;
     border: none;
 }
 
-#avatar-tabs .ui-tabs-nav, .tabs-nav {
+#tts-tabs .ui-tabs-nav, .tabs-nav {
     background: none;
     border: none;
     border-bottom: 1px solid var(--border-color);
@@ -691,29 +691,29 @@ button:not(:disabled):hover {
     margin-bottom: var(--spacing-lg);
 }
 
-#avatar-tabs .ui-tabs-nav li, .tabs-nav li {
+#tts-tabs .ui-tabs-nav li, .tabs-nav li {
     background: none;
     border: none;
     margin: 0 var(--spacing-md) -1px 0;
 }
 
-#avatar-tabs .ui-tabs-nav li a, .tabs-nav li a {
+#tts-tabs .ui-tabs-nav li a, .tabs-nav li a {
     padding: var(--spacing-md) var(--spacing-lg);
     font-size: var(--font-sm);
     color: var(--text-secondary);
 }
 
-#avatar-tabs .ui-tabs-nav li.ui-tabs-active, .tabs-nav li.active {
+#tts-tabs .ui-tabs-nav li.ui-tabs-active, .tabs-nav li.active {
     background: var(--text-light);
     border: 1px solid var(--border-color);
     border-bottom: 1px solid var(--text-light);
 }
 
-#avatar-tabs .ui-tabs-nav li.ui-tabs-active a, .tabs-nav li.active a {
+#tts-tabs .ui-tabs-nav li.ui-tabs-active a, .tabs-nav li.active a {
     color: var(--color-primary);
 }
 
-#avatar-tabs .ui-tabs-panel, .tabs-panel {
+#tts-tabs .ui-tabs-panel, .tabs-panel {
     padding: 0;
 }
 
@@ -995,26 +995,26 @@ button:not(:disabled):hover {
     margin-bottom: var(--spacing-lg);
 }
 
-.avatar-table-container {
+.tts-table-container {
     flex: 1;
     overflow-y: auto;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
 }
 
-.avatar-table {
+.tts-table {
     width: 100%;
     border-collapse: collapse;
 }
 
-.avatar-table th,
-.avatar-table td {
+.tts-table th,
+.tts-table td {
     padding: var(--spacing-md);
     text-align: left;
     border-bottom: 1px solid var(--border-color);
 }
 
-.avatar-table th {
+.tts-table th {
     background: var(--color-secondary);
     position: sticky;
     top: 0;
@@ -1071,7 +1071,7 @@ button:not(:disabled):hover {
 }
 
 /* Update avatar table styles */
-.avatar-table td {
+.tts-table td {
     vertical-align: middle;
 }
 
@@ -1336,7 +1336,50 @@ button:not(:disabled):hover {
 }
 
 /* Ensure the delete column stays narrow */
-.avatar-table td:last-child {
+.tts-table td:last-child {
     width: 1%;
     white-space: nowrap;
+}
+
+/* Voice Settings Modal */
+.voice-settings-modal {
+    display: none;
+}
+
+/* Add button styles */
+.manage-voices-btn {
+    background: none;
+    border: none;
+    color: var(--color-primary);
+    cursor: pointer;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.manage-voices-btn:hover:not(:disabled) {
+    background-color: var(--color-primary);
+    color: var(--text-light);
+}
+
+.manage-voices-btn:disabled {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.voice-count {
+    font-size: var(--font-xs);
+    font-weight: 500;
+    min-width: 1.5em;
+    text-align: left;
+}
+
+/* Remove the voice badges styles since we don't need them anymore */
+.voice-badges,
+.voice-badge {
+    display: none;
 }

@@ -79,21 +79,6 @@ type ChatMessage struct {
 	Data      ChatMessageData `json:"data"`
 }
 
-// Update represents the message sent to display
-type Update struct {
-	Type string     `json:"type"`
-	Data UpdateData `json:"data"`
-}
-
-// UpdateData represents the data payload for different update types
-type UpdateData struct {
-	Path          string      `json:"path,omitempty"`
-	AvatarType    string      `json:"avatar_type,omitempty"`
-	Message       interface{} `json:"message,omitempty"`
-	VoiceID       string      `json:"voice_id,omitempty"`
-	VoiceProvider string      `json:"voice_provider,omitempty"`
-}
-
 type SSEClient chan string
 
 type File = multipart.File

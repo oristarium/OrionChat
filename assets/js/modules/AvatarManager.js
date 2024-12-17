@@ -1,12 +1,14 @@
 export class AvatarManager {
-    constructor() {
+    constructor(voiceManager) {
         console.log('AvatarManager initialized');
         this.avatars = [];
         this.currentAvatarId = null;
+        this.voiceManager = voiceManager;
         this.loadAvatars();
         this.setupEventListeners();
         this.createUploadModal();
         this.setupAddAvatarButton();
+        this.setupVoiceModal();
     }
 
     createUploadModal() {
@@ -141,6 +143,14 @@ export class AvatarManager {
                     <div class="avatar-preview" data-state-type="talking">
                         <img src="${avatar.states?.talking || ''}" alt="Talking state" class="preview-img">
                     </div>
+                </td>
+                <td>
+                    <button class="manage-voices-btn" data-avatar-id="${avatar.id}">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M8 2v12M4 6v4M12 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <span class="voice-count">${(avatar.tts_voices || []).length}</span>
+                    </button>
                 </td>
                 <td>
                     <button class="delete-avatar-btn" data-avatar-id="${avatar.id}" ${avatar.is_default ? 'disabled' : ''}>
@@ -446,6 +456,72 @@ export class AvatarManager {
             if (deleteBtn) {
                 deleteBtn.disabled = false;
             }
+        }
+    }
+
+    setupVoiceModal() {
+        this.voiceModal = $('#voice-settings-modal').dialog({
+            autoOpen: false,
+            modal: true,
+            width: 600,
+            height: 600,
+            buttons: {
+                Save: () => this.saveVoiceSettings(),
+                Cancel: () => this.voiceModal.dialog('close')
+            }
+        });
+
+        // Handle manage voices button clicks
+        $(document).on('click', '.manage-voices-btn', (e) => {
+            const avatarId = $(e.target).closest('.manage-voices-btn').data('avatarId');
+            this.openVoiceSettings(avatarId);
+        });
+    }
+
+    async openVoiceSettings(avatarId) {
+        this.currentAvatarId = avatarId;
+        
+        try {
+            const response = await fetch(`/api/avatars/${avatarId}/voices`);
+            if (!response.ok) throw new Error('Failed to fetch voice settings');
+            
+            const data = await response.json();
+            this.voiceManager.setSelectedVoices(data.tts_voices || []);
+            
+            this.voiceModal.dialog('open');
+        } catch (error) {
+            console.error('Error loading voice settings:', error);
+            alert('Failed to load voice settings');
+        }
+    }
+
+    async saveVoiceSettings() {
+        if (!this.currentAvatarId) return;
+        
+        try {
+            const voices = this.voiceManager.getSelectedVoices();
+            
+            const response = await fetch(`/api/avatars/${this.currentAvatarId}/voices`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ voices })
+            });
+
+            if (!response.ok) throw new Error('Failed to save voice settings');
+            
+            // Update local state
+            const avatar = this.avatars.find(a => a.id === this.currentAvatarId);
+            if (avatar) {
+                avatar.tts_voices = voices;
+                this.renderAvatarList();
+            }
+            
+            this.voiceModal.dialog('close');
+        } catch (error) {
+            console.error('Error saving voice settings:', error);
+            alert('Failed to save voice settings');
         }
     }
 } 

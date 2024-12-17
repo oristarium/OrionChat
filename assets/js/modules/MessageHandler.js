@@ -9,20 +9,22 @@ export class MessageHandler {
     }
 
     async sendToTTS(message) {
-        await this.sendMessage(message, 'tts');
+        const voiceId = 'en_male_narration';
+        const voiceProvider = 'tiktok';
+
+        await this.sendMessage(message, 'tts', {
+            voice_id: voiceId,
+            voice_provider: voiceProvider
+        });
     }
 
-    async sendMessage(message, type) {
+    async sendMessage(message, type, additionalData = {}) {
         try {
-            const voiceId = window.voiceManager.getCurrentVoiceId();
-            const voiceProvider = window.voiceManager.providerSelect.value || 'google';
-
             const update = {
                 type: type,
                 data: {
                     message: message,
-                    voice_id: voiceId,
-                    voice_provider: voiceProvider
+                    ...additionalData
                 }
             };
             
