@@ -103,6 +103,10 @@ func (h *AvatarHandler) HandleAvatarDetail(w http.ResponseWriter, r *http.Reques
 		}
 		h.handleSetAvatarDetail(w, r, id)
 	case "delete":
+		if r.Method != http.MethodDelete {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 		h.handleDeleteAvatar(w, r, id)
 	default:
 		http.Error(w, "Invalid action", http.StatusBadRequest)
@@ -247,13 +251,27 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(newAvatar)
 }
 
-// handleDeleteAvatar handles DELETE /api/avatars/{id}
+// handleDeleteAvatar handles DELETE /api/avatars/{id}/delete
 func (h *AvatarHandler) handleDeleteAvatar(w http.ResponseWriter, _ *http.Request, id string) {
+	// First check if avatar exists
+	avatar, err := h.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	// Don't allow deletion of default avatar
+	if avatar.IsDefault {
+		http.Error(w, "Cannot delete default avatar", http.StatusBadRequest)
+		return
+	}
+
 	if err := h.avatarManager.DeleteAvatar(id); err != nil {
 		log.Printf("Error deleting avatar: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
 

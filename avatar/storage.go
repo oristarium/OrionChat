@@ -198,4 +198,16 @@ func (s *Storage) DeleteAvatarImage(path string) error {
 
 		return b.Delete([]byte(path))
 	})
+}
+
+// DeleteAvatar removes an avatar from storage
+func (s *Storage) DeleteAvatar(id string) error {
+	return s.db.Update(func(tx *bbolt.Tx) error {
+		b := tx.Bucket([]byte(AvatarBucket))
+		if b == nil {
+			return fmt.Errorf("bucket not found")
+		}
+		
+		return b.Delete([]byte(id))
+	})
 } 

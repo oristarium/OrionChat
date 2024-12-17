@@ -245,13 +245,19 @@ func (m *Manager) DeleteAvatar(id string) error {
 		return fmt.Errorf("cannot delete default avatar")
 	}
 
-	// Remove avatar from list
-	for i, a := range m.config.Avatars {
-		if a.ID == id {
-			m.config.Avatars = append(m.config.Avatars[:i], m.config.Avatars[i+1:]...)
-			break
+	// First delete from storage
+	if err := m.Storage.DeleteAvatar(id); err != nil {
+		return fmt.Errorf("delete from storage: %w", err)
+	}
+
+	// Then remove from config
+	var updatedAvatars []Avatar
+	for _, a := range m.config.Avatars {
+		if a.ID != id {
+			updatedAvatars = append(updatedAvatars, a)
 		}
 	}
+	m.config.Avatars = updatedAvatars
 
 	return m.Storage.SaveConfig(m.config)
 }
