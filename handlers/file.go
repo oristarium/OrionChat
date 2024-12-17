@@ -3,24 +3,19 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"time"
-)
 
-// FileStorage interface defines methods for file operations
-type FileStorage interface {
-	Upload(file *multipart.File, filename string, directory string) (string, error)
-	Save(key string, value string, bucket string) error
-}
+	"github.com/oristarium/orionchat/types"
+)
 
 // FileHandler handles file-related operations
 type FileHandler struct {
-	storage FileStorage
+	storage types.FileStorage
 }
 
-func NewFileHandler(storage FileStorage) *FileHandler {
+func NewFileHandler(storage types.FileStorage) *FileHandler {
 	return &FileHandler{storage: storage}
 }
 

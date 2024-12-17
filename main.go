@@ -1,5 +1,3 @@
-//go:build !js
-
 package main
 
 import (
@@ -421,72 +419,6 @@ func (s *BBoltStorage) Save(key string, value string, bucket string) error {
 		}
 		return b.Put([]byte(key), []byte(value))
 	})
-}
-
-// FileHandler handles file-related operations
-type FileHandler struct {
-	storage FileStorage
-}
-
-func NewFileHandler(storage FileStorage) *FileHandler {
-	return &FileHandler{storage: storage}
-}
-
-func (h *FileHandler) HandleUpload(w http.ResponseWriter, r *http.Request, options struct {
-	FileField  string
-	TypeField  string
-	Directory  string
-	Bucket     string
-	KeyPrefix  string
-	OnSuccess  func(string) error
-}) {
-	log.Printf("Upload request received for %s", options.Directory)
-
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	if err := r.ParseMultipartForm(10 << 20); err != nil {
-		log.Printf("Form parse error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	file, handler, err := r.FormFile(options.FileField)
-	if err != nil {
-		log.Printf("File retrieval error: %v", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	defer file.Close()
-
-	itemType := r.FormValue(options.TypeField)
-	filename := fmt.Sprintf("%d%s", time.Now().UnixNano(), filepath.Ext(handler.Filename))
-
-	path, err := h.storage.Upload(&file, filename, options.Directory)
-	if err != nil {
-		log.Printf("File upload error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	key := fmt.Sprintf("%s_%s", options.KeyPrefix, itemType)
-	if err := h.storage.Save(key, path, options.Bucket); err != nil {
-		log.Printf("Storage save error: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if options.OnSuccess != nil {
-		if err := options.OnSuccess(path); err != nil {
-			log.Printf("OnSuccess callback error: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	}
-
-	json.NewEncoder(w).Encode(map[string]string{"path": path})
 }
 
 // Add this method to Server struct
