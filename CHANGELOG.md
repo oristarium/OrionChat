@@ -2,55 +2,33 @@
 
 All notable changes to OrionChat will be documented in this file.
 
-## [v0.0.4a] - 2024-03-17
+## [v0.1.1] - 2024-03-18
 
 ### Added
-- TikTok TTS integration
-  - Added 50+ unique TikTok voices
-  - Added voice preview functionality with audio samples
-  - Added voice filtering by language and gender
-  - Added multi-voice selection with random voice feature
-  - Added voice sample playback in control panel
-- New voice selection UI
-  - Searchable voice list
-  - Language and gender filters
-  - Click-to-select rows
-  - Voice counter with clear function
-  - Select all/none functionality
+- Multiple Avatar Support
+  - Added ability to have multiple avatars active simultaneously
+  - Each avatar can have multiple TTS voices assigned
+  - Dynamic avatar switching during TTS playback
+  - Random voice selection per avatar
+- Enhanced Avatar Management
+  - Avatar activation/deactivation system
+  - Individual voice assignment per avatar
+  - Avatar state management (idle/talking)
+  - Avatar preview in control panel
+- Improved TTS System
+  - Random avatar selection for each message
+  - Per-avatar voice pool
+  - Sequential message queue across all avatars
+  - Smooth transitions between avatars
 
 ### Changed
-- Restructured TTS system to support multiple providers
-- Updated voice selection interface in control panel
-- Expanded language support to include more options
-- Improved voice management system
+- Restructured TTS display to support multiple avatars
+- Updated control panel for avatar-voice management
+- Improved avatar state handling
+- Enhanced message queue system for multi-avatar support
 
 ### Fixed
-- Text sanitization for TTS providers
-- Voice selection persistence during filtering
-- Audio playback handling
-
-## [v0.0.3a] - 2024-03-xx
-
-### Added
-- Initial avatar system
-- Basic TTS functionality with Google Translate
-- Chat display system
-- Platform integration (YouTube, TikTok, Twitch)
-
-### Changed
-- Initial OBS integration
-- Basic control panel implementation
-
-## [v0.0.2a] - 2024-03-xx
-
-### Added
-- Basic chat functionality
-- Initial UI implementation
-- Platform connection handling
-
-## [v0.0.1a] - 2024-03-xx
-
-### Added
-- Initial release
-- Basic server functionality
-- Core application structure 
+- Avatar state synchronization
+- TTS voice assignment persistence
+- Message queue handling for multiple avatars
+- Avatar transition animations

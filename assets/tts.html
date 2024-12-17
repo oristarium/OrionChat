@@ -241,27 +241,27 @@
         </div>
     </template>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
         // Constants and Element References
         const ELEMENTS = {
-            avatarsWrapper: document.getElementById('avatars-wrapper'),
-            avatarTemplate: document.getElementById('avatar-template'),
-            debugQueueCount: document.getElementById('queue-count'),
-            debugQueueStatus: document.getElementById('queue-status')
+            $avatarsWrapper: $('#avatars-wrapper'),
+            $avatarTemplate: $('#avatar-template'),
+            $debugQueueCount: $('#queue-count'),
+            $debugQueueStatus: $('#queue-status'),
+            $debugBox: $('.debug-box')
         };
 
         // Add debug mode initialization
         const urlParams = new URLSearchParams(window.location.search);
         const debugMode = urlParams.has('debug') && (urlParams.get('debug') === '' || urlParams.get('debug') === 'true');
-        const specificAvatarId = urlParams.get('id'); // Get the specific avatar ID if provided
 
         // Show debug box if in debug mode
         if (debugMode) {
-            document.querySelector('.debug-box').classList.add('show');
+            ELEMENTS.$debugBox.addClass('show');
             console.log('Debug mode enabled');
         }
 
-        // Add these new classes for managing avatars and their states
         class Avatar {
             constructor(data) {
                 this.id = data.id;
@@ -274,49 +274,47 @@
             }
 
             setupAudioPlayer() {
-                this.audioPlayer.onplay = () => {
-                    console.log(`Avatar ${this.id} started speaking`);
-                    this.updateUIState(true);
-                };
-
-                this.audioPlayer.onended = () => {
-                    console.log(`Avatar ${this.id} finished speaking`);
-                    this.updateUIState(false);
-                };
-
-                this.audioPlayer.onpause = () => {
-                    console.log(`Avatar ${this.id} paused speaking`);
-                    this.updateUIState(false);
-                };
-
-                this.audioPlayer.onerror = () => {
-                    console.error(`Avatar ${this.id} audio error`);
-                    this.updateUIState(false);
-                };
+                $(this.audioPlayer)
+                    .on('play', () => {
+                        console.log(`Avatar ${this.id} started speaking`);
+                        this.updateUIState(true);
+                    })
+                    .on('ended', () => {
+                        console.log(`Avatar ${this.id} finished speaking`);
+                        this.updateUIState(false);
+                    })
+                    .on('pause', () => {
+                        console.log(`Avatar ${this.id} paused speaking`);
+                        this.updateUIState(false);
+                    })
+                    .on('error', () => {
+                        console.error(`Avatar ${this.id} audio error`);
+                        this.updateUIState(false);
+                    });
             }
 
             createElements() {
-                const template = ELEMENTS.avatarTemplate.content.cloneNode(true);
-                const container = template.querySelector('.avatar-container');
-                container.dataset.avatarId = this.id;
+                const $template = $(ELEMENTS.$avatarTemplate.html());
+                const $container = $template.filter('.avatar-container');
+                $container.attr('data-avatar-id', this.id);
                 
                 this.element = {
-                    container,
-                    messageBubble: container.querySelector('.message-bubble'),
-                    username: container.querySelector('.username'),
-                    avatar: container.querySelector('.avatar-image'),
-                    avatarWrapper: container.querySelector('.avatar-wrapper')
+                    $container: $container,
+                    $messageBubble: $container.find('.message-bubble'),
+                    $username: $container.find('.username'),
+                    $avatar: $container.find('.avatar-image'),
+                    $avatarWrapper: $container.find('.avatar-wrapper')
                 };
 
-                this.element.avatar.src = this.states.idle;
-                return container;
+                this.element.$avatar.attr('src', this.states.idle);
+                return $container;
             }
 
             updateUIState(isPlaying) {
-                this.element.avatar.src = this.states[isPlaying ? 'talking' : 'idle'];
-                this.element.avatarWrapper.classList.toggle('animate-talking', isPlaying);
-                this.element.messageBubble.classList.toggle('show', isPlaying);
-                this.element.username.classList.toggle('show', isPlaying);
+                this.element.$avatar.attr('src', this.states[isPlaying ? 'talking' : 'idle']);
+                this.element.$avatarWrapper.toggleClass('animate-talking', isPlaying);
+                this.element.$messageBubble.toggleClass('show', isPlaying);
+                this.element.$username.toggleClass('show', isPlaying);
             }
 
             getRandomVoice() {
@@ -335,40 +333,23 @@
 
             async initialize() {
                 try {
-                    const response = await fetch('/api/avatars/active');
-                    const data = await response.json();
-                    this.updateAvatars(data.avatars);
+                    const { avatars } = await $.get('/api/avatars/active');
+                    this.updateAvatars(avatars);
                 } catch (error) {
                     console.error('Error initializing avatars:', error);
                 }
             }
 
             updateAvatars(avatarsData) {
-                ELEMENTS.avatarsWrapper.innerHTML = '';
+                ELEMENTS.$avatarsWrapper.empty();
                 this.avatars.clear();
 
-                // Filter avatars if specificAvatarId is provided
-                const filteredAvatars = specificAvatarId 
-                    ? avatarsData.filter(avatar => avatar.id === specificAvatarId)
-                    : avatarsData;
-
-                // If filtering by ID and no avatar found, log error
-                if (specificAvatarId && filteredAvatars.length === 0) {
-                    console.error(`No avatar found with ID: ${specificAvatarId}`);
-                    return;
-                }
-
-                filteredAvatars.forEach(avatarData => {
+                avatarsData.forEach(avatarData => {
                     const avatar = new Avatar(avatarData);
-                    const element = avatar.createElements();
-                    ELEMENTS.avatarsWrapper.appendChild(element);
+                    const $element = avatar.createElements();
+                    ELEMENTS.$avatarsWrapper.append($element);
                     this.avatars.set(avatar.id, avatar);
                 });
-
-                // If showing single avatar, center it
-                if (filteredAvatars.length === 1) {
-                    ELEMENTS.avatarsWrapper.style.justifyContent = 'center';
-                }
             }
 
             getRandomAvatar() {
@@ -392,20 +373,8 @@
                     return;
                 }
 
-                // Select avatar based on mode
-                let selectedAvatar;
-                if (specificAvatarId) {
-                    // In single avatar mode, always use that avatar
-                    selectedAvatar = this.avatars.get(specificAvatarId);
-                    if (!selectedAvatar) {
-                        console.error('Specified avatar not found:', specificAvatarId);
-                        return;
-                    }
-                } else {
-                    // In multi-avatar mode, randomly select one
-                    selectedAvatar = this.getRandomAvatar();
-                }
-
+                // Randomly select an avatar for this message
+                const selectedAvatar = this.getRandomAvatar();
                 if (!selectedAvatar) {
                     console.error('No avatars available');
                     return;
@@ -459,8 +428,8 @@
                         || 'Anonymous';
 
                     // Update content
-                    avatar.element.messageBubble.textContent = textForTTS;
-                    avatar.element.username.textContent = authorName;
+                    avatar.element.$messageBubble.text(textForTTS);
+                    avatar.element.$username.text(authorName);
 
                     try {
                         let audio;
@@ -553,7 +522,7 @@
             updateDebugBox() {
                 if (!debugMode) return;
                 
-                ELEMENTS.debugQueueCount.textContent = this.messageQueue.length;
+                ELEMENTS.$debugQueueCount.text(this.messageQueue.length);
                 
                 const queueHTML = this.messageQueue.map((item, index) => {
                     const text = typeof item.chatMessage.data.content === 'string' 
@@ -575,19 +544,19 @@
                     `;
                 }).join('');
 
-                ELEMENTS.debugQueueStatus.innerHTML = queueHTML;
+                ELEMENTS.$debugQueueStatus.html(queueHTML);
             }
         }
 
         // Initialize the application
         const avatarManager = new AvatarManager();
 
-        async function init() {
+        // jQuery document ready handler
+        $(async function() {
             await avatarManager.initialize();
             setupEventSource();
-        }
+        });
 
-        // Update the event source handler
         function setupEventSource() {
             const evtSource = new EventSource('/sse');
             
@@ -602,11 +571,7 @@
                     avatarManager.clearQueue();
                 }
             };
-
-            // ... rest of the event source setup
         }
-
-        init();
     </script>
 </body>
 </html> 
