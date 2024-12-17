@@ -25,7 +25,8 @@ import (
 	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 
-	"github.com/oristarium/orionchat/tts" // Replace with your actual module name
+	"github.com/oristarium/orionchat/avatar" // Replace with your actual module name
+	"github.com/oristarium/orionchat/tts"    // Replace with your actual module name
 
 	"go.etcd.io/bbolt"
 )
@@ -82,6 +83,7 @@ type Server struct {
 	mu      sync.RWMutex
 	fileHandler *FileHandler
 	ttsService *tts.TTSService
+	avatarManager *avatar.Manager
 }
 
 // NewServer creates and configures a new server instance
@@ -91,13 +93,8 @@ func NewServer() *Server {
 		log.Fatal(err)
 	}
 
-	// Set default avatars
-	err = storage.Save(AvatarIdleKey, DefaultIdleAvatar, AvatarBucket)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	err = storage.Save(AvatarTalkingKey, DefaultTalkingAvatar, AvatarBucket)
+	// Initialize avatar manager
+	avatarManager, err := avatar.NewManager(avatar.NewStorage(storage.db))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -105,19 +102,20 @@ func NewServer() *Server {
 	return &Server{
 		config: Config{
 			Port:      ServerPort,
-			AssetsDir: AssetsDir,
-			Routes: map[string]string{
-				"/control": "/control.html",
-				"/display": "/display.html",
-				"/tts":     "/tts.html",
-				"/tutorial": "/tutorial.html",
+				AssetsDir: AssetsDir,
+				Routes: map[string]string{
+					"/control": "/control.html",
+					"/display": "/display.html",
+					"/tts":     "/tts.html",
+					"/tutorial": "/tutorial.html",
+				},
 			},
-		},
-		clients: make(map[SSEClient]bool),
-		fileHandler: NewFileHandler(storage),
-		ttsService: tts.NewTTSService(),
+			clients: make(map[SSEClient]bool),
+			fileHandler: NewFileHandler(storage),
+			ttsService: tts.NewTTSService(),
+			avatarManager: avatarManager,
+		}
 	}
-}
 
 // Start initializes and starts the server
 func (s *Server) Start() error {
@@ -278,23 +276,24 @@ func (s *Server) handleAvatarUpload(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleGetAvatars(w http.ResponseWriter, r *http.Request) {
-	avatars := make(map[string]string)
-	
-	idle, err := s.fileHandler.storage.Get("avatar_idle", AvatarBucket)
+	w.Header().Set("Content-Type", "application/json")
+
+	currentAvatar, err := s.avatarManager.GetCurrentAvatar()
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// Return default paths if no avatar found
+		json.NewEncoder(w).Encode(map[string]string{
+			"idle":    DefaultIdleAvatar,
+			"talking": DefaultTalkingAvatar,
+		})
 		return
 	}
-	avatars["idle"] = idle
 
-	talking, err := s.fileHandler.storage.Get("avatar_talking", AvatarBucket)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	response := map[string]string{
+		"idle":    currentAvatar.States[avatar.StateIdle],
+		"talking": currentAvatar.States[avatar.StateTalking],
 	}
-	avatars["talking"] = talking
 
-	json.NewEncoder(w).Encode(avatars)
+	json.NewEncoder(w).Encode(response)
 }
 
 func (s *Server) handleListAvatars(w http.ResponseWriter, r *http.Request) {
@@ -320,47 +319,77 @@ func (s *Server) handleListAvatars(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleSetAvatar(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	log.Printf("Received avatar update request - Method: %s", r.Method)
+
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Methods", "POST, PUT, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	// Handle preflight requests
+	if r.Method == http.MethodOptions {
+		log.Printf("Handling OPTIONS request")
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost && r.Method != http.MethodPut {
+		log.Printf("Invalid method: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var request struct {
-		Type string `json:"type"`  // idle or talking
+		Type string `json:"type"`  // maps to AvatarState
 		Path string `json:"path"`  // path to existing avatar
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		log.Printf("Failed to decode request body: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	if request.Type != "idle" && request.Type != "talking" {
-		http.Error(w, "Invalid avatar type", http.StatusBadRequest)
+	log.Printf("Decoded request - Type: %s, Path: %s", request.Type, request.Path)
+
+	// Get current avatar
+	currentAvatar, err := s.avatarManager.GetCurrentAvatar()
+	if err != nil {
+		log.Printf("Failed to get current avatar: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Save to DB
-	key := fmt.Sprintf("avatar_%s", request.Type)
-	if err := s.fileHandler.storage.Save(key, request.Path, AvatarBucket); err != nil {
+	log.Printf("Current avatar ID: %s", currentAvatar.ID)
+
+	// Update state
+	state := avatar.AvatarState(request.Type)
+	log.Printf("Updating avatar state - ID: %s, State: %s, Path: %s", 
+		currentAvatar.ID, state, request.Path)
+
+	if err := s.avatarManager.UpdateAvatarState(currentAvatar.ID, state, request.Path); err != nil {
+		log.Printf("Failed to update avatar state: %v", err)
 		http.Error(w, "Failed to save avatar setting", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Successfully updated avatar state")
 
 	// Broadcast update
 	update := Update{
 		Type: "avatar_update",
 		Data: UpdateData{
-			AvatarType: request.Type,
+			AvatarType: string(state),
 			Path: request.Path,
 		},
 	}
 
 	if err := s.broadcastUpdate(update); err != nil {
+		log.Printf("Failed to broadcast update: %v", err)
 		http.Error(w, "Failed to broadcast update", http.StatusInternalServerError)
 		return
 	}
 
+	log.Printf("Successfully broadcasted update")
 	w.WriteHeader(http.StatusOK)
 }
 

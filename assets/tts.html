@@ -527,12 +527,23 @@
         async function initializeAvatars() {
             try {
                 const response = await fetch('/get-avatars');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
                 const avatars = await response.json();
-                AVATAR_STATES.idle = avatars.idle;
-                AVATAR_STATES.talking = avatars.talking;
+                AVATAR_STATES = {
+                    idle: avatars.idle || '/avatars/idle.png',
+                    talking: avatars.talking || '/avatars/talking.gif'
+                };
                 ELEMENTS.avatar.src = AVATAR_STATES.idle;
             } catch (error) {
                 console.error('Error loading avatars:', error);
+                // Set default avatars on error
+                AVATAR_STATES = {
+                    idle: '/avatars/idle.png',
+                    talking: '/avatars/talking.gif'
+                };
+                ELEMENTS.avatar.src = AVATAR_STATES.idle;
             }
         }
 

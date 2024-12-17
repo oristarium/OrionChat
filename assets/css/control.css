@@ -964,3 +964,69 @@ button:not(:disabled):hover {
 .voice-row .sample-cell {
     cursor: default;
 }
+
+/* Avatar Management Styles */
+.avatar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.avatar-list {
+    max-height: 200px;
+    overflow-y: auto;
+    margin-bottom: var(--spacing-xl);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+}
+
+.avatar-item {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    gap: var(--spacing-md);
+}
+
+.avatar-item:last-child {
+    border-bottom: none;
+}
+
+.avatar-preview {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-info {
+    flex: 1;
+}
+
+.avatar-info h4 {
+    margin: 0;
+    font-size: var(--font-sm);
+    color: var(--text-primary);
+}
+
+.avatar-info p {
+    margin: var(--spacing-xs) 0 0;
+    font-size: var(--font-xs);
+    color: var(--text-secondary);
+}
+
+.avatar-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
+.avatar-item.active {
+    background: var(--color-secondary);
+}
