@@ -20,6 +20,7 @@ import (
 	"github.com/oristarium/orionchat/ui"     // Add this import
 
 	"github.com/oristarium/orionchat/handlers"
+	"github.com/oristarium/orionchat/types"
 	"go.etcd.io/bbolt"
 )
 
@@ -28,17 +29,10 @@ const (
 	ServerPort    = ":7777"
 )
 
-// Config holds server configuration
-type Config struct {
-	Port      string
-	AssetsDir string
-	Routes    map[string]string
-}
-
 // Server represents the application server
 type Server struct {
-	config  Config
-	clients map[SSEClient]bool
+	config  types.Config
+	clients map[types.SSEClient]bool
 	mu      sync.RWMutex
 	fileHandler *handlers.FileHandler
 	ttsService *tts.TTSService
@@ -62,7 +56,7 @@ func NewServer() *Server {
 	fileHandler := handlers.NewFileHandler(storage)
 
 	server := &Server{
-		config: Config{
+		config: types.Config{
 			Port:      ServerPort,
 			AssetsDir: avatar.AssetsDir,
 			Routes: map[string]string{
@@ -72,7 +66,7 @@ func NewServer() *Server {
 				"/tutorial": "/tutorial.html",
 			},
 		},
-		clients:       make(map[SSEClient]bool),
+		clients:       make(map[types.SSEClient]bool),
 		fileHandler:   fileHandler,
 		ttsService:    tts.NewTTSService(),
 		avatarManager: avatarManager,
@@ -150,7 +144,7 @@ func (s *Server) handleSSE(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(key, value)
 	}
 
-	client := make(SSEClient)
+	client := make(types.SSEClient)
 	
 	s.addClient(client)
 
@@ -174,7 +168,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var update Update
+	var update types.Update
 	if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -188,7 +182,7 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (s *Server) broadcastUpdate(update Update) error {
+func (s *Server) broadcastUpdate(update types.Update) error {
 	log.Println("Starting broadcast...")
 	message, err := json.Marshal(update)
 	if err != nil {
@@ -207,13 +201,13 @@ func (s *Server) broadcastUpdate(update Update) error {
 	return nil
 }
 
-func (s *Server) addClient(client SSEClient) {
+func (s *Server) addClient(client types.SSEClient) {
 	s.mu.Lock()
 	s.clients[client] = true
 	s.mu.Unlock()
 }
 
-func (s *Server) removeClient(client SSEClient) {
+func (s *Server) removeClient(client types.SSEClient) {
 	s.mu.Lock()
 	if _, exists := s.clients[client]; exists {
 		delete(s.clients, client)
@@ -345,91 +339,6 @@ func main() {
 	// Start the UI
 	ui.RunUI(ServerPort, shutdown, serverStarted, &wg)
 }
-
-// ChatAuthor represents the author of a chat message
-type ChatAuthor struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	DisplayName string `json:"display_name"`
-	AvatarURL   string `json:"avatar_url"`
-	Roles       struct {
-		Broadcaster bool `json:"broadcaster"`
-		Moderator   bool `json:"moderator"`
-		Subscriber  bool `json:"subscriber"`
-		Verified    bool `json:"verified"`
-	} `json:"roles"`
-	Badges []struct {
-		Type     string `json:"type"`
-		Label    string `json:"label"`
-		ImageURL string `json:"image_url"`
-	} `json:"badges"`
-}
-
-// ChatContent represents the content of a chat message
-type ChatContent struct {
-	Raw       string `json:"raw"`
-	Formatted string `json:"formatted"`
-	Sanitized string `json:"sanitized"`
-	RawHTML   string `json:"rawHtml"`
-	Elements  []struct {
-		Type     string `json:"type"`
-		Value    string `json:"value"`
-		Position []int  `json:"position"`
-		Metadata *struct {
-			URL      string `json:"url"`
-			Alt      string `json:"alt"`
-			IsCustom bool   `json:"is_custom"`
-		} `json:"metadata,omitempty"`
-	} `json:"elements"`
-}
-
-// ChatMetadata represents metadata for a chat message
-type ChatMetadata struct {
-	Type         string `json:"type"`
-	MonetaryData *struct {
-		Amount    string `json:"amount"`
-		Formatted string `json:"formatted"`
-		Color     string `json:"color"`
-	} `json:"monetary_data,omitempty"`
-	Sticker *struct {
-		URL string `json:"url"`
-		Alt string `json:"alt"`
-	} `json:"sticker,omitempty"`
-}
-
-// ChatMessageData represents the inner data of a chat message
-type ChatMessageData struct {
-	Author   ChatAuthor   `json:"author"`
-	Content  ChatContent  `json:"content"`
-	Metadata ChatMetadata `json:"metadata"`
-}
-
-// ChatMessage represents a chat message
-type ChatMessage struct {
-	Type      string         `json:"type"`
-	Platform  string         `json:"platform"`
-	Timestamp string         `json:"timestamp"`
-	MessageID string         `json:"message_id"`
-	RoomID    string         `json:"room_id"`
-	Data      ChatMessageData `json:"data"`
-}
-
-// Update represents the message sent to display
-type Update struct {
-	Type string     `json:"type"`
-	Data UpdateData `json:"data"`
-}
-
-// UpdateData represents the data payload for different update types
-type UpdateData struct {
-	Path          string      `json:"path,omitempty"`
-	AvatarType    string      `json:"avatar_type,omitempty"`
-	Message       interface{} `json:"message,omitempty"`
-	VoiceID       string      `json:"voice_id,omitempty"`
-	VoiceProvider string      `json:"voice_provider,omitempty"`
-}
-
-type SSEClient chan string
 
 // FileStorage interface defines methods for file operations
 type FileStorage interface {
@@ -582,9 +491,9 @@ func (h *FileHandler) HandleUpload(w http.ResponseWriter, r *http.Request, optio
 
 // Add this method to Server struct
 func (s *Server) BroadcastUpdate(update handlers.Update) error {
-	return s.broadcastUpdate(Update{
+	return s.broadcastUpdate(types.Update{
 		Type: update.Type,
-		Data: UpdateData{
+		Data: types.UpdateData{
 			Path:       update.Data.Path,
 			AvatarType: update.Data.AvatarType,
 			Message:    update.Data.Message,
