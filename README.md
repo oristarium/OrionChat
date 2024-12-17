@@ -16,6 +16,8 @@ Read this in other languages: [English](README.md) | [Indonesia](README.id.md)
 
 - 🎮 **Easy OBS Integration** - Simple browser source setup for chat display and TTS avatar
 - 🗣️ **Text-to-Speech** - Multi-language TTS support with customizable avatar animations
+- 💬 **Multiple TTS Providers** - Support for both Google Translate and TikTok voices
+- 🗣️ **Rich Voice Selection** - Over 50 TikTok voices including character voices and singing voices
 - 💬 **Multi-Platform Support** - Works with YouTube, TikTok, and Twitch
 - 🎨 **Customizable Avatars** - Support for both static and animated avatars
 - 🎯 **Real-time Chat Display** - Show highlighted messages on stream
@@ -96,11 +98,39 @@ Note: For more detailed information about Web Items in VTube Studio, please refe
 
 ## 🛠️ Configuration
 
+### TTS Providers
+- **Google Translate TTS**
+  - Simple language-based voices
+  - Supports multiple languages
+  
+- **TikTok TTS**
+  - 50+ unique character voices
+  - Multiple voice styles per language
+  - Special character voices (Disney, Star Wars, etc.)
+  - Singing voices with different styles
+  - Preview audio samples for each voice
+  - Random voice selection from favorites
+  - [View complete list of TikTok voices](assets/data/tiktok_voice_ids.csv)
+
+### Voice Categories
+TikTok voices include:
+- 🎭 Character Voices (Disney, Star Wars, etc.)
+- 🎵 Singing Voices
+- 🌍 Multiple accents (UK, US, AU)
+- 👥 Male/Female/Neutral options
+- 🎬 Narrator/Storyteller voices
+- 🎪 Fun/Novelty voices
+
 ### Supported Languages
 - 🇮🇩 Indonesian
-- 🇺🇸 English
+- 🇺🇸 English (US/UK/AU variants)
 - 🇰🇷 Korean
 - 🇯🇵 Japanese
+- 🇫🇷 French
+- 🇩🇪 German
+- 🇪🇸 Spanish
+- 🇵🇹 Portuguese
+- And more...
 
 ### Platform Support
 - YouTube (Channel ID or Username or Live ID)
