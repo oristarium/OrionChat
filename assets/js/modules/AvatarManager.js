@@ -10,24 +10,47 @@ export class AvatarManager {
 
     createUploadModal() {
         const modalHtml = `
-            <div id="avatar-upload-modal" title="Upload Avatar Image" style="display:none;">
-                <form id="avatar-upload-form">
-                    <input type="file" id="avatar-image-input" accept="image/png,image/gif,image/jpeg" />
-                    <div class="upload-preview">
-                        <img id="upload-preview-img" style="display:none;" />
+            <div id="avatar-upload-modal" title="Change Avatar Image" style="display:none;">
+                <div id="avatar-image-tabs">
+                    <ul>
+                        <li><a href="#upload-tab">Upload New</a></li>
+                        <li><a href="#existing-tab">Choose Existing</a></li>
+                    </ul>
+                    <div id="upload-tab">
+                        <form id="avatar-upload-form">
+                            <input type="file" id="avatar-image-input" accept="image/png,image/gif,image/jpeg" />
+                            <div class="upload-preview">
+                                <img id="upload-preview-img" style="display:none;" />
+                            </div>
+                        </form>
                     </div>
-                </form>
+                    <div id="existing-tab">
+                        <div class="existing-images-grid" id="existing-images-grid">
+                            <!-- Images will be populated here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        // Initialize jQuery UI dialog and tabs
         this.uploadModal = $('#avatar-upload-modal').dialog({
             autoOpen: false,
             modal: true,
-            width: 400,
+            width: 500,
+            height: 500,
             buttons: {
-                Upload: () => this.handleImageUpload(),
+                Apply: () => this.handleImageSelection(),
                 Cancel: () => this.uploadModal.dialog('close')
+            }
+        });
+
+        $('#avatar-image-tabs').tabs({
+            activate: (event, ui) => {
+                if (ui.newPanel.is('#existing-tab')) {
+                    this.loadExistingImages();
+                }
             }
         });
     }
@@ -176,35 +199,58 @@ export class AvatarManager {
         this.uploadModal.dialog('open');
     }
 
-    async handleImageUpload() {
-        const fileInput = document.getElementById('avatar-image-input');
-        const file = fileInput.files[0];
-        
-        if (!file || !this.currentUpload) {
-            return;
-        }
+    async loadExistingImages() {
+        const grid = document.getElementById('existing-images-grid');
+        grid.innerHTML = '<div class="loading-indicator">Loading images...</div>';
 
-        const { avatarId, stateType } = this.currentUpload;
-        
         try {
-            // First upload the file
-            const formData = new FormData();
-            formData.append('avatar', file);
-            formData.append('type', stateType);
+            const response = await fetch('/api/avatar-images');
+            const data = await response.json();
 
-            const uploadResponse = await fetch('/api/avatar-images/upload', {
-                method: 'POST',
-                body: formData
+            grid.innerHTML = data['avatar-images'].map(path => `
+                <div class="existing-image-item ${this.isCurrentImage(path) ? 'selected' : ''}" data-path="${path}">
+                    <img src="${path}" alt="Avatar image" />
+                </div>
+            `).join('');
+
+            // Add click handlers for selection
+            grid.querySelectorAll('.existing-image-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    grid.querySelectorAll('.existing-image-item').forEach(i => i.classList.remove('selected'));
+                    item.classList.add('selected');
+                });
             });
+        } catch (error) {
+            console.error('Error loading existing images:', error);
+            grid.innerHTML = '<div class="error-message">Failed to load images</div>';
+        }
+    }
 
-            if (!uploadResponse.ok) {
-                throw new Error('Failed to upload image');
+    isCurrentImage(path) {
+        if (!this.currentUpload) return false;
+        const avatar = this.avatars.find(a => a.id === this.currentUpload.avatarId);
+        return avatar && avatar.states[this.currentUpload.stateType] === path;
+    }
+
+    async handleImageSelection() {
+        const activeTab = $('#avatar-image-tabs').tabs('option', 'active');
+        
+        if (activeTab === 0) {
+            // Upload tab
+            await this.handleImageUpload();
+        } else {
+            // Existing images tab
+            const selectedImage = document.querySelector('.existing-image-item.selected');
+            if (selectedImage && this.currentUpload) {
+                const path = selectedImage.dataset.path;
+                await this.updateAvatarState(this.currentUpload.avatarId, this.currentUpload.stateType, path);
             }
+        }
+    }
 
-            const { path } = await uploadResponse.json();
-
-            // Then update the avatar state
-            const updateResponse = await fetch(`/api/avatars/${avatarId}/set`, {
+    async updateAvatarState(avatarId, stateType, path) {
+        try {
+            const response = await fetch(`/api/avatars/${avatarId}/set`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -216,7 +262,7 @@ export class AvatarManager {
                 })
             });
 
-            if (!updateResponse.ok) {
+            if (!response.ok) {
                 throw new Error('Failed to update avatar state');
             }
 
@@ -231,8 +277,47 @@ export class AvatarManager {
             this.uploadModal.dialog('close');
 
         } catch (error) {
-            console.error('Error updating avatar image:', error);
-            alert('Failed to update avatar image. Please try again.');
+            console.error('Error updating avatar state:', error);
+            alert('Failed to update avatar state. Please try again.');
+        }
+    }
+
+    // Modify handleImageUpload to use updateAvatarState
+    async handleImageUpload() {
+        const fileInput = document.getElementById('avatar-image-input');
+        const file = fileInput.files[0];
+        
+        if (!file || !this.currentUpload) {
+            return;
+        }
+
+        try {
+            // First upload the file
+            const formData = new FormData();
+            formData.append('avatar', file);
+            formData.append('type', this.currentUpload.stateType);
+
+            const uploadResponse = await fetch('/api/avatar-images/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!uploadResponse.ok) {
+                throw new Error('Failed to upload image');
+            }
+
+            const { path } = await uploadResponse.json();
+
+            // Update the avatar state with the new path
+            await this.updateAvatarState(
+                this.currentUpload.avatarId, 
+                this.currentUpload.stateType, 
+                path
+            );
+
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Failed to upload image. Please try again.');
         }
     }
 } 
