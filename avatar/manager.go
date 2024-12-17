@@ -35,8 +35,13 @@ func NewManager(storage *Storage) (*Manager, error) {
 	}
 	m.config = config
 
-	// Initialize default avatar if needed
-	if !m.config.HasDefault {
+	// Check for default avatar
+	hasDefault, err := m.hasDefaultAvatar()
+	if err != nil {
+		return nil, fmt.Errorf("check default avatar: %w", err)
+	}
+
+	if !hasDefault {
 		log.Printf("initializing default")
 		if err := m.initializeDefaultAvatar(); err != nil {
 			return nil, fmt.Errorf("initialize default avatar: %w", err)
@@ -44,6 +49,25 @@ func NewManager(storage *Storage) (*Manager, error) {
 	}
 
 	return m, nil
+}
+
+// hasDefaultAvatar checks if there's already a default avatar in storage
+func (m *Manager) hasDefaultAvatar() (bool, error) {
+	avatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return false, fmt.Errorf("list avatars: %w", err)
+	}
+
+	for _, avatar := range avatars {
+		if avatar.IsDefault {
+			return true, nil
+		}
+	}
+
+	// list avatars
+	log.Printf("avatars: %+v", avatars)
+
+	return false, nil
 }
 
 // initializeDefaultAvatar creates the default avatar
@@ -83,7 +107,7 @@ func (m *Manager) initializeDefaultAvatar() error {
 	}
 
 	m.config.Avatars = []Avatar{defaultAvatar}
-	m.config.HasDefault = true
+	// m.config.HasDefault = true
 	// m.config.CurrentID = defaultAvatar.ID
 
 	log.Printf("Saving config with default avatar")
@@ -93,16 +117,26 @@ func (m *Manager) initializeDefaultAvatar() error {
 // CreateAvatar creates a new avatar
 func (m *Manager) CreateAvatar(name, description string, states map[AvatarState]string) (*Avatar, error) {
 	avatar := Avatar{
+		ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
 		Name:        name,
 		Description: description,
 		States:      states,
+		CreatedAt:   time.Now().Unix(),
+		IsActive:    false,
 	}
 
 	if err := m.Storage.SaveAvatar(avatar); err != nil {
 		return nil, fmt.Errorf("save avatar: %w", err)
 	}
 
-	m.config.Avatars = append(m.config.Avatars, avatar)
+	// Get existing avatars and append the new one
+	existingAvatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return nil, fmt.Errorf("list avatars: %w", err)
+	}
+
+	// Append new avatar to existing ones
+	m.config.Avatars = append(existingAvatars, avatar)
 	if err := m.Storage.SaveConfig(m.config); err != nil {
 		return nil, fmt.Errorf("save config: %w", err)
 	}

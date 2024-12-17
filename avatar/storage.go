@@ -68,20 +68,7 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(AvatarBucket))
 		if b == nil {
-			// Initialize with default avatar
-			defaultAvatar := Avatar{
-				ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
-				Name:        "Default",
-				Description: "Default avatar",
-				States: map[AvatarState]string{
-					StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
-					StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
-				},
-				IsDefault: true,
-				CreatedAt: time.Now().Unix(),
-			}
-			avatars = append(avatars, defaultAvatar)
-			return nil
+			return fmt.Errorf("bucket not found")
 		}
 
 		return b.ForEach(func(k, v []byte) error {
@@ -103,22 +90,6 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 			return nil
 		})
 	})
-
-	// If no avatars found, return default
-	if len(avatars) == 0 {
-		defaultAvatar := Avatar{
-			ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
-			Name:        "Default",
-			Description: "Default avatar",
-			States: map[AvatarState]string{
-				StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
-				StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
-			},
-			IsDefault: true,
-			CreatedAt: time.Now().Unix(),
-		}
-		avatars = append(avatars, defaultAvatar)
-	}
 
 	return avatars, err
 }
