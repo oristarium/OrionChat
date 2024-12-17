@@ -57,51 +57,41 @@ export class AvatarManager {
     }
 
     setupEventListeners() {
-        // Listen for changes on avatar checkboxes
-        document.addEventListener('change', async (e) => {
-            if (e.target.classList.contains('avatar-active-toggle')) {
-                const avatarId = e.target.dataset.avatarId;
-                const isActive = e.target.checked;
-                await this.updateAvatarActive(avatarId, isActive);
-            }
+        // Use jQuery event delegation for checkbox changes
+        $(document).on('change', '.avatar-active-toggle', async (e) => {
+            const avatarId = $(e.target).data('avatarId');
+            const isActive = $(e.target).prop('checked');
+            await this.updateAvatarActive(avatarId, isActive);
         });
 
-        // Add click handlers for avatar images
-        document.addEventListener('click', (e) => {
-            const previewImg = e.target.closest('.preview-img');
-            if (!previewImg) return;
-
-            const row = previewImg.closest('.avatar-row');
-            if (!row) return;
-
-            const avatarId = row.dataset.avatarId;
-            const stateType = previewImg.closest('[data-state-type]')?.dataset.stateType;
+        // Use jQuery event delegation for preview image clicks
+        $(document).on('click', '.preview-img', (e) => {
+            const $row = $(e.target).closest('.avatar-row');
+            const avatarId = $row.data('avatarId');
+            const stateType = $(e.target).closest('[data-state-type]').data('stateType');
             
             if (avatarId && stateType) {
                 this.openUploadModal(avatarId, stateType);
             }
         });
 
-        // Add preview for selected file
-        document.getElementById('avatar-image-input')?.addEventListener('change', (e) => {
+        // File input change handler
+        $('#avatar-image-input').on('change', (e) => {
             const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const previewImg = document.getElementById('upload-preview-img');
-                    previewImg.src = e.target.result;
-                    previewImg.style.display = 'block';
+                    $('#upload-preview-img')
+                        .attr('src', e.target.result)
+                        .show();
                 };
                 reader.readAsDataURL(file);
             }
         });
 
-        // Add click handler for delete buttons
-        document.addEventListener('click', async (e) => {
-            const deleteBtn = e.target.closest('.delete-avatar-btn');
-            if (!deleteBtn) return;
-
-            const avatarId = deleteBtn.dataset.avatarId;
+        // Delete button handler
+        $(document).on('click', '.delete-avatar-btn', async (e) => {
+            const avatarId = $(e.target).closest('.delete-avatar-btn').data('avatarId');
             if (confirm('Are you sure you want to delete this avatar?')) {
                 await this.deleteAvatar(avatarId);
             }
@@ -123,10 +113,9 @@ export class AvatarManager {
     }
 
     renderAvatarList() {
-        const tbody = document.getElementById('avatar-list');
-        if (!tbody) return;
-
-        tbody.innerHTML = this.avatars.map(avatar => this.createAvatarRow(avatar)).join('');
+        $('#avatar-list').html(
+            this.avatars.map(avatar => this.createAvatarRow(avatar)).join('')
+        );
     }
 
     createAvatarRow(avatar) {
@@ -169,19 +158,15 @@ export class AvatarManager {
     }
 
     async updateAvatarActive(avatarId, isActive) {
-        const checkbox = document.querySelector(`.avatar-active-toggle[data-avatar-id="${avatarId}"]`);
-        if (checkbox) {
-            // Disable checkbox during update
-            checkbox.disabled = true;
-            
-            // Add loading state to row
-            const row = checkbox.closest('.avatar-row');
-            if (row) row.classList.add('loading');
-        }
-    
+        const $checkbox = $(`.avatar-active-toggle[data-avatar-id="${avatarId}"]`);
+        const $row = $checkbox.closest('.avatar-row');
+        
+        // Disable checkbox and add loading state
+        $checkbox.prop('disabled', true);
+        $row.addClass('loading');
+
         try {
-            // Fix: Use the correct URL format with avatarId in the path
-            const response = await fetch(`/api/avatars/${avatarId}/set`, {  // Changed from /api/avatars/set
+            const response = await fetch(`/api/avatars/${avatarId}/set`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -190,11 +175,11 @@ export class AvatarManager {
                     is_active: isActive
                 })
             });
-    
+
             if (!response.ok) {
                 throw new Error('Failed to update avatar active state');
             }
-    
+
             // Update local state
             const avatar = this.avatars.find(a => a.id === avatarId);
             if (avatar) {
@@ -202,17 +187,12 @@ export class AvatarManager {
             }
         } catch (error) {
             console.error('Error updating avatar active state:', error);
-            // Revert the checkbox state on error
-            if (checkbox) {
-                checkbox.checked = !isActive;
-            }
+            // Revert checkbox state on error
+            $checkbox.prop('checked', !isActive);
         } finally {
             // Re-enable checkbox and remove loading state
-            if (checkbox) {
-                checkbox.disabled = false;
-                const row = checkbox.closest('.avatar-row');
-                if (row) row.classList.remove('loading');
-            }
+            $checkbox.prop('disabled', false);
+            $row.removeClass('loading');
         }
     }
 
@@ -350,8 +330,7 @@ export class AvatarManager {
     }
 
     setupAddAvatarButton() {
-        // Add button to the avatar management header
-        const avatarManagement = document.querySelector('.avatar-management');
+        const $avatarManagement = $('.avatar-management');
         const headerHtml = `
             <div class="avatar-header">
                 <h3>Avatar Management</h3>
@@ -363,27 +342,25 @@ export class AvatarManager {
                 </button>
             </div>
         `;
-        avatarManagement.insertAdjacentHTML('afterbegin', headerHtml);
+        $avatarManagement.prepend(headerHtml);
 
-        // Add click handler
-        document.getElementById('add-avatar-btn')?.addEventListener('click', () => {
+        $('#add-avatar-btn').on('click', () => {
             this.createNewAvatar();
         });
     }
 
     async createNewAvatar() {
-        const button = document.getElementById('add-avatar-btn');
-        if (!button) return;
+        const $button = $('#add-avatar-btn');
+        if (!$button.length) return;
 
         try {
             // Disable button and show loading state
-            button.disabled = true;
-            button.innerHTML = `
+            $button.prop('disabled', true).html(`
                 <svg class="spinner" width="12" height="12" viewBox="0 0 24 24">
                     <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="4"/>
                 </svg>
                 Creating...
-            `;
+            `);
 
             // Make API request
             const response = await fetch('/api/avatars/create', {
@@ -416,13 +393,12 @@ export class AvatarManager {
             alert('Failed to create new avatar. Please try again.');
         } finally {
             // Reset button state
-            button.disabled = false;
-            button.innerHTML = `
+            $button.prop('disabled', false).html(`
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M6 1V11M1 6H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
                 New Avatar
-            `;
+            `);
         }
     }
 
