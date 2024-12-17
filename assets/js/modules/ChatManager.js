@@ -31,22 +31,19 @@ export class ChatManager {
     }
 
     setupTTSToggle() {
-        const ttsToggle = document.getElementById('tts-all-chat');
-        if (ttsToggle) {
-            ttsToggle.addEventListener('change', (e) => {
-                this.ttsAllChat = e.target.checked;
-                console.log('TTS All Chat:', this.ttsAllChat ? 'enabled' : 'disabled');
-            });
-        }
+        $('#tts-all-chat').on('change', (e) => {
+            this.ttsAllChat = e.target.checked;
+            console.log('TTS All Chat:', this.ttsAllChat ? 'enabled' : 'disabled');
+        });
     }
 
     setupCustomEventHandlers() {
-        window.addEventListener('sendToTTS', (event) => {
-            this.messageHandler.sendToTTS(event.detail);
+        $(window).on('sendToTTS', (event) => {
+            this.messageHandler.sendToTTS(event.originalEvent.detail);
         });
 
-        window.addEventListener('sendToDisplay', (event) => {
-            this.messageHandler.sendToDisplay(event.detail);
+        $(window).on('sendToDisplay', (event) => {
+            this.messageHandler.sendToDisplay(event.originalEvent.detail);
         });
     }
 

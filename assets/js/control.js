@@ -59,24 +59,18 @@ class Controller {
 }
 
 // Initialize the controller when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
+$(document).ready(() => {
     console.log('DOM loaded - initializing Controller');
     new Controller();
 
     // Initialize TTS provider select
-    const ttsProvider = document.getElementById('tts-provider');
-    if (ttsProvider) {
-        ttsProvider.addEventListener('change', () => {
-            console.log('TTS provider changed:', ttsProvider.value);
-        });
-    }
-});
+    $('#tts-provider').on('change', () => {
+        console.log('TTS provider changed:', $('#tts-provider').val());
+    });
 
-// Add this after initializing other components
-$(document).ready(function() {
     // Initialize tabs
     $("#settings-tabs").tabs();
     
-    // Remove the avatar settings modal initialization since it's now in a tab
+    // Remove the avatar settings modal
     $("#open-avatar-settings").remove();
 }); 

@@ -5,9 +5,9 @@ export class ConnectionManager {
     }
 
     async connect() {
-        const channelId = document.getElementById('channel-id').value;
-        const identifierType = document.getElementById('identifier-type').value;
-        const platform = document.getElementById('platform-type').value;
+        const channelId = $('#channel-id').val();
+        const identifierType = $('#identifier-type').val();
+        const platform = $('#platform-type').val();
         
         try {
             await this.initializeWebSocket(channelId, identifierType, platform);
@@ -15,8 +15,8 @@ export class ConnectionManager {
             this.handleConnectionError(error);
         }
 
-        document.getElementById('connect-btn').classList.add('hidden');
-        document.getElementById('disconnect-btn').classList.remove('hidden');
+        $('#connect-btn').addClass('hidden');
+        $('#disconnect-btn').removeClass('hidden');
     }
 
     async initializeWebSocket(channelId, identifierType, platform) {

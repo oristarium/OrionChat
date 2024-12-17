@@ -2,16 +2,16 @@ export class VoiceManager {
     constructor() {
         this.voiceData = null;
         this.selectedVoices = new Set();
-        this.providerSelect = document.getElementById('tts-provider');
-        this.googleSelect = document.getElementById('google-voice-select');
-        this.tiktokSelects = document.getElementById('tiktok-voice-selects');
-        this.voiceSearch = document.getElementById('voice-search');
-        this.languageFilter = document.getElementById('language-filter');
-        this.genderFilter = document.getElementById('gender-filter');
-        this.voiceList = document.getElementById('voice-list');
-        this.selectAllCheckbox = document.getElementById('select-all-voices');
-        this.selectedVoiceCount = document.getElementById('selected-voice-count');
-        this.clearVoicesBtn = document.getElementById('clear-voices');
+        this.$providerSelect = $('#tts-provider');
+        this.$googleSelect = $('#google-voice-select');
+        this.$tiktokSelects = $('#tiktok-voice-selects');
+        this.$voiceSearch = $('#voice-search');
+        this.$languageFilter = $('#language-filter');
+        this.$genderFilter = $('#gender-filter');
+        this.$voiceList = $('#voice-list');
+        this.$selectAllCheckbox = $('#select-all-voices');
+        this.$selectedVoiceCount = $('#selected-voice-count');
+        this.$clearVoicesBtn = $('#clear-voices');
         
         this.init();
     }
@@ -19,7 +19,7 @@ export class VoiceManager {
     async init() {
         await this.loadVoiceData();
         this.setupEventListeners();
-        this.updateVoiceUI(this.providerSelect.value);
+        this.updateVoiceUI(this.$providerSelect.val());
     }
 
     async loadVoiceData() {
@@ -70,13 +70,13 @@ export class VoiceManager {
         // Get unique languages
         const languages = [...new Set(this.voiceData.map(v => v.lang_label))];
         
-        this.languageFilter.innerHTML = '<option value="all">All Languages</option>' + languages
+        this.$languageFilter.html('<option value="all">All Languages</option>' + languages
             .map(lang => `<option value="${lang}">${lang}</option>`)
-            .join('');
+            .join(''));
     }
 
     populateVoiceList() {
-        this.voiceList.innerHTML = this.voiceData
+        this.$voiceList.html(this.voiceData
             .map(voice => `
                 <tr class="voice-row" data-voice-id="${voice.voice_id}">
                     <td>
@@ -94,10 +94,10 @@ export class VoiceManager {
                         </audio>
                     </td>
                 </tr>
-            `).join('');
+            `).join(''));
 
         // Delegate the click event to the table body
-        $(this.voiceList).off('click', '.voice-row td').on('click', '.voice-row td', (e) => {
+        $(this.$voiceList).off('click', '.voice-row td').on('click', '.voice-row td', (e) => {
             // Skip if clicking the sample cell or checkbox
             if ($(e.target).closest('.sample-cell').length || $(e.target).is(':checkbox')) {
                 return;
@@ -113,29 +113,29 @@ export class VoiceManager {
     }
 
     setupEventListeners() {
-        this.providerSelect.addEventListener('change', (e) => {
+        this.$providerSelect.on('change', (e) => {
             this.updateVoiceUI(e.target.value);
         });
 
-        this.voiceSearch.addEventListener('input', () => this.filterVoices());
-        this.languageFilter.addEventListener('change', () => this.filterVoices());
-        this.genderFilter.addEventListener('change', () => this.filterVoices());
+        this.$voiceSearch.on('input', () => this.filterVoices());
+        this.$languageFilter.on('change', () => this.filterVoices());
+        this.$genderFilter.on('change', () => this.filterVoices());
         
-        this.selectAllCheckbox.addEventListener('change', (e) => {
-            const checkboxes = this.voiceList.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
+        this.$selectAllCheckbox.on('change', (e) => {
+            const checkboxes = this.$voiceList.find('input[type="checkbox"]');
+            checkboxes.each((index, checkbox) => {
                 checkbox.checked = e.target.checked;
                 this.toggleVoice(checkbox.value, e.target.checked);
             });
             this.updateVoiceCount();
         });
 
-        if (this.clearVoicesBtn) {
-            this.clearVoicesBtn.addEventListener('click', () => {
+        if (this.$clearVoicesBtn) {
+            this.$clearVoicesBtn.on('click', () => {
                 this.selectedVoices.clear();
-                this.selectAllCheckbox.checked = false;
-                const checkboxes = this.voiceList.querySelectorAll('input[type="checkbox"]');
-                checkboxes.forEach(checkbox => {
+                this.$selectAllCheckbox.prop('checked', false);
+                const checkboxes = this.$voiceList.find('input[type="checkbox"]');
+                checkboxes.each((index, checkbox) => {
                     checkbox.checked = false;
                 });
                 this.updateVoiceCount();
@@ -153,15 +153,15 @@ export class VoiceManager {
     }
 
     updateVoiceCount() {
-        if (this.selectedVoiceCount) {
-            this.selectedVoiceCount.textContent = this.selectedVoices.size;
+        if (this.$selectedVoiceCount) {
+            this.$selectedVoiceCount.text(this.selectedVoices.size);
         }
     }
 
     filterVoices() {
-        const searchTerm = this.voiceSearch.value.toLowerCase();
-        const languageFilter = this.languageFilter.value;
-        const genderFilter = this.genderFilter.value;
+        const searchTerm = this.$voiceSearch.val().toLowerCase();
+        const languageFilter = this.$languageFilter.val();
+        const genderFilter = this.$genderFilter.val();
         
         // Filter the data
         const filteredData = this.voiceData.filter(voice => {
@@ -182,7 +182,7 @@ export class VoiceManager {
     }
 
     populateVoiceList(data = this.voiceData) {
-        this.voiceList.innerHTML = data
+        this.$voiceList.html(data
             .map(voice => `
                 <tr class="voice-row" data-voice-id="${voice.voice_id}">
                     <td>
@@ -200,10 +200,10 @@ export class VoiceManager {
                         </audio>
                     </td>
                 </tr>
-            `).join('');
+            `).join(''));
 
         // Delegate the click event to the table body
-        $(this.voiceList).off('click', '.voice-row td').on('click', '.voice-row td', (e) => {
+        $(this.$voiceList).off('click', '.voice-row td').on('click', '.voice-row td', (e) => {
             // Skip if clicking the sample cell or checkbox
             if ($(e.target).closest('.sample-cell').length || $(e.target).is(':checkbox')) {
                 return;
@@ -233,16 +233,16 @@ export class VoiceManager {
 
     updateVoiceUI(provider) {
         if (provider === 'tiktok') {
-            this.googleSelect.style.display = 'none';
-            this.tiktokSelects.style.display = 'block';
+            this.$googleSelect.css('display', 'none');
+            this.$tiktokSelects.css('display', 'block');
         } else {
-            this.googleSelect.style.display = 'block';
-            this.tiktokSelects.style.display = 'none';
+            this.$googleSelect.css('display', 'block');
+            this.$tiktokSelects.css('display', 'none');
         }
     }
 
     getCurrentVoiceId() {
-        const provider = this.providerSelect.value;
+        const provider = this.$providerSelect.val();
         if (provider === 'tiktok') {
             if (this.selectedVoices.size === 0) {
                 return this.voiceData[0].voice_id; // Default to first voice if none selected
@@ -250,6 +250,6 @@ export class VoiceManager {
             const voiceIds = Array.from(this.selectedVoices);
             return voiceIds[Math.floor(Math.random() * voiceIds.length)];
         }
-        return document.getElementById('tts-language').value;
+        return $('#tts-language').val();
     }
 } 
