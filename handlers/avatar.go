@@ -59,10 +59,8 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 			CreatedAt: time.Now().Unix(),
 		}
 		
-		response := struct {
-			Avatars   []avatar.Avatar `json:"avatars"`
-		}{
-			Avatars:   []avatar.Avatar{defaultAvatar},
+		response := avatar.AvatarList{
+			Avatars: []avatar.Avatar{defaultAvatar},
 		}
 		
 		json.NewEncoder(w).Encode(response)
@@ -70,10 +68,8 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	response := struct {
-		Avatars   []avatar.Avatar `json:"avatars"`
-	}{
-		Avatars:   avatars,
+	response := avatar.AvatarList{
+		Avatars: avatars,
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -193,9 +189,11 @@ func (h *AvatarHandler) HandleActiveAvatars(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(map[string][]avatar.Avatar{
-		"avatars": avatars,
-	}); err != nil {
+	response := avatar.AvatarList{
+		Avatars: avatars,
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("Error encoding response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 	}

@@ -22,8 +22,7 @@ type Avatar struct {
 // AvatarList represents a list of avatars with metadata
 type AvatarList struct {
     Avatars     []Avatar `json:"avatars"`
-    DefaultID   string   `json:"default_id"`
-    CurrentID   string   `json:"current_id"`
+    HasDefault  bool     `json:"has_default"`
 }
 
 // AvatarImage represents a physical image file that can be used as an avatar state

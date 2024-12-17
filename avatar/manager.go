@@ -35,13 +35,13 @@ func NewManager(storage *Storage) (*Manager, error) {
 	}
 	m.config = config
 
-	// // Initialize default avatar if needed
-	// if m.config.CurrentID == "" {
-	// 	log.Printf("No current avatar, initializing default")
-	// 	if err := m.initializeDefaultAvatar(); err != nil {
-	// 		return nil, fmt.Errorf("initialize default avatar: %w", err)
-	// 	}
-	// }
+	// Initialize default avatar if needed
+	if !m.config.HasDefault {
+		log.Printf("initializing default")
+		if err := m.initializeDefaultAvatar(); err != nil {
+			return nil, fmt.Errorf("initialize default avatar: %w", err)
+		}
+	}
 
 	return m, nil
 }
@@ -83,7 +83,7 @@ func (m *Manager) initializeDefaultAvatar() error {
 	}
 
 	m.config.Avatars = []Avatar{defaultAvatar}
-	// m.config.DefaultID = defaultAvatar.ID
+	m.config.HasDefault = true
 	// m.config.CurrentID = defaultAvatar.ID
 
 	log.Printf("Saving config with default avatar")
