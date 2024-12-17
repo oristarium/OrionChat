@@ -19,26 +19,28 @@ import (
 
 // Constants
 const (
-	AppName       = "OrionChat"
-	AppIcon       = "assets/icon.ico"
+	AppName = "OrionChat"
+	AppIcon = "assets/icon.ico"
 
 	// Window dimensions
-	WindowWidth   = 300
-	WindowHeight  = 350
+	WindowWidth  = 300
+	WindowHeight = 350
 
 	// Text sizes
 	DefaultTextSize = 14
 
-	CopyLabel = "Copy %s URL 📋"
+	// Button and label text
+	CopyLabel   = "Copy %s URL 📋"
 	CopiedLabel = "Copied! ✓"
 
+	// Donation related
 	DonationLabel = "Support us on"
 	DonationLink = "https://trakteer.id/oristarium"
 	DonationText = "Trakteer ☕"
 
 	// Layout dimensions
 	StatusBottomMargin = 16
-	ButtonSpacing = 60
+	ButtonSpacing      = 60
 )
 
 // RunUI starts the Fyne UI application
