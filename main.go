@@ -17,17 +17,9 @@ import (
 	"sync"
 	"time"
 
-	"image/color"
-
-	"fyne.io/fyne/v2"
-	"fyne.io/fyne/v2/app"
-	"fyne.io/fyne/v2/canvas"
-	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/layout"
-	"fyne.io/fyne/v2/widget"
-
 	"github.com/oristarium/orionchat/avatar" // Replace with your actual module name
 	"github.com/oristarium/orionchat/tts"    // Replace with your actual module name
+	"github.com/oristarium/orionchat/ui"     // Add this import
 
 	"go.etcd.io/bbolt"
 )
@@ -548,128 +540,6 @@ func main() {
 	serverStarted := make(chan bool)
 	var wg sync.WaitGroup
 
-	// Create Fyne application in the main thread
-	fyneApp := app.New()
-	
-	// Set application icon
-	icon, err := fyne.LoadResourceFromPath(AppIcon)
-	if err != nil {
-		log.Printf("Failed to load icon: %v", err)
-	} else {
-		fyneApp.SetIcon(icon)
-	}
-	
-	window := fyneApp.NewWindow(AppName)
-	
-	// Disable window maximizing
-	window.SetFixedSize(true)
-
-	// Create and configure the large icon image
-	iconBig := canvas.NewImageFromFile("assets/icon-big.png")
-	iconBig.SetMinSize(fyne.NewSize(100, 100))
-	iconBig.Resize(fyne.NewSize(100, 100))
-	iconBigContainer := container.NewCenter(iconBig)
-
-	// Create status text with initial color
-	status := canvas.NewText("Starting server...", color.Gray{Y: 200})
-	status.TextStyle = fyne.TextStyle{Bold: true}
-	status.TextSize = DefaultTextSize
-	statusContainer := container.NewVBox(
-		container.NewCenter(status),
-		container.NewHBox(layout.NewSpacer()), // Add bottom margin
-	)
-	statusContainer.Resize(fyne.NewSize(0, StatusBottomMargin))
-
-	// Create copy buttons with feedback
-	createCopyButton := func(label, url string) *widget.Button {
-		btn := widget.NewButton(fmt.Sprintf(CopyLabel, label), nil)
-		btn.OnTapped = func() {
-			window.Clipboard().SetContent(fmt.Sprintf("http://localhost%s%s", ServerPort, url))
-			originalText := btn.Text
-			btn.SetText(CopiedLabel)
-			
-			// Reset text after 2 seconds
-			go func() {
-				time.Sleep(2 * time.Second)
-				btn.SetText(originalText)
-			}()
-		}
-		return btn
-	}
-
-	copyControlBtn := createCopyButton("Control", "/control")
-	copyTTSBtn := createCopyButton("TTS", "/tts")
-	copyDisplayBtn := createCopyButton("Display", "/display")
-
-	// Create buttons container
-	buttonsContainer := container.NewVBox(
-		copyControlBtn,
-		copyTTSBtn,
-		copyDisplayBtn,
-	)
-
-	// Create tutorial button
-	tutorialBtn := widget.NewButton("How to use?", func() {
-		url := fmt.Sprintf("http://localhost%s/tutorial", ServerPort)
-		if err := fyne.CurrentApp().OpenURL(parseURL(url)); err != nil {
-			log.Printf("Failed to open tutorial: %v", err)
-		}
-	})
-
-	// Create quit button with red text
-	quitBtn := widget.NewButton("Quit Application", func() {
-		window.Close()
-	})
-	quitBtn.Importance = widget.DangerImportance  // This will make the button text red
-
-	// Create footer with donation link and copyright
-	footerText := canvas.NewText(DonationLabel, color.Gray{Y: 200})
-	footerText.TextSize = DefaultTextSize
-	footerLink := widget.NewHyperlink(DonationText, parseURL(DonationLink))
-	
-	// Add copyright notice with smaller text
-	copyrightText := canvas.NewText("© 2024 Oristarium. All rights reserved.", color.Gray{Y: 150})
-	copyrightText.TextSize = DefaultTextSize - 4  // Smaller text size
-	
-	footerContainer := container.NewVBox(
-		container.NewHBox(
-			footerText,
-			container.New(&spacingLayout{}, footerLink),
-		),
-		container.NewCenter(copyrightText),
-	)
-	footer := container.NewCenter(footerContainer)
-
-	// Layout
-	content := container.NewVBox(
-		iconBigContainer,  // Add the icon container first
-		statusContainer,
-		layout.NewSpacer(), // Add margin after status
-		buttonsContainer,
-		container.NewHBox(layout.NewSpacer()), // Add 60px spacer
-		container.NewVBox(
-			tutorialBtn,
-			quitBtn,
-			footer,
-		),
-	)
-
-	// Set fixed height for the spacer
-	content.Objects[3].Resize(fyne.NewSize(0, ButtonSpacing))  // Set height to 60px
-
-	// Add padding around the content
-	paddedContent := container.NewPadded(content)
-	window.SetContent(paddedContent)
-
-	// Handle window closing
-	window.SetCloseIntercept(func() {
-		status.Text = "Shutting down..."
-		close(shutdown)
-	})
-
-	// Set window size
-	window.Resize(fyne.NewSize(WindowWidth, WindowHeight))
-
 	// Create HTTP server
 	server := NewServer()
 	httpServer := &http.Server{
@@ -695,21 +565,6 @@ func main() {
 		}
 	}()
 
-	// Update status when server starts
-	go func() {
-		select {
-		case <-serverStarted:
-			status.Color = color.RGBA{G: 180, A: 255}  // Green color
-			status.Text = fmt.Sprintf("Server running on port %s", ServerPort)
-			status.Refresh()
-		case <-shutdown:
-			status.Color = color.RGBA{R: 180, A: 255}  // Red color
-			status.Text = "Shutting down..."
-			status.Refresh()
-			return
-		}
-	}()
-
 	// Handle shutdown
 	go func() {
 		<-shutdown
@@ -723,11 +578,10 @@ func main() {
 		}
 		
 		wg.Wait()
-		fyneApp.Quit()
 	}()
 
-	// Run the GUI in the main thread
-	window.ShowAndRun()
+	// Start the UI
+	ui.RunUI(ServerPort, shutdown, serverStarted, &wg)
 }
 
 // Helper function to safely parse URLs
@@ -972,17 +826,6 @@ func (h *FileHandler) HandleUpload(w http.ResponseWriter, r *http.Request, optio
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"path": path})
-}
-
-type spacingLayout struct{}
-
-func (s *spacingLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {
-	return objects[0].MinSize()
-}
-
-func (s *spacingLayout) Layout(objects []fyne.CanvasObject, size fyne.Size) {
-	objects[0].Resize(objects[0].MinSize())
-	objects[0].Move(fyne.NewPos(0, 0)) // No left padding
 }
 
 //go:generate goversioninfo -icon=AppIcon -manifest=manifest.xml
