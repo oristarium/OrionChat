@@ -254,7 +254,7 @@ body {
     display: flex;
     flex-direction: column;
     height: 100%;
-    border: 0px;
+    border: none;
     padding: 0;
 }
 
@@ -264,7 +264,7 @@ body {
     border-bottom: 1px solid var(--border-color);
     border-radius: 0;
     padding: 0;
-    /* margin-bottom: var(--spacing-lg); */
+    margin: 0;
 }
 
 #settings-tabs .ui-tabs-nav li {
@@ -281,8 +281,9 @@ body {
 
 #settings-tabs .ui-tabs-nav li.ui-tabs-active {
     background: var(--text-light);
-    border: 0px;
-    border-bottom: 2px solid var(--color-primary);
+    border: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--text-light);
+    margin-bottom: -1px;
 }
 
 #settings-tabs .ui-tabs-nav li.ui-tabs-active a {
@@ -295,9 +296,8 @@ body {
     flex-direction: column;
     min-height: 0;
     overflow: hidden;
-    padding: 0;
-    padding-top: var(--spacing-lg);
-    padding-bottom: var(--spacing-md);
+    padding: var(--spacing-lg) 0;
+    border: none;
 }
 
 .setting-list {

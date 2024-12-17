@@ -2,8 +2,8 @@ import { MessageHandler } from './MessageHandler.js';
 
 export class ChatManager {
     constructor() {
-        this.container = document.getElementById('chat-container');
-        this.scrollButton = document.getElementById('scroll-button');
+        this.$container = $('#chat-container');
+        this.$scrollButton = $('#scroll-button');
         this.isUserScrolling = false;
         this.scrollTimeout = null;
         this.messageHandler = new MessageHandler();
@@ -16,10 +16,12 @@ export class ChatManager {
     }
 
     setupScrollHandlers() {
-        this.container.addEventListener('scroll', () => this.handleScroll());
-        this.container.addEventListener('wheel', () => this.handleWheel());
-        this.container.addEventListener('mouseleave', () => this.handleMouseLeave());
-        this.scrollButton.addEventListener('click', () => this.scrollToBottom());
+        this.$container
+            .on('scroll', () => this.handleScroll())
+            .on('wheel', () => this.handleWheel())
+            .on('mouseleave', () => this.handleMouseLeave());
+        
+        this.$scrollButton.on('click', () => this.scrollToBottom());
     }
 
     setupMessageHandler() {
@@ -51,10 +53,10 @@ export class ChatManager {
     handleScroll() {
         if (!this.isNearBottom()) {
             this.isUserScrolling = true;
-            this.scrollButton.classList.remove('hidden');
+            this.$scrollButton.removeClass('hidden');
         } else {
             this.isUserScrolling = false;
-            this.scrollButton.classList.add('hidden');
+            this.$scrollButton.addClass('hidden');
         }
     }
 
@@ -63,7 +65,7 @@ export class ChatManager {
         this.scrollTimeout = setTimeout(() => {
             if (!this.isNearBottom()) {
                 this.isUserScrolling = true;
-                this.scrollButton.classList.remove('hidden');
+                this.$scrollButton.removeClass('hidden');
             }
         }, 150);
     }
@@ -71,33 +73,34 @@ export class ChatManager {
     handleMouseLeave() {
         if (this.isNearBottom()) {
             this.isUserScrolling = false;
-            this.scrollButton.classList.add('hidden');
+            this.$scrollButton.addClass('hidden');
         }
     }
 
     isNearBottom() {
         const threshold = 100;
+        const $container = this.$container;
         return Math.abs(
-            this.container.scrollHeight - 
-            this.container.scrollTop - 
-            this.container.clientHeight
+            $container[0].scrollHeight - 
+            $container.scrollTop() - 
+            $container.height()
         ) < threshold;
     }
 
     scrollToBottom() {
-        this.container.scrollTop = this.container.scrollHeight;
-        this.scrollButton.classList.add('hidden');
+        this.$container.scrollTop(this.$container[0].scrollHeight);
+        this.$scrollButton.addClass('hidden');
         this.isUserScrolling = false;
     }
 
     appendMessage(message) {
-        const messageEl = this.createMessageElement(message);
-        this.container.appendChild(messageEl);
+        const $messageEl = $(this.createMessageElement(message));
+        this.$container.append($messageEl);
         
         if (!this.isUserScrolling) {
             this.scrollToBottom();
         } else {
-            this.scrollButton.classList.remove('hidden');
+            this.$scrollButton.removeClass('hidden');
         }
     }
 

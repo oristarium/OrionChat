@@ -1,24 +1,24 @@
 export class UIManager {
     constructor() {
-        this.platformSelect = document.getElementById('platform-type');
-        this.identifierType = document.getElementById('identifier-type');
-        this.channelInput = document.getElementById('channel-id');
-        this.ttsProvider = document.getElementById('tts-provider');
-        this.ttsLanguage = document.getElementById('tts-language');
+        this.$platformSelect = $('#platform-type');
+        this.$identifierType = $('#identifier-type');
+        this.$channelInput = $('#channel-id');
+        this.$ttsProvider = $('#tts-provider');
+        this.$ttsLanguage = $('#tts-language');
         
         this.setupEventListeners();
     }
 
     setupEventListeners() {
-        if (this.ttsProvider) {
-            this.ttsProvider.addEventListener('change', () => {
-                console.log('TTS provider changed:', this.ttsProvider.value);
+        if (this.$ttsProvider) {
+            this.$ttsProvider.on('change', () => {
+                console.log('TTS provider changed:', this.$ttsProvider.val());
             });
         }
     }
 
     initializePlatformUI() {
-        this.updatePlatformUI(this.platformSelect.value);
+        this.updatePlatformUI(this.$platformSelect.val());
     }
 
     updatePlatformUI(platform) {
@@ -28,12 +28,12 @@ export class UIManager {
     }
 
     updatePlatformStyle() {
-        this.platformSelect.dataset.platform = this.platformSelect.value;
+        this.$platformSelect.attr('data-platform', this.$platformSelect.val());
     }
 
     updatePlaceholder() {
-        const platform = this.platformSelect.value;
-        const idType = this.identifierType.value;
+        const platform = this.$platformSelect.val();
+        const idType = this.$identifierType.val();
         
         let placeholder = '';
         switch(idType) {
@@ -48,16 +48,13 @@ export class UIManager {
                 break;
         }
         
-        this.channelInput.placeholder = placeholder;
+        this.$channelInput.attr('placeholder', placeholder);
     }
 
     updateIdentifierTypeState(platform) {
-        if (platform === 'tiktok' || platform === 'twitch') {
-            this.identifierType.value = 'username';
-            this.identifierType.disabled = true;
-        } else {
-            this.identifierType.disabled = false;
-        }
+        this.$identifierType
+            .val('username')
+            .prop('disabled', platform === 'tiktok' || platform === 'twitch');
     }
 
     updateConnectionButtons(isConnected) {

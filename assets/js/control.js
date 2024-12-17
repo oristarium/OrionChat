@@ -30,55 +30,25 @@ class Controller {
     setupEventListeners() {
         console.log('Setting up event listeners');
 
-        // Connection events
-        document.getElementById('connect-btn').addEventListener('click', () => this.connection.connect());
-        document.getElementById('disconnect-btn').addEventListener('click', () => this.connection.disconnect());
+        // Use jQuery event delegation and chaining
+        $('#connect-btn').on('click', () => this.connection.connect());
+        $('#disconnect-btn').on('click', () => this.connection.disconnect());
+        $('#platform-type').on('change', (e) => this.ui.updatePlatformUI(e.target.value));
 
-        // Platform selection events
-        document.getElementById('platform-type').addEventListener('change', (e) => {
-            this.ui.updatePlatformUI(e.target.value);
+        // Clear display and TTS queue buttons
+        $('#clear-display').on('click', () => {
+            console.log('Clear display button clicked - Controller handling');
+            this.messageHandler.clearDisplay().catch(error => {
+                console.error('Error in clearDisplay:', error);
+            });
         });
 
-        // Add clear display button handler
-        const clearBtn = document.getElementById('clear-display');
-        if (clearBtn) {
-            console.log('Clear display button found and handler attached');
-            // Add logging to verify the messageHandler exists
-            console.log('MessageHandler instance:', this.messageHandler);
-            
-            clearBtn.addEventListener('click', () => {
-                console.log('Clear display button clicked - Controller handling');
-                console.log('MessageHandler before call:', this.messageHandler);
-                try {
-                    this.messageHandler.clearDisplay().catch(error => {
-                        console.error('Error in clearDisplay:', error);
-                    });
-                } catch (error) {
-                    console.error('Error calling clearDisplay:', error);
-                    console.error('this.messageHandler:', this.messageHandler);
-                }
+        $('#clear-tts').on('click', () => {
+            console.log('Clear TTS queue button clicked');
+            this.messageHandler.clearTTSQueue().catch(error => {
+                console.error('Error in clearTTSQueue:', error);
             });
-        } else {
-            console.error('Clear display button not found in Controller');
-        }
-
-        // Add clear TTS queue button handler
-        const clearTTSBtn = document.getElementById('clear-tts');
-        if (clearTTSBtn) {
-            console.log('Clear TTS queue button found and handler attached');
-            clearTTSBtn.addEventListener('click', () => {
-                console.log('Clear TTS queue button clicked');
-                try {
-                    this.messageHandler.clearTTSQueue().catch(error => {
-                        console.error('Error in clearTTSQueue:', error);
-                    });
-                } catch (error) {
-                    console.error('Error calling clearTTSQueue:', error);
-                }
-            });
-        } else {
-            console.error('Clear TTS queue button not found');
-        }
+        });
 
         // Make necessary methods available globally
         window.sendToDisplay = this.messageHandler.sendToDisplay.bind(this.messageHandler);

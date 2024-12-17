@@ -1,7 +1,7 @@
 export class ConnectionManager {
     constructor() {
         this.ws = null;
-        this.statusElement = document.getElementById('connection-status');
+        this.$statusElement = $('#connection-status');
     }
 
     async connect() {
@@ -93,16 +93,14 @@ export class ConnectionManager {
     }
 
     updateStatus(className, text) {
-        this.statusElement.className = `status-indicator ${className}`;
-        this.statusElement.textContent = text;
+        this.$statusElement
+            .removeClass()
+            .addClass(`status-indicator ${className}`)
+            .text(text);
     }
 
     updateConnectionState(isConnected) {
-        const connectBtn = document.getElementById('connect-btn');
-        const disconnectBtn = document.getElementById('disconnect-btn');
-        
-        connectBtn.disabled = isConnected;
-        disconnectBtn.disabled = !isConnected;
+        $('#connect-btn, #disconnect-btn').prop('disabled', (_, i) => i === 0 ? isConnected : !isConnected);
     }
 
     disconnect() {
@@ -116,8 +114,8 @@ export class ConnectionManager {
             this.updateConnectionState(false);
         }
 
-        document.getElementById('connect-btn').classList.remove('hidden');
-        document.getElementById('disconnect-btn').classList.add('hidden');
+        $('#connect-btn').removeClass('hidden');
+        $('#disconnect-btn').addClass('hidden');
     }
 
     handleStatusMessage(message) {
