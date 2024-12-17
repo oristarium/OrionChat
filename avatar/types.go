@@ -1,5 +1,7 @@
 package avatar
 
+import "github.com/oristarium/orionchat/types"
+
 // AvatarState represents the possible states of an avatar
 type AvatarState string
 
@@ -17,6 +19,7 @@ type Avatar struct {
     IsDefault   bool                   `json:"is_default"`
     IsActive    bool                   `json:"is_active"`
     CreatedAt   int64                  `json:"created_at"`
+    TTSVoices   []types.TTSVoice      `json:"tts_voices"`
 }
 
 // AvatarList represents a list of avatars with metadata

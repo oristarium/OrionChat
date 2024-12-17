@@ -12,6 +12,7 @@ import (
 
 	"github.com/oristarium/orionchat/avatar" // Update with your actual module name
 	"github.com/oristarium/orionchat/broadcast"
+	"github.com/oristarium/orionchat/types"
 )
 
 // AvatarHandler handles all avatar-related HTTP requests
@@ -78,7 +79,7 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// HandleAvatarDetail handles /api/avatars/{id}/(get|set)
+// HandleAvatarDetail handles /api/avatars/{id}/(get|set|delete|voices)
 func (h *AvatarHandler) HandleAvatarDetail(w http.ResponseWriter, r *http.Request) {
 	segments := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
 	if len(segments) != 4 { // api/avatars/{id}/{action}
@@ -108,6 +109,15 @@ func (h *AvatarHandler) HandleAvatarDetail(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		h.handleDeleteAvatar(w, r, id)
+	case "voices":
+		switch r.Method {
+		case http.MethodGet:
+			h.handleGetAvatarVoices(w, r, id)
+		case http.MethodPut:
+			h.handleSetAvatarVoices(w, r, id)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
 	default:
 		http.Error(w, "Invalid action", http.StatusBadRequest)
 	}
@@ -383,6 +393,49 @@ func (h *AvatarHandler) HandleAvatarImageDelete(w http.ResponseWriter, r *http.R
 	if err := h.avatarManager.DeleteAvatarImage(path); err != nil {
 		log.Printf("Error deleting avatar image: %v", err)
 		http.Error(w, "Failed to delete avatar image", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleGetAvatarVoices handles GET /api/avatars/{id}/voices
+func (h *AvatarHandler) handleGetAvatarVoices(w http.ResponseWriter, _ *http.Request, id string) {
+	avatar, err := h.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string][]types.TTSVoice{
+		"voices": avatar.TTSVoices,
+	})
+}
+
+// handleSetAvatarVoices handles PUT /api/avatars/{id}/voices
+func (h *AvatarHandler) handleSetAvatarVoices(w http.ResponseWriter, r *http.Request, id string) {
+	var request struct {
+		Voices []types.TTSVoice `json:"voices"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get existing avatar
+	existingAvatar, err := h.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	// Update voices
+	existingAvatar.TTSVoices = request.Voices
+
+	// Save updated avatar
+	if err := h.avatarManager.Storage.SaveAvatar(existingAvatar); err != nil {
+		http.Error(w, "Failed to save avatar", http.StatusInternalServerError)
 		return
 	}
 
