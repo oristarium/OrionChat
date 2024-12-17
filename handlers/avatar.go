@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -31,8 +33,11 @@ type Update struct {
 
 // UpdateData represents the data payload for different update types
 type UpdateData struct {
-	Path       string `json:"path,omitempty"`
-	AvatarType string `json:"avatar_type,omitempty"`
+	Path          string      `json:"path,omitempty"`
+	AvatarType    string      `json:"avatar_type,omitempty"`
+	Message       interface{} `json:"message,omitempty"`
+	VoiceID       string      `json:"voice_id,omitempty"`
+	VoiceProvider string      `json:"voice_provider,omitempty"`
 }
 
 // NewAvatarHandler creates a new AvatarHandler instance
@@ -140,7 +145,7 @@ func (h *AvatarHandler) HandleAvatarDetail(w http.ResponseWriter, r *http.Reques
 }
 
 // handleGetAvatar handles GET /api/avatars/{id}/get
-func (h *AvatarHandler) handleGetAvatar(w http.ResponseWriter, r *http.Request, id string) {
+func (h *AvatarHandler) handleGetAvatar(w http.ResponseWriter, _ *http.Request, id string) {
 	avatar, err := h.avatarManager.Storage.GetAvatar(id)
 	if err != nil {
 		log.Printf("Error getting avatar: %v", err)
@@ -276,11 +281,125 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 }
 
 // handleDeleteAvatar handles DELETE /api/avatars/{id}
-func (h *AvatarHandler) handleDeleteAvatar(w http.ResponseWriter, r *http.Request, id string) {
+func (h *AvatarHandler) handleDeleteAvatar(w http.ResponseWriter, _ *http.Request, id string) {
 	if err := h.avatarManager.DeleteAvatar(id); err != nil {
 		log.Printf("Error deleting avatar: %v", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+}
+
+// HandleAvatarUpload handles POST /api/avatars/upload
+func (h *AvatarHandler) HandleAvatarUpload(w http.ResponseWriter, r *http.Request) {
+	h.fileHandler.HandleUpload(w, r, struct {
+		FileField  string
+		TypeField  string
+		Directory  string
+		Bucket     string
+		KeyPrefix  string
+		OnSuccess  func(string) error
+	}{
+		FileField:  "avatar",
+		TypeField:  "type",
+		Directory:  avatar.AvatarAssetsDir,
+		Bucket:     avatar.AvatarBucket,
+		KeyPrefix:  "avatar",
+		OnSuccess: func(path string) error {
+			if err := h.avatarManager.RegisterAvatarImage(path); err != nil {
+				return fmt.Errorf("register avatar image: %w", err)
+			}
+
+			update := Update{
+				Type: "avatar_update",
+				Data: UpdateData{
+					AvatarType: r.FormValue("type"),
+					Path:       path,
+				},
+			}
+			return h.broadcaster.BroadcastUpdate(update)
+		},
+	})
+}
+
+// HandleAvatarImages handles GET /api/avatars/images
+func (h *AvatarHandler) HandleAvatarImages(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	avatarDir := filepath.Join(avatar.AssetsDir, avatar.AvatarAssetsDir)
+	files, err := os.ReadDir(avatarDir)
+	if err != nil {
+		log.Printf("Error reading avatar directory: %v", err)
+		defaultImages := []string{
+			fmt.Sprintf("/%s/idle.png", avatar.AvatarAssetsDir),
+			fmt.Sprintf("/%s/talking.gif", avatar.AvatarAssetsDir),
+		}
+		json.NewEncoder(w).Encode(map[string][]string{
+			"avatar-images": defaultImages,
+		})
+		return
+	}
+
+	var paths []string
+	for _, file := range files {
+		if !file.IsDir() {
+			paths = append(paths, fmt.Sprintf("/%s/%s", avatar.AvatarAssetsDir, file.Name()))
+		}
+	}
+
+	json.NewEncoder(w).Encode(map[string][]string{
+		"avatar-images": paths,
+	})
+}
+
+// HandleAvatarImageUpload handles POST /api/avatars/images/upload
+func (h *AvatarHandler) HandleAvatarImageUpload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	h.fileHandler.HandleUpload(w, r, struct {
+		FileField  string
+		TypeField  string
+		Directory  string
+		Bucket     string
+		KeyPrefix  string
+		OnSuccess  func(string) error
+	}{
+		FileField:  "avatar",
+		TypeField:  "type",
+		Directory:  avatar.AvatarAssetsDir,
+		Bucket:     avatar.AvatarBucket,
+		KeyPrefix:  "avatar",
+		OnSuccess: func(path string) error {
+			return h.avatarManager.RegisterAvatarImage(path)
+		},
+	})
+}
+
+// HandleAvatarImageDelete handles DELETE /api/avatars/images/delete/{path}
+func (h *AvatarHandler) HandleAvatarImageDelete(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	path := strings.TrimPrefix(r.URL.Path, "/api/avatar-images/delete/")
+	if path == "" {
+		http.Error(w, "Path is required", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.avatarManager.DeleteAvatarImage(path); err != nil {
+		log.Printf("Error deleting avatar image: %v", err)
+		http.Error(w, "Failed to delete avatar image", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 } 
