@@ -1,7 +1,21 @@
 export class ConnectionManager {
     constructor() {
         this.ws = null;
-        this.$statusElement = $('#connection-status');
+        this.isConnected = false;
+        this.$connectBtn = $('#connect-btn');
+        this.$disconnectBtn = $('#disconnect-btn');
+        this.$status = $('#connection-status');
+    }
+
+    toggleConnectionButtons(isConnected) {
+        if (isConnected) {
+            this.$connectBtn.addClass('hidden');
+            this.$disconnectBtn.removeClass('hidden');
+        } else {
+            this.$connectBtn.removeClass('hidden').prop('disabled', false);
+            this.$disconnectBtn.addClass('hidden');
+        }
+        this.isConnected = isConnected;
     }
 
     async connect() {
@@ -14,9 +28,6 @@ export class ConnectionManager {
         } catch (error) {
             this.handleConnectionError(error);
         }
-
-        $('#connect-btn').addClass('hidden');
-        $('#disconnect-btn').removeClass('hidden');
     }
 
     async initializeWebSocket(channelId, identifierType, platform) {
@@ -39,7 +50,7 @@ export class ConnectionManager {
 
     handleOpen(channelId, identifierType, platform) {
         this.updateStatus('connected', 'Connected');
-        this.updateConnectionState(true);
+        this.toggleConnectionButtons(true);
         
         this.ws.send(JSON.stringify({
             type: 'subscribe',
@@ -51,19 +62,21 @@ export class ConnectionManager {
 
     handleClose() {
         this.updateStatus('disconnected', 'Disconnected');
-        this.updateConnectionState(false);
+        this.toggleConnectionButtons(false);
     }
 
     handleError(error) {
         console.error('WebSocket error:', error);
-        this.updateStatus('error', 'Connection Error');
-        this.updateConnectionState(false);
+        this.updateStatus('disconnected', 'Disconnected');
+        this.toggleConnectionButtons(false);
+        $.toast('Connection Error');
     }
 
     handleConnectionError(error) {
         console.error('Connection error:', error);
-        this.updateStatus('error', 'Connection Error');
-        this.updateConnectionState(false);
+        this.updateStatus('disconnected', 'Disconnected');
+        this.toggleConnectionButtons(false);
+        $.toast('Connection Error');
     }
 
     handleMessage(event) {
@@ -93,43 +106,38 @@ export class ConnectionManager {
     }
 
     updateStatus(className, text) {
-        this.$statusElement
+        this.$status
             .removeClass()
             .addClass(`status-indicator ${className}`)
             .text(text);
     }
 
-    updateConnectionState(isConnected) {
-        $('#connect-btn, #disconnect-btn').prop('disabled', (_, i) => i === 0 ? isConnected : !isConnected);
-    }
-
     disconnect() {
         if (this.ws) {
-            try {
-                this.ws.send(JSON.stringify({ type: 'unsubscribe' }));
-                this.ws.close();
-            } catch (error) {
-                console.error('Error disconnecting:', error);
-            }
-            this.updateConnectionState(false);
+            this.ws.close();
+            this.ws = null;
         }
-
-        $('#connect-btn').removeClass('hidden');
-        $('#disconnect-btn').addClass('hidden');
+        
+        this.toggleConnectionButtons(false);
+        this.$status.text('Disconnected').removeClass('connected').addClass('disconnected');
+        $.toast('Disconnected from chat');
     }
 
     handleStatusMessage(message) {
         switch (message.status) {
             case 'started':
-                this.updateStatus('connected', `Stream Started (${message.liveId})`);
+                this.updateStatus('connected', 'Connected');
+                $.toast(`Stream Started (${message.liveId})`);
                 break;
             case 'subscribed':
-                this.updateStatus('connected', `Connected to ${message.identifier}`);
-                this.updateConnectionState(true);
+                this.updateStatus('connected', 'Connected');
+                $.toast(`Connected to ${message.identifier}`);
+                this.toggleConnectionButtons(true);
                 break;
             case 'unsubscribed':
-                this.updateStatus('disconnected', 'Unsubscribed');
-                this.updateConnectionState(false);
+                this.updateStatus('disconnected', 'Disconnected');
+                $.toast('Unsubscribed from chat');
+                this.toggleConnectionButtons(false);
                 break;
             default:
                 console.warn('Unknown status message:', message);
@@ -146,14 +154,12 @@ export class ConnectionManager {
                 break;
             case 'STREAM_ENDED':
                 errorMessage = 'Stream has ended';
-                this.updateConnectionState(false);
                 break;
             case 'INVALID_MESSAGE_TYPE':
                 errorMessage = 'Invalid message type';
                 break;
             case 'NO_ACTIVE_CHAT':
                 errorMessage = 'No active chat';
-                this.updateConnectionState(false);
                 break;
             case 'STREAM_NOT_FOUND':
                 errorMessage = 'Stream not found';
@@ -168,6 +174,8 @@ export class ConnectionManager {
             errorMessage += `: ${message.details}`;
         }
 
-        this.updateStatus('error', errorMessage);
+        this.updateStatus('disconnected', 'Disconnected');
+        this.toggleConnectionButtons(false);
+        $.toast(errorMessage);
     }
 } 

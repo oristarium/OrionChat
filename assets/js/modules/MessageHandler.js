@@ -4,11 +4,24 @@ export class MessageHandler {
         this.providerSelect = document.getElementById('tts-provider');
     }
 
+    generateMessageId() {
+        const id = 'manual_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        console.log('Generating manual message ID:', {
+            id,
+            location: new Error().stack // This will show us where the ID was generated
+        });
+        return id;
+    }
+
     async sendToDisplay(message) {
         const displayData = typeof message === 'string' 
             ? {
                 type: "display",
                 data: {
+                    message_id: this.generateMessageId(),
+                    type: "chat",
+                    platform: "manual",
+                    timestamp: new Date().toISOString(),
                     content: {
                         formatted: message,
                         raw: message,
@@ -18,7 +31,13 @@ export class MessageHandler {
             }
             : {
                 type: "display",
-                data: message.data
+                data: {
+                    message_id: message.message_id,
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
             };
 
         await this.sendMessage(displayData);
@@ -29,6 +48,10 @@ export class MessageHandler {
             ? {
                 type: "tts",
                 data: {
+                    message_id: this.generateMessageId(),
+                    type: "chat",
+                    platform: "manual",
+                    timestamp: new Date().toISOString(),
                     content: {
                         formatted: message,
                         raw: message,
@@ -44,7 +67,13 @@ export class MessageHandler {
             }
             : {
                 type: "tts",
-                data: message.data
+                data: {
+                    message_id: message.message_id,
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
             };
 
         await this.sendMessage(ttsData);

@@ -29,7 +29,7 @@
     </style>
 </head>
 <body class="m-0 p-0 bg-transparent font-sans text-white flex justify-center items-end min-h-screen overflow-hidden">
-    <div class="fixed top-2.5 right-2.5 bg-black/80 text-green-500 p-2.5 rounded font-mono text-xs z-50 max-w-[300px] max-h-[200px] overflow-y-auto hidden" id="debug-box">
+    <div id="debug-box" class="fixed top-2.5 right-2.5 bg-black/80 text-green-500 p-2.5 rounded font-mono text-xs z-50 max-w-[300px] max-h-[200px] overflow-y-auto hidden">
         <div class="mb-2 pb-1 border-b border-green-500">Message Queue: <span id="queue-count">0</span></div>
         <div id="queue-status"></div>
     </div>
@@ -217,247 +217,17 @@
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="/js/config-manager.js"></script>
+    <script src="/js/tts-debug-manager.js"></script>
+    <script src="/js/avatar-manager.js"></script>
     <script src="/js/tts-manager.js"></script>
     <script>
         // Constants and Element References
-        const ELEMENTS = {
-            $avatarsWrapper: $('#avatars-wrapper'),
-            $avatarTemplate: $('#avatar-template'),
-            $debugQueueCount: $('#queue-count'),
-            $debugQueueStatus: $('#queue-status'),
-            $debugBox: $('.debug-box')
-        };
-        const SCALE_FACTOR = 1.2; // 20% increase/decrease per click
-
-        // Add debug mode initialization
-        const urlParams = new URLSearchParams(window.location.search);
-        const debugMode = urlParams.has('debug') && (urlParams.get('debug') === '' || urlParams.get('debug') === 'true');
-
-        // Show debug box if in debug mode
-        if (debugMode) {
-            ELEMENTS.$debugBox.addClass('show');
-            console.log('Debug mode enabled');
-        }
-
-        class Avatar {
-            constructor(data) {
-                this.id = data.id;
-                this.name = data.name;
-                this.states = data.states;
-                this.tts_voices = data.tts_voices || []; // Ensure we have the TTS voices array
-                this.element = null;
-                this.audioPlayer = new Audio();
-                this.setupAudioPlayer();
-            }
-
-            setupAudioPlayer() {
-                $(this.audioPlayer)
-                    .on('play', () => {
-                        console.log(`Avatar ${this.id} started speaking`);
-                        this.updateUIState(true);
-                    })
-                    .on('ended', () => {
-                        console.log(`Avatar ${this.id} finished speaking`);
-                        this.updateUIState(false);
-                    })
-                    .on('pause', () => {
-                        console.log(`Avatar ${this.id} paused speaking`);
-                        this.updateUIState(false);
-                    })
-                    .on('error', () => {
-                        console.error(`Avatar ${this.id} audio error`);
-                        this.updateUIState(false);
-                    });
-            }
-
-            updateMessageContent(message) {
-                if (!this.element) return;
-
-                // Validate required content field
-                if (!message.data?.content?.sanitized) {
-                    console.error('Invalid message structure - missing required content');
-                    return;
-                }
-
-                // Get the display text - use formatted or raw if available, fallback to sanitized
-                const content = message.data.content;
-                const displayText = content.formatted || content.raw || content.sanitized;
-
-                // Get author information
-                const author = message.data?.author || {};
-                const authorName = author.display_name || author.username || '';
-
-                // Update message bubble with display text
-                this.element.$messageBubble.text(displayText);
-                
-                // Handle author display
-                if (authorName) {
-                    this.element.$username.text(authorName);
-                    this.element.$username.removeClass('hidden');
-                } else {
-                    this.element.$username.addClass('hidden');
-                }
-            }
-
-            createElements() {
-                const $template = ELEMENTS.$avatarTemplate.html();
-                const $container = $($.parseHTML($template));
-                $container.attr('data-avatar-id', this.id);
-                
-                // Get references to elements
-                const $messageBubble = $container.find('.message-bubble');
-                const $username = $container.find('.username');
-                const $avatar = $container.find('.avatar-image');
-                const $avatarWrapper = $container.find('.avatar-wrapper');
-
-                // Get configuration values
-                const messageFontSize = $('#messageFontSize').val();
-                const authorFontSize = $('#authorFontSize').val();
-                const avatarSize = $('#avatarSize').val();
-                const messageHPadding = $('#messageHPadding').val();
-                const messageVPadding = $('#messageVPadding').val();
-                const justify = configManager?.configInputs.containerPosition.value.justify || 'end';
-                const avatarGap = $('#avatarGap').val();
-
-                // Apply styles
-                $container.css({
-                    'width': `${avatarSize}px`,
-                    'margin-left': justify === 'center' ? `${avatarGap/2}px` : 
-                                justify === 'end' ? `${avatarGap}px` : '0',
-                    'margin-right': justify === 'center' ? `${avatarGap/2}px` : 
-                                justify === 'start' ? `${avatarGap}px` : '0'
-                });
-
-                $messageBubble.css({
-                    'fontSize': `${messageFontSize}px`,
-                    'padding-left': `${messageHPadding}em`,
-                    'padding-right': `${messageHPadding}em`,
-                    'padding-top': `${messageVPadding}em`,
-                    'padding-bottom': `${messageVPadding}em`
-                });
-
-                $username.css('fontSize', `${authorFontSize}px`);
-                $avatar.attr('src', this.states.idle);
-
-                // Store element references
-                this.element = {
-                    $container,
-                    $messageBubble,
-                    $username,
-                    $avatar,
-                    $avatarWrapper
-                };
-
-                return $container;
-            }
-
-            updateUIState(isPlaying) {
-                this.element.$avatar.attr('src', this.states[isPlaying ? 'talking' : 'idle']);
-                this.element.$avatarWrapper.toggleClass('animate-talking', isPlaying);
-                this.element.$messageBubble.toggleClass('show', isPlaying);
-                // Only toggle username if it has content and is not hidden
-                if (this.element.$username.text() && !this.element.$username.hasClass('hidden')) {
-                    this.element.$username.toggleClass('show', isPlaying);
-                }
-            }
-
-            getRandomVoice() {
-                if (!this.tts_voices || this.tts_voices.length === 0) {
-                    console.error('No TTS voices configured for avatar:', this.id);
-                    return null;
-                }
-
-                const randomVoice = this.tts_voices[Math.floor(Math.random() * this.tts_voices.length)];
-                console.log('Selected voice for avatar:', this.id, randomVoice);
-                
-                // Return the voice object in the correct format
-                return {
-                    voice_id: randomVoice.voice_id,
-                    provider: randomVoice.provider
-                };
-            }
-        }
-
-        class AvatarManager {
-            constructor() {
-                this.avatars = new Map();
-            }
-
-            async initialize() {
-                try {
-                    const { avatars } = await $.get('/api/avatars/active');
-                    this.updateAvatars(avatars);
-                } catch (error) {
-                    console.error('Error initializing avatars:', error);
-                }
-            }
-
-            updateAvatars(avatarsData) {
-                ELEMENTS.$avatarsWrapper.empty();
-                this.avatars.clear();
-
-                avatarsData.forEach(avatarData => {
-                    const avatar = new Avatar(avatarData);
-                    const $element = avatar.createElements();
-                    ELEMENTS.$avatarsWrapper.append($element);
-                    this.avatars.set(avatar.id, avatar);
-                });
-            }
-
-            getRandomAvatar() {
-                const avatars = Array.from(this.avatars.values());
-                return avatars[Math.floor(Math.random() * avatars.length)];
-            }
-
-            async processTTSMessage(chatMessage) {
-                const selectedAvatar = this.getRandomAvatar();
-                if (!selectedAvatar) {
-                    console.error('No avatars available');
-                    return;
-                }
-
-                // Log the incoming message structure
-                console.log('Processing TTS message:', chatMessage);
-                
-                // Construct the message object with the correct structure from data.data
-                const message = {
-                    message_id: chatMessage.message_id,
-                    data: chatMessage.data,
-                    voice_id: chatMessage.voice_id,
-                    voice_provider: chatMessage.voice_provider,
-                    platform: chatMessage.platform,
-                    type: chatMessage.type
-                };
-
-                await ttsManager.processTTSMessage(message, selectedAvatar);
-            }
-        }
-
-        // Initialize the application
-        const avatarManager = new AvatarManager();
-        let configManager; // Declare configManager in wider scope
+        let ELEMENTS = {};
+        let avatarManager;
+        let configManager;
         let ttsManager;
 
-        // jQuery document ready handler
-        $(async function() {
-            try {
-                // First initialize config manager
-                configManager = new ConfigManager();
-                await configManager.loadConfig();
-
-                // Then initialize avatar manager which needs config
-                await avatarManager.initialize();
-                
-                // Initialize TTS manager
-                ttsManager = new TTSManager();
-                
-                // Finally setup event source
-                setupEventSource();
-            } catch (error) {
-                console.error('Error during initialization:', error);
-            }
-        });
-
+        // Add this before the jQuery document ready handler
         function setupEventSource() {
             const evtSource = new EventSource('/sse');
             
@@ -512,118 +282,49 @@
             };
         }
 
-        // Configuration panel functionality
-        async function setupConfigPanel() {
-            configManager = new ConfigManager(); // Assign to global variable
-            const configInputs = configManager.getConfigInputs();
+        // jQuery document ready handler
+        $(async function() {
+            try {
+                // Initialize ELEMENTS after DOM is ready
+                window.ELEMENTS = {
+                    $avatarsWrapper: $('#avatars-wrapper'),
+                    $avatarTemplate: $('#avatar-template'),
+                    $debugQueueCount: $('#queue-count'),
+                    $debugQueueStatus: $('#queue-status'),
+                    $debugBox: $('#debug-box')
+                };
 
-            // Load saved configuration on init
-            await configManager.loadConfig();
+                // Add immediate debug check
+                console.log('Elements initialized:', {
+                    avatarsWrapper: window.ELEMENTS.$avatarsWrapper.length,
+                    avatarTemplate: window.ELEMENTS.$avatarTemplate.length,
+                    debugQueueCount: window.ELEMENTS.$debugQueueCount.length,
+                    debugQueueStatus: window.ELEMENTS.$debugQueueStatus.length,
+                    debugBox: window.ELEMENTS.$debugBox.length
+                });
 
-            // Update event listeners
-            Object.entries(configInputs).forEach(([key, config]) => {
-                if (config.input && config.value) {
-                    config.input.on('input', async function() {
-                        const value = $(this).val();
-                        config.value.text(value);
-                        config.apply(value);
-                        await configManager.saveConfig();
-                    });
-                }
-            });
+                // First initialize config manager
+                configManager = new ConfigManager();
+                await configManager.loadConfig();
 
-            // Update position button handlers to be async
-            $('.position-btn').on('click', async function() {
-                // Remove active state from all buttons
-                $('.position-btn').removeClass('bg-white/20');
-                // Add active state to clicked button
-                $(this).addClass('bg-white/20');
-
-                // Update position value and apply
-                const justify = $(this).data('justify');
-                const align = $(this).data('align');
-                configInputs.containerPosition.value = { justify, align };
-                configInputs.containerPosition.apply({ justify, align });
-
-                await configManager.saveConfig();
-            });
-
-            // Update stacking order toggle to be async
-            $('#stackingOrderToggle').on('click', async function() {
-                const $this = $(this);
-                const currentValue = $this.data('reversed');
-                const newValue = !currentValue;
+                // Initialize debug manager after ELEMENTS is defined
+                const debugManager = new TTSDebugManager();
                 
-                // Update button state
-                $this.data('reversed', newValue);
-                $this.find('span').text(newValue ? 'Last Avatar on Top' : 'First Avatar on Top');
-                $this.find('svg').toggleClass('rotate-180', newValue);
+                // Then initialize TTS manager with debug manager
+                ttsManager = new TTSManager(debugManager);
                 
-                // Update stacking order
-                configInputs.stackingOrder.value = newValue;
-                configInputs.stackingOrder.apply(newValue);
-
-                await configManager.saveConfig();
-            });
-
-            // Update quick resize buttons to be async
-            $('#increaseAll, #decreaseAll').on('click', async function() {
-                const isIncrease = $(this).attr('id') === 'increaseAll';
-                const factor = isIncrease ? SCALE_FACTOR : 1 / SCALE_FACTOR;
+                // Create and initialize avatar manager
+                avatarManager = new AvatarManager();
+                await avatarManager.initialize();
                 
-                // Scale message font size
-                const msgFont = $('#messageFontSize');
-                const newMsgSize = Math.round(msgFont.val() * factor);
-                msgFont.val(newMsgSize).trigger('input');
-                
-                // Scale author font size
-                const authorFont = $('#authorFontSize');
-                const newAuthorSize = Math.round(authorFont.val() * factor);
-                authorFont.val(newAuthorSize).trigger('input');
-                
-                // Scale avatar size
-                const avatarSize = $('#avatarSize');
-                const newAvatarSize = Math.round(avatarSize.val() * factor);
-                avatarSize.val(newAvatarSize).trigger('input');
-                
-                // Scale avatar gap
-                const avatarGap = $('#avatarGap');
-                const newGapSize = Math.round(avatarGap.val() * factor);
-                avatarGap.val(newGapSize).trigger('input');
-                
-                // Save all changes
-                await configManager.saveConfig();
-            });
-        }
-
-        // Quick resize buttons handlers
-        $('#increaseAll, #decreaseAll').on('click', function() {
-            const isIncrease = $(this).attr('id') === 'increaseAll';
-            const factor = isIncrease ? SCALE_FACTOR : 1 / SCALE_FACTOR;
-            
-            // Scale message font size
-            const msgFont = $('#messageFontSize');
-            const newMsgSize = Math.round(msgFont.val() * factor);
-            msgFont.val(newMsgSize).trigger('input');
-            
-            // Scale author font size
-            const authorFont = $('#authorFontSize');
-            const newAuthorSize = Math.round(authorFont.val() * factor);
-            authorFont.val(newAuthorSize).trigger('input');
-            
-            // Scale avatar size
-            const avatarSize = $('#avatarSize');
-            const newAvatarSize = Math.round(avatarSize.val() * factor);
-            avatarSize.val(newAvatarSize).trigger('input');
-            
-            // Scale avatar gap
-            const avatarGap = $('#avatarGap');
-            const newGapSize = Math.round(avatarGap.val() * factor);
-            avatarGap.val(newGapSize).trigger('input');
-            
-            // Save all changes
-            configManager.saveConfig();
+                // Finally setup event source
+                setupEventSource();
+            } catch (error) {
+                console.error('Error during initialization:', error);
+            }
         });
+
+        // Rest of your code...
     </script>
 </body>
 </html> 

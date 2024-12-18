@@ -10,7 +10,7 @@ class Controller {
     constructor() {
         console.log('Initializing Controller');
         this.ui = new UIManager();
-        this.chat = new ChatManager();
+        this.chat = new ChatManager(this.messageHandler);
         this.connection = new ConnectionManager();
         this.messageHandler = new MessageHandler();
         

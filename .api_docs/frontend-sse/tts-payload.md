@@ -57,6 +57,7 @@ This document outlines the expected data structure for messages sent to the TTS 
 
 The only strictly required fields are:
 - `type`: Must be "tts"
+- `message_id`: A unique identifier for the message
 - `data.data.content.sanitized`: The clean text to be read by TTS
 
 ## TTS Behavior
@@ -134,7 +135,6 @@ The only strictly required fields are:
         "type": "chat",
         "voice_id": "en_male_narration",
         "voice_provider": "tiktok"
-    
 }
 ```
 

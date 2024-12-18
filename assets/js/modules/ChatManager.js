@@ -263,8 +263,21 @@ export class ChatManager {
     }
 
     generateMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent) {
-        // Base64 encode the message data
-        const encodedMessage = btoa(JSON.stringify(message));
+        // Create a properly structured message object before encoding
+        const messageToEncode = {
+            type: message.type,
+            platform: message.platform,
+            timestamp: message.timestamp,
+            message_id: message.message_id,  // Preserve the original message_id
+            data: message.data
+        };
+
+        // Base64 encode the message data with Unicode support
+        const encodedMessage = this.encodeMessage(messageToEncode);
+        if (!encodedMessage) {
+            console.error('Failed to encode message');
+            return '';
+        }
 
         const ttsButton = hasValidContent
             ? `<button class="tts-button" onclick="window.chatManager.handleTTS('${encodedMessage}')"><span>🔉</span></button>`
@@ -294,6 +307,15 @@ export class ChatManager {
 
     async handleChatMessage(message) {
         try {
+            // Add detailed logging for the first message
+            console.log('Received chat message structure:', {
+                fullMessage: message,
+                type: message.type,
+                dataStructure: message.data,
+                innerData: message.data?.data,
+                messageId: message.data?.message_id,
+            });
+
             if (this.ttsAllChat && this.canMessageBeTTSed(message)) {
                 console.log('TTS All Chat enabled, sending to TTS:', message);
                 await this.messageHandler.sendToTTS(message);
@@ -322,8 +344,26 @@ export class ChatManager {
     // Add these new handler methods
     handleTTS(encodedMessage) {
         try {
-            const message = JSON.parse(atob(encodedMessage));
-            window.dispatchEvent(new CustomEvent('sendToTTS', { detail: message }));
+            const message = this.decodeMessage(encodedMessage);
+            if (!message) {
+                $.toast('Error decoding message');
+                return;
+            }
+            console.log('TTS message before processing:', message);
+            
+            // Create the TTS message structure
+            const ttsMessage = {
+                type: 'tts',
+                data: {
+                    message_id: message.message_id,  // Use the original message_id
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
+            };
+            
+            window.dispatchEvent(new CustomEvent('sendToTTS', { detail: ttsMessage }));
         } catch (error) {
             console.error('Error handling TTS:', error);
             $.toast('Error sending message to TTS');
@@ -332,8 +372,26 @@ export class ChatManager {
 
     handleDisplay(encodedMessage) {
         try {
-            const message = JSON.parse(atob(encodedMessage));
-            window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: message }));
+            const message = this.decodeMessage(encodedMessage);
+            if (!message) {
+                $.toast('Error decoding message');
+                return;
+            }
+            console.log('Display message before processing:', message);
+            
+            // Create the display message structure
+            const displayMessage = {
+                type: 'display',
+                data: {
+                    message_id: message.message_id,  // Use the original message_id
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
+            };
+            
+            window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: displayMessage }));
         } catch (error) {
             console.error('Error handling display:', error);
             $.toast('Error sending message to display');
@@ -385,8 +443,17 @@ export class ChatManager {
 
     // Update the generateMessageHTML method
     generateMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent) {
+        // Create a properly structured message object before encoding
+        const messageToEncode = {
+            type: message.type,
+            platform: message.platform,
+            timestamp: message.timestamp,
+            message_id: message.message_id,  // Preserve the original message_id
+            data: message.data
+        };
+
         // Base64 encode the message data with Unicode support
-        const encodedMessage = this.encodeMessage(message);
+        const encodedMessage = this.encodeMessage(messageToEncode);
         if (!encodedMessage) {
             console.error('Failed to encode message');
             return '';
@@ -421,7 +488,21 @@ export class ChatManager {
                 $.toast('Error decoding message');
                 return;
             }
-            window.dispatchEvent(new CustomEvent('sendToTTS', { detail: message }));
+            console.log('TTS message before processing:', message);
+            
+            // Create the TTS message structure
+            const ttsMessage = {
+                type: 'tts',
+                data: {
+                    message_id: message.message_id,  // Use the original message_id
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
+            };
+            
+            window.dispatchEvent(new CustomEvent('sendToTTS', { detail: ttsMessage }));
         } catch (error) {
             console.error('Error handling TTS:', error);
             $.toast('Error sending message to TTS');
@@ -435,7 +516,21 @@ export class ChatManager {
                 $.toast('Error decoding message');
                 return;
             }
-            window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: message }));
+            console.log('Display message before processing:', message);
+            
+            // Create the display message structure
+            const displayMessage = {
+                type: 'display',
+                data: {
+                    message_id: message.message_id,  // Use the original message_id
+                    type: message.type,
+                    platform: message.platform,
+                    timestamp: message.timestamp,
+                    ...message.data
+                }
+            };
+            
+            window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: displayMessage }));
         } catch (error) {
             console.error('Error handling display:', error);
             $.toast('Error sending message to display');

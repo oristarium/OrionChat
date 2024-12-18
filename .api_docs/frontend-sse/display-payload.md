@@ -50,6 +50,7 @@ This document outlines the expected data structure for messages sent to the disp
 The only strictly required fields are:
 
 - `type`: Must be "display"
+- `message_id`: A unique identifier for the message
 - `data.data.content`: Must contain at least one of:
   - `formatted`
   - `raw`
