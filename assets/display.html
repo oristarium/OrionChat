@@ -429,22 +429,31 @@
                     return;
                 }
 
-                // Handle display message
-                const chatMessage = data.data.message;
-                
-                // Check if this is a duplicate message
-                if (lastMessageId === chatMessage.message_id) {
+                // Safely access the chat message data
+                const messageData = data.data?.data;
+                if (!messageData) {
+                    console.error('Invalid message structure - missing data');
+                    return;
+                }
+
+                // Check if this is a duplicate message - safely access message_id
+                const messageId = data.data?.message_id;
+                if (messageId && messageId === lastMessageId) {
                     console.log('Duplicate message detected, clearing display');
                     clearDisplay();
                     lastMessageId = null; // Reset the last message ID
                     return;
                 }
 
-                // Update last message ID
-                lastMessageId = chatMessage.message_id;
+                // Update last message ID if it exists
+                lastMessageId = messageId || null;
 
                 // Create and display the new message
-                displayMessage(chatMessage);
+                displayMessage({
+                    platform: data.data?.platform,
+                    data: messageData,
+                    message_id: messageId
+                });
             };
 
             evtSource.onerror = (error) => {
@@ -503,45 +512,75 @@
             const newContainer = document.createElement('div');
             newContainer.id = 'message-container';
 
-            // Get the content for display
-            const content = chatMessage.data.content;
-            const displayText = typeof content === 'string' 
-                ? content 
-                : (content.rawHtml || content.formatted || content.raw || '');
+            // Get the content for display - handle nested content structure
+            let displayText = '';
+            const content = chatMessage.data?.content;
+            
+            if (typeof content === 'string') {
+                displayText = content;
+            } else if (content) {
+                // Try to get content from any of the three possible fields
+                displayText = content.formatted || content.raw || content.sanitized || '';
+            }
 
-            // Get author information
-            const author = chatMessage.data.author;
-            const authorName = author.display_name || author.username || 'Anonymous';
-            const avatarUrl = author.avatar_url || 'default-avatar.png';
+            // If no valid content found, don't display anything
+            if (!displayText.trim()) {
+                console.log('No valid content found in message');
+                return;
+            }
 
-            // Create badges HTML
-            const badgesHtml = author.badges?.map(badge => 
-                `<img class="badge" src="${badge.image_url}" alt="${badge.label}" title="${badge.label}">`
-            ).join('') || '';
+            // Get author information safely
+            const author = chatMessage.data?.author || {};
+            const hasAuthorInfo = author.display_name || author.username || author.avatar_url;
 
-            // Handle super chat styling
-            const isSuperChat = chatMessage.data.metadata?.type === 'super_chat';
+            // Create the message HTML
+            let messageHTML = '';
+
+            // Only include avatar and author section if we have author info
+            if (hasAuthorInfo) {
+                const authorName = author.display_name || author.username || '';
+                const avatarUrl = author.avatar_url || '';
+                const badgesHtml = author.badges?.map(badge => 
+                    `<img class="badge" src="${badge.image_url}" alt="${badge.label}" title="${badge.label}">`
+                ).join('') || '';
+
+                messageHTML = `
+                    ${avatarUrl ? `<img class="chat-message__avatar" src="${avatarUrl}" alt="${authorName}'s avatar">` : ''}
+                    <div class="chat-message__content">
+                        ${authorName ? `
+                            <div class="chat-message__content_header">
+                                <span class="chat-message__author_name">${authorName}</span>
+                                ${badgesHtml ? `
+                                    <div class="badges-container">
+                                        ${badgesHtml}
+                                    </div>
+                                ` : ''}
+                            </div>
+                        ` : ''}
+                        <div class="chat-message__text">${displayText}</div>
+                    </div>
+                `;
+            } else {
+                // Simple message-only layout
+                messageHTML = `
+                    <div class="chat-message__content">
+                        <div class="chat-message__text">${displayText}</div>
+                    </div>
+                `;
+            }
+
+            // Update the message container HTML
+            newContainer.innerHTML = messageHTML;
+
+            // Handle super chat styling safely
+            const isSuperChat = chatMessage.data?.metadata?.type === 'super_chat';
             const superChatStyle = isSuperChat 
-                ? `background-color: ${chatMessage.data.metadata.monetary_data?.color || '#4CAF50'};`
+                ? `background-color: ${chatMessage.data?.metadata?.monetary_data?.color || '#4CAF50'};`
                 : '';
 
-            // Update the message container HTML template
-            newContainer.innerHTML = `
-                <img class="chat-message__avatar" src="${avatarUrl}" alt="${authorName}'s avatar">
-                <div class="chat-message__content">
-                    <div class="chat-message__content_header">
-                        <span class="chat-message__author_name">${authorName}</span>
-                        <div class="badges-container">
-                            ${badgesHtml}
-                        </div>
-                    </div>
-                    <div class="chat-message__text">${displayText}</div>
-                </div>
-            `;
-
-            // Update container classes
-            const roleClass = getRoleClasses(author.roles);
-            newContainer.className = `chat-message chat-message_${platform} ${roleClass} ${isSuperChat ? 'chat-message_super' : ''}`;
+            // Update container classes safely
+            const roleClass = author.roles ? getRoleClasses(author.roles) : '';
+            newContainer.className = `chat-message ${platform ? `chat-message_${platform}` : ''} ${roleClass} ${isSuperChat ? 'chat-message_super' : ''}`;
 
             // Replace or append the new container
             if (messageContainer) {

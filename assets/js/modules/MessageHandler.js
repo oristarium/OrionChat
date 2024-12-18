@@ -5,30 +5,44 @@ export class MessageHandler {
     }
 
     async sendToDisplay(message) {
-        await this.sendMessage(message, 'display');
+        const displayData = typeof message === 'string' 
+            ? {
+                type: "display",
+                data: {
+                    data: {
+                        content: {
+                            sanitized: message,
+                            raw: message
+                        }
+                    }
+                }
+            }
+            : message;
+
+        await this.sendMessage(displayData);
     }
 
     async sendToTTS(message) {
-        const voiceId = 'en_male_narration';
-        const voiceProvider = 'tiktok';
+        const ttsData = typeof message === 'string'
+            ? {
+                type: "tts",
+                data: {
+                    data: {
+                        content: {
+                            sanitized: message,
+                            raw: message
+                        }
+                    }
+                }
+            }
+            : message;
 
-        await this.sendMessage(message, 'tts', {
-            voice_id: voiceId,
-            voice_provider: voiceProvider
-        });
+        await this.sendMessage(ttsData);
     }
 
-    async sendMessage(message, type, additionalData = {}) {
+    async sendMessage(update) {
         try {
-            const update = {
-                type: type,
-                data: {
-                    message: message,
-                    ...additionalData
-                }
-            };
-            
-            console.log(`Sending ${type} message:`, update);
+            console.log('Sending message:', update);
 
             const response = await fetch('/update', {
                 method: 'POST',
@@ -39,8 +53,12 @@ export class MessageHandler {
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const responseData = await response.text();
+            console.log('Server response:', responseData);
+
         } catch (error) {
-            console.error(`Error sending message to ${type}:`, error);
+            console.error('Error sending message:', error);
             throw error;
         }
     }
@@ -52,20 +70,7 @@ export class MessageHandler {
             data: {}
         };
 
-        console.log('Sending clear display command:', update);
-
-        const response = await fetch('/update', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(update)
-        });
-
-        const responseText = await response.text();
-        console.log('Server response:', response.status, responseText);
-
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
-        }
+        await this.sendMessage(update);
     }
 
     async clearTTSQueue() {
@@ -75,20 +80,7 @@ export class MessageHandler {
                 data: {}
             };
 
-            console.log('Sending clear TTS queue command:', update);
-
-            const response = await fetch('/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(update)
-            });
-
-            const responseText = await response.text();
-            console.log('Server response:', response.status, responseText);
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
-            }
+            await this.sendMessage(update);
         } catch (error) {
             console.error('Error clearing TTS queue:', error);
             throw error;

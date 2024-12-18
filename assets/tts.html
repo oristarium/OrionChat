@@ -228,8 +228,6 @@
             $debugBox: $('.debug-box')
         };
         const SCALE_FACTOR = 1.2; // 20% increase/decrease per click
-        let configManager; // Declare configManager in global scope
-        let ttsManager; // Declare ttsManager in global scope
 
         // Add debug mode initialization
         const urlParams = new URLSearchParams(window.location.search);
@@ -246,7 +244,7 @@
                 this.id = data.id;
                 this.name = data.name;
                 this.states = data.states;
-                this.voices = data.tts_voices;
+                this.tts_voices = data.tts_voices || []; // Ensure we have the TTS voices array
                 this.element = null;
                 this.audioPlayer = new Audio();
                 this.setupAudioPlayer();
@@ -272,58 +270,81 @@
                     });
             }
 
+            updateMessageContent(message) {
+                if (!this.element) return;
+
+                const content = message.data?.content;
+                if (!content) return;
+
+                // Get the display text
+                const displayText = content.sanitized || '';
+                
+                // Get author information
+                const author = message.data?.author || {};
+                const authorName = author.display_name || author.username || '';
+
+                // Update message bubble
+                this.element.$messageBubble.text(displayText);
+                
+                // Handle author display
+                if (authorName) {
+                    this.element.$username.text(authorName);
+                    this.element.$username.removeClass('hidden');
+                } else {
+                    this.element.$username.text('');
+                    this.element.$username.addClass('hidden');
+                }
+            }
+
             createElements() {
-                const $template = $(ELEMENTS.$avatarTemplate.html());
-                const $container = $template.filter('.avatar-container');
+                const $template = ELEMENTS.$avatarTemplate.html();
+                const $container = $($.parseHTML($template));
                 $container.attr('data-avatar-id', this.id);
                 
-                // Get values from inputs (which will have loaded values from localStorage)
+                // Get references to elements
+                const $messageBubble = $container.find('.message-bubble');
+                const $username = $container.find('.username');
+                const $avatar = $container.find('.avatar-image');
+                const $avatarWrapper = $container.find('.avatar-wrapper');
+
+                // Get configuration values
                 const messageFontSize = $('#messageFontSize').val();
                 const authorFontSize = $('#authorFontSize').val();
                 const avatarSize = $('#avatarSize').val();
-                const avatarGap = $('#avatarGap').val();
                 const messageHPadding = $('#messageHPadding').val();
                 const messageVPadding = $('#messageVPadding').val();
-                const isStackingReversed = $('#stackingOrderToggle').data('reversed');
-                
-                // Apply configuration including stacking order
-                if (isStackingReversed) {
-                    $container.removeClass('[&:nth-child(1)]:z-50 [&:nth-child(2)]:z-40 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-20 [&:nth-child(5)]:z-10')
-                             .addClass('[&:nth-child(1)]:z-10 [&:nth-child(2)]:z-20 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-40 [&:nth-child(5)]:z-50');
-                }
-                
-                // Apply configuration
-                $container.css('width', `${avatarSize}px`);
-                $container.css('marginRight', `${avatarGap}px`);
-                $container.find('.message-bubble').css({
+                const justify = configManager?.configInputs.containerPosition.value.justify || 'end';
+                const avatarGap = $('#avatarGap').val();
+
+                // Apply styles
+                $container.css({
+                    'width': `${avatarSize}px`,
+                    'margin-left': justify === 'center' ? `${avatarGap/2}px` : 
+                                justify === 'end' ? `${avatarGap}px` : '0',
+                    'margin-right': justify === 'center' ? `${avatarGap/2}px` : 
+                                justify === 'start' ? `${avatarGap}px` : '0'
+                });
+
+                $messageBubble.css({
                     'fontSize': `${messageFontSize}px`,
                     'padding-left': `${messageHPadding}em`,
                     'padding-right': `${messageHPadding}em`,
                     'padding-top': `${messageVPadding}em`,
                     'padding-bottom': `${messageVPadding}em`
                 });
-                $container.find('.username').css('fontSize', `${authorFontSize}px`);
-                
-                // Check if we're in configuration mode
-                const isConfiguring = !$('#configPanel').hasClass('hidden');
-                if (isConfiguring) {
-                    $container.find('.message-bubble')
-                        .text("Sample message text here. Adjust the size using the controls!")
-                        .addClass('show');
-                    $container.find('.username')
-                        .text("Sample Username")
-                        .addClass('show');
-                }
-                
+
+                $username.css('fontSize', `${authorFontSize}px`);
+                $avatar.attr('src', this.states.idle);
+
+                // Store element references
                 this.element = {
-                    $container: $container,
-                    $messageBubble: $container.find('.message-bubble'),
-                    $username: $container.find('.username'),
-                    $avatar: $container.find('.avatar-image'),
-                    $avatarWrapper: $container.find('.avatar-wrapper')
+                    $container,
+                    $messageBubble,
+                    $username,
+                    $avatar,
+                    $avatarWrapper
                 };
 
-                this.element.$avatar.attr('src', this.states.idle);
                 return $container;
             }
 
@@ -331,11 +352,26 @@
                 this.element.$avatar.attr('src', this.states[isPlaying ? 'talking' : 'idle']);
                 this.element.$avatarWrapper.toggleClass('animate-talking', isPlaying);
                 this.element.$messageBubble.toggleClass('show', isPlaying);
-                this.element.$username.toggleClass('show', isPlaying);
+                // Only toggle username if it has content and is not hidden
+                if (this.element.$username.text() && !this.element.$username.hasClass('hidden')) {
+                    this.element.$username.toggleClass('show', isPlaying);
+                }
             }
 
             getRandomVoice() {
-                return this.voices[Math.floor(Math.random() * this.voices.length)];
+                if (!this.tts_voices || this.tts_voices.length === 0) {
+                    console.error('No TTS voices configured for avatar:', this.id);
+                    return null;
+                }
+
+                const randomVoice = this.tts_voices[Math.floor(Math.random() * this.tts_voices.length)];
+                console.log('Selected voice for avatar:', this.id, randomVoice);
+                
+                // Return the voice object in the correct format
+                return {
+                    voice_id: randomVoice.voice_id,
+                    provider: randomVoice.provider
+                };
             }
         }
 
@@ -376,19 +412,47 @@
                     console.error('No avatars available');
                     return;
                 }
-                await ttsManager.processTTSMessage(chatMessage, selectedAvatar);
+
+                // Log the incoming message structure
+                console.log('Processing TTS message:', chatMessage);
+                
+                // Construct the message object with the correct structure from data.data
+                const message = {
+                    message_id: chatMessage.message_id,
+                    data: chatMessage.data,
+                    voice_id: chatMessage.voice_id,
+                    voice_provider: chatMessage.voice_provider,
+                    platform: chatMessage.platform,
+                    type: chatMessage.type
+                };
+
+                await ttsManager.processTTSMessage(message, selectedAvatar);
             }
         }
 
         // Initialize the application
         const avatarManager = new AvatarManager();
+        let configManager; // Declare configManager in wider scope
+        let ttsManager;
 
         // jQuery document ready handler
         $(async function() {
-            await avatarManager.initialize();
-            ttsManager = new TTSManager();
-            await setupConfigPanel();
-            setupEventSource();
+            try {
+                // First initialize config manager
+                configManager = new ConfigManager();
+                await configManager.loadConfig();
+
+                // Then initialize avatar manager which needs config
+                await avatarManager.initialize();
+                
+                // Initialize TTS manager
+                ttsManager = new TTSManager();
+                
+                // Finally setup event source
+                setupEventSource();
+            } catch (error) {
+                console.error('Error during initialization:', error);
+            }
         });
 
         function setupEventSource() {
@@ -396,14 +460,37 @@
             
             evtSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
+                
+                // Log all SSE messages
+                console.log("SSE message received - Full data:", data);
+                console.log("Message type:", data.type);
 
                 if (data.type === 'avatar_update') {
                     avatarManager.updateAvatars(data.data.avatars);
                 } else if (data.type === 'tts') {
-                    await avatarManager.processTTSMessage(data.data.message);
+                    // Log TTS specific data
+                    console.log("TTS message content:", data.data?.data?.content);
+                    console.log("TTS message author:", data.data?.data?.author);
+                    
+                    // Pass the entire message data structure
+                    await avatarManager.processTTSMessage(data.data);
                 } else if (data.type === 'clear_tts') {
+                    console.log("Clearing TTS queue");
                     ttsManager.clearQueue();
                 }
+            };
+
+            evtSource.onerror = (error) => {
+                console.error("SSE connection error:", error);
+                setTimeout(() => {
+                    console.log("Attempting to reconnect...");
+                    evtSource.close();
+                    location.reload();
+                }, 1000);
+            };
+
+            evtSource.onopen = () => {
+                console.log("SSE connection established");
             };
         }
 

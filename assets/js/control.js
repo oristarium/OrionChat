@@ -68,6 +68,39 @@ class Controller {
         window.sendToDisplay = this.messageHandler.sendToDisplay.bind(this.messageHandler);
         window.sendToTTS = this.messageHandler.sendToTTS.bind(this.messageHandler);
         
+        // Add manual control event listeners
+        $('#manual-tts').on('click', async () => {
+            const message = $('#manual-input').val().trim();
+            if (message) {
+                try {
+                    await this.messageHandler.sendToTTS(message);
+                    console.log('Manual TTS message sent successfully');
+                } catch (error) {
+                    console.error('Error sending manual TTS message:', error);
+                }
+            }
+        });
+
+        $('#manual-display').on('click', async () => {
+            const message = $('#manual-input').val().trim();
+            if (message) {
+                try {
+                    await this.messageHandler.sendToDisplay(message);
+                    console.log('Manual display message sent successfully');
+                } catch (error) {
+                    console.error('Error sending manual display message:', error);
+                }
+            }
+        });
+
+        // Add keyboard shortcut (Ctrl/Cmd + Enter) for TTS
+        $('#manual-input').on('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.keyCode === 13) {
+                $('#manual-tts').click();
+                e.preventDefault();
+            }
+        });
+
         console.log('Event listeners setup completed');
     }
 }

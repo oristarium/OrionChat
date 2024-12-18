@@ -1383,3 +1383,44 @@ button:not(:disabled):hover {
 .voice-badge {
     display: none;
 }
+
+/* Manual Control Tab */
+.manual-control {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+    height: 100%;
+}
+
+.manual-input {
+    flex: 1;
+    min-height: 150px;
+    padding: var(--spacing-lg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    font-size: var(--font-md);
+    line-height: 1.5;
+    resize: none;
+    font-family: inherit;
+}
+
+.manual-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.1);
+}
+
+.manual-actions {
+    display: flex;
+    gap: var(--spacing-lg);
+}
+
+.manual-actions button {
+    flex: 1;
+    justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+.manual-actions button span {
+    font-size: 1.2em;
+}

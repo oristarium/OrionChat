@@ -48,6 +48,7 @@
           <ul>
             <li><a href="#livechat-tab">Livechat</a></li>
             <li><a href="#tts-tab">TTS Settings</a></li>
+            <li><a href="#manual-tab">Manual Control</a></li>
           </ul>
 
           <!-- Livechat Tab -->
@@ -107,6 +108,20 @@
                             <!-- Avatars will be populated here -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+          </div>
+          <!-- Manual Control Tab -->
+          <div id="manual-tab">
+            <div class="manual-control">
+                <textarea id="manual-input" class="manual-input" placeholder="Type your message here..."></textarea>
+                <div class="manual-actions">
+                    <button id="manual-tts" class="btn btn-primary">
+                        <span>🔉</span> Send to TTS
+                    </button>
+                    <button id="manual-display" class="btn btn-secondary">
+                        <span>📌</span> Send to Display
+                    </button>
                 </div>
             </div>
           </div>
