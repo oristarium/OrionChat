@@ -1,0 +1,206 @@
+# WebSocket Chat Service API Documentation
+
+## Connection Details
+- **WebSocket URL**: `wss://chatsocket.oristarium.com/ws`
+- **Protocol**: WebSocket (WSS)
+
+## Protocol Overview
+
+Each WebSocket connection supports:
+- Multiple live chat subscriptions (across separate browser tabs/windows)
+- Shared live chat subscriptions between clients
+- Independent subscription states per connection
+- Real-time updates for all subscribed chats
+
+The server maintains:
+- Separate chat handlers for each unique channel
+- Shared chat handlers between clients watching the same channel
+- Automatic cleanup when no clients are watching
+
+## Message Types
+
+### 1. Subscribe Message (Client -> Server)
+```json
+{
+    "type": "subscribe",
+    "identifier": "channel_id",
+    "identifierType": "username|channelId|liveId",
+    "platform": "youtube|twitch|tiktok"
+}
+```
+
+#### Platform-Specific Identifier Requirements
+- **YouTube**:
+  - Username (without @)
+  - Channel ID (starts with "UC...")
+  - Live ID (watch?v=...)
+- **TikTok**: Username only (without @)
+- **Twitch**: Username only (without @)
+
+### 2. Unsubscribe Message (Client -> Server)
+```json
+{
+    "type": "unsubscribe"
+}
+```
+
+### 3. Chat Message (Server -> Client)
+```json
+{
+    "type": "chat",
+    "platform": "youtube" | "tiktok" | "twitch",
+    "timestamp": "2024-03-20T12:34:56.789Z",
+    "message_id": string,
+    "room_id": string,
+    "data": {
+        "author": {
+            "id": string,
+            "username": string,
+            "display_name": string,
+            "avatar_url": string,
+            "roles": {
+                "broadcaster": boolean,
+                "moderator": boolean,
+                "subscriber": boolean,
+                "verified": boolean
+            },
+            "badges": [
+                {
+                    "type": "subscriber" | "moderator" | "verified" | "custom",
+                    "label": string,
+                    "image_url": string
+                }
+            ]
+        },
+        "content": {
+            "raw": string,        // Original message with emotes
+            "formatted": string,  // Message with emote codes
+            "sanitized": string,  // Plain text only
+            "rawHtml": string,    // Pre-rendered HTML with emotes
+            "elements": [         // Message broken into parts
+                {
+                    "type": "text" | "emote",
+                    "value": string,
+                    "position": [number, number],
+                    "metadata"?: {  // Only for emotes
+                        "url": string,
+                        "alt": string,
+                        "is_custom": boolean
+                    }
+                }
+            ]
+        },
+        "metadata": {
+            "type": "chat" | "super_chat",
+            "monetary_data"?: {    // Only for super_chat
+                "amount": string,
+                "formatted": string,
+                "color": string
+            },
+            "sticker"?: {         // Only for sticker super_chats
+                "url": string,
+                "alt": string
+            }
+        }
+}
+```
+
+### 4. Status Message (Server -> Client)
+```json
+{
+    "type": "status",
+    "status": "started|subscribed|unsubscribed",
+    "identifier": "string",  // Only present for "subscribed" status
+    "liveId": "string"      // Only present for "started" status
+}
+```
+
+### 5. Error Message (Server -> Client)
+```json
+{
+    "type": "error",
+    "code": "ERROR_CODE",
+    "error": "Error message",
+    "details": "Additional error details"
+}
+```
+
+## Error Codes
+- `STREAM_NOT_LIVE`: Stream is not currently live
+- `STREAM_ENDED`: Stream has ended
+- `INVALID_MESSAGE_TYPE`: Invalid message type received
+- `NO_ACTIVE_CHAT`: No active chat found
+- `STREAM_NOT_FOUND`: Stream not found
+- `UNSUPPORTED_PLATFORM`: Platform not supported
+
+## Message Content Elements
+The `elements` array in the content object can contain different types of elements:
+- `text`: Regular text content
+- `emote`: Platform-specific emotes
+- `mention`: User mentions
+- `link`: URLs and hyperlinks
+
+## Example Usage
+
+```javascript
+// Use secure WebSocket if needed
+const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const wsUrl = `${protocol}//${window.location.host}/ws`;  // Note the /ws path
+const ws = new WebSocket(wsUrl);
+
+// Connect to YouTube chat using username (default)
+ws.send(JSON.stringify({
+    type: 'subscribe',
+    identifier: 'ceresfauna',
+    identifierType: 'username', // this is the default
+    platform: 'youtube' // this is the default
+}));
+
+// Connect to TikTok chat using username
+ws.send(JSON.stringify({
+    type: 'subscribe',
+    identifier: 'tiktokuser',
+    platform: 'tiktok'
+}));
+
+// Connect to Twitch chat using username
+ws.send(JSON.stringify({
+    type: 'subscribe',
+    identifier: 'twitchuser',
+    platform: 'twitch'
+}));
+
+// Handle incoming messages
+ws.onmessage = (event) => {
+    const message = JSON.parse(event.data);
+    
+    switch (message.type) {
+        case 'chat':
+            console.log('New chat message:', message.data);
+            break;
+        case 'status':
+            console.log('Status update:', message.status);
+            break;
+        case 'error':
+            console.error('Error:', message.error, message.code);
+            break;
+    }
+};
+```
+
+## Implementation Notes
+- All timestamps are in ISO8601 format
+- Message IDs are platform-specific and unique per message
+- The WebSocket connection will automatically close after period of inactivity
+- Clients should implement reconnection logic with exponential backoff
+- HTML content in `rawHtml` is pre-sanitized and safe to render
+- While multiple chat subscriptions are technically possible, the test interface (/test) is designed for one subscription per tab
+- The term "subscribe" refers to WebSocket connection establishment, not platform channel subscription
+
+## Connection Lifecycle
+1. Client establishes WebSocket connection
+2. Client sends subscribe message for desired chat
+3. Server responds with status updates
+4. Server streams chat messages in real-time
+5. Client can unsubscribe or connection may timeout
+6. Server cleans up resources when no clients remain
