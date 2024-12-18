@@ -80,17 +80,19 @@ class Avatar {
             return;
         }
 
-        // Get the display text - use formatted or raw if available, fallback to sanitized
+        // Get the display text - prioritize rawHtml, then fall back to other formats
         const content = message.data.content;
-        const displayText = content.formatted || content.raw || content.sanitized;
+        if (content.rawHtml) {
+            this.element.$messageBubble.html(content.rawHtml);
+        } else {
+            const displayText = content.formatted || content.raw || content.sanitized;
+            this.element.$messageBubble.text(displayText);
+        }
 
         // Get author information
         const author = message.data?.author || {};
         const authorName = author.display_name || author.username || '';
 
-        // Update message bubble with display text
-        this.element.$messageBubble.text(displayText);
-        
         // Handle author display
         if (authorName) {
             this.element.$username.text(authorName);

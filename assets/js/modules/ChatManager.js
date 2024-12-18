@@ -319,7 +319,6 @@ export class ChatManager {
             if (this.ttsAllChat && this.canMessageBeTTSed(message)) {
                 console.log('TTS All Chat enabled, sending to TTS:', message);
                 await this.messageHandler.sendToTTS(message);
-                $.toast('Message sent to TTS');
             }
 
             this.appendMessage(message);
@@ -364,6 +363,7 @@ export class ChatManager {
             };
             
             window.dispatchEvent(new CustomEvent('sendToTTS', { detail: ttsMessage }));
+            $.toast('Message sent to TTS');
         } catch (error) {
             console.error('Error handling TTS:', error);
             $.toast('Error sending message to TTS');
@@ -392,6 +392,7 @@ export class ChatManager {
             };
             
             window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: displayMessage }));
+            $.toast('Message sent to display');
         } catch (error) {
             console.error('Error handling display:', error);
             $.toast('Error sending message to display');
@@ -503,6 +504,7 @@ export class ChatManager {
             };
             
             window.dispatchEvent(new CustomEvent('sendToTTS', { detail: ttsMessage }));
+            $.toast('Message sent to TTS');
         } catch (error) {
             console.error('Error handling TTS:', error);
             $.toast('Error sending message to TTS');
@@ -531,6 +533,7 @@ export class ChatManager {
             };
             
             window.dispatchEvent(new CustomEvent('sendToDisplay', { detail: displayMessage }));
+            $.toast('Message sent to display');
         } catch (error) {
             console.error('Error handling display:', error);
             $.toast('Error sending message to display');
