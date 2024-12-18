@@ -8,7 +8,6 @@ This document outlines the expected data structure for messages sent to the TTS 
 {
     "type": "tts",                 // Required: Message type identifier
     "data": {                      // Required: Main data container
-        "data": {                  // Required: Message content container
             "content": {           // Required: Must have sanitized field
                 "sanitized": string,     // Required: Clean text for TTS
                 "formatted": string,     // Optional: Formatted message text
@@ -50,7 +49,7 @@ This document outlines the expected data structure for messages sent to the TTS 
         "type": string,           // Optional: Message type
         "voice_id": string,       // Optional: TTS voice identifier
         "voice_provider": string  // Optional: TTS provider name
-    }
+    
 }
 ```
 
@@ -85,10 +84,8 @@ The only strictly required fields are:
 {
     "type": "tts",
     "data": {
-        "data": {
-            "content": {
-                "sanitized": "Hello world!"
-            }
+        "content": {
+            "sanitized": "Hello world!"
         }
     }
 }
@@ -99,7 +96,6 @@ The only strictly required fields are:
 {
     "type": "tts",
     "data": {
-        "data": {
             "author": {
                 "avatar_url": "https://example.com/avatar.jpg",
                 "badges": [],
@@ -138,7 +134,7 @@ The only strictly required fields are:
         "type": "chat",
         "voice_id": "en_male_narration",
         "voice_provider": "tiktok"
-    }
+    
 }
 ```
 
