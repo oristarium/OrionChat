@@ -17,7 +17,17 @@ Response: {
             },
             "is_default": true,
             "is_active": true,
-            "created_at": 1710691200
+            "created_at": 1710691200,
+            "tts_voices": [
+                {
+                    "voice_id": "en_female_emotional",
+                    "provider": "tiktok"
+                },
+                {
+                    "voice_id": "en_au_001",
+                    "provider": "tiktok"
+                }
+            ]
         }
     ],
     "current_id": "avatar_1734429111883435200"
@@ -37,7 +47,13 @@ Response: {
     },
     "is_default": false,
     "is_active": false,
-    "created_at": 1710691200
+    "created_at": 1710691200,
+    "tts_voices": [
+        {
+            "voice_id": "en_female_emotional",
+            "provider": "tiktok"
+        }
+    ]
 }
 ```
 
@@ -77,7 +93,13 @@ Response: {
             },
             "is_default": false,
             "is_active": true,
-            "created_at": 1710691200
+            "created_at": 1710691200,
+            "tts_voices": [
+                {
+                    "voice_id": "en_female_emotional",
+                    "provider": "tiktok"
+                }
+            ]
         }
     ]
 }
@@ -96,6 +118,7 @@ Response: {
     },
     "is_default": false,
     "is_active": false,
-    "created_at": 1710691200
+    "created_at": 1710691200,
+    "tts_voices": null
 }
 ``` 
