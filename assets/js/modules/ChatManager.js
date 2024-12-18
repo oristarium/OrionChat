@@ -9,10 +9,104 @@ export class ChatManager {
         this.messageHandler = new MessageHandler();
         this.ttsAllChat = false;
         
+        // Initialize saved messages
+        this.savedMessages = JSON.parse(localStorage.getItem('savedMessages') || '[]');
+        this.initializeSavedMessages();
+        
         this.setupScrollHandlers();
         this.setupMessageHandler();
         this.setupTTSToggle();
         this.setupCustomEventHandlers();
+    }
+
+    initializeSavedMessages() {
+        this.renderSavedMessages();
+    }
+
+    renderSavedMessages() {
+        const container = document.getElementById('saved-messages-container');
+        if (!container) return;
+
+        if (this.savedMessages.length === 0) {
+            container.innerHTML = `
+                <div class="no-saved-messages">
+                    No saved messages yet
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = this.savedMessages
+            .map((message, index) => this.createSavedMessageElement(message, index))
+            .join('');
+    }
+
+    createSavedMessageElement(message, index) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'chat-message';
+        
+        const authorName = this.getAuthorName(message);
+        const authorClasses = this.getAuthorClasses(message);
+        const { displayContent, hasValidContent } = this.processMessageContent(message);
+        
+        messageDiv.innerHTML = this.generateSavedMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent, index);
+        
+        return messageDiv.outerHTML;
+    }
+
+    generateSavedMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent, index) {
+        // Create a clean copy of the message data with proper escaping
+        const cleanMessageData = {
+            type: "tts",
+            data: {
+                ...message.data,
+                author: {
+                    ...message.data.author,
+                    username: this.cleanString(message.data.author.username),
+                    display_name: this.cleanString(message.data.author.display_name)
+                },
+                content: {
+                    ...message.data.content,
+                    raw: this.cleanString(message.data.content.raw),
+                    formatted: this.cleanString(message.data.content.formatted),
+                    sanitized: this.cleanString(message.data.content.sanitized)
+                }
+            }
+        };
+
+        const escapedMessageDataObj = JSON.stringify(cleanMessageData).replace(/"/g, '&quot;');
+
+        const ttsButton = hasValidContent
+            ? `<button class="tts-button" onclick='window.dispatchEvent(new CustomEvent("sendToTTS", { detail: ${escapedMessageDataObj} }))'><span>🔉</span></button>`
+            : '';
+        
+        const displayButton = `<button class="display-button" onclick='window.dispatchEvent(new CustomEvent("sendToDisplay", { detail: ${escapedMessageDataObj} }))'><span>📌</span></button>`;
+        
+        const deleteButton = `<button class="delete-button" onclick="window.chatManager.deleteMessage(${index})"><span>🗑️</span></button>`;
+
+        return `
+            <div class="message-main">
+                <span class="${authorClasses.join(' ')}">${this.cleanString(authorName)}:</span>
+                <span class="message-content">${displayContent}</span>
+            </div>
+            <div class="message-actions">
+                ${ttsButton}
+                ${displayButton}
+                ${deleteButton}
+            </div>
+        `;
+    }
+
+    saveMessage(message) {
+        this.savedMessages.push(message);
+        localStorage.setItem('savedMessages', JSON.stringify(this.savedMessages));
+        this.renderSavedMessages();
+    }
+
+    deleteMessage(index) {
+        this.savedMessages.splice(index, 1);
+        localStorage.setItem('savedMessages', JSON.stringify(this.savedMessages));
+        this.renderSavedMessages();
     }
 
     setupScrollHandlers() {
@@ -137,9 +231,10 @@ export class ChatManager {
             displayContent = message.data.content;
             hasValidContent = displayContent.trim().length > 0;
         } else {
+            // Use rawHtml directly if it exists, otherwise create safe HTML
             displayContent = message.data.content.rawHtml || 
-                           message.data.content.formatted || 
-                           message.data.content.raw || '';
+                            this.cleanString(message.data.content.formatted || 
+                            message.data.content.raw || '');
             hasValidContent = message.data.content.sanitized && 
                             message.data.content.sanitized.trim().length > 0;
         }
@@ -148,20 +243,51 @@ export class ChatManager {
     }
 
     generateMessageHTML(message, authorName, authorClasses, displayContent, hasValidContent) {
+        // Create a clean copy of the message data with proper escaping
+        const cleanMessageData = {
+            type: "tts",
+            data: {
+                ...message.data,
+                author: {
+                    ...message.data.author,
+                    username: this.cleanString(message.data.author.username),
+                    display_name: this.cleanString(message.data.author.display_name)
+                },
+                content: {
+                    ...message.data.content,
+                    raw: this.cleanString(message.data.content.raw),
+                    formatted: this.cleanString(message.data.content.formatted),
+                    sanitized: this.cleanString(message.data.content.sanitized)
+                }
+            }
+        };
+
+        const escapedMessageData = JSON.stringify(message, (key, value) => {
+            if (typeof value === 'string') {
+                return this.cleanString(value);
+            }
+            return value;
+        }).replace(/"/g, '&quot;');
+
+        const escapedMessageDataObj = JSON.stringify(cleanMessageData).replace(/"/g, '&quot;');
+
         const ttsButton = hasValidContent
-            ? `<button class="tts-button" onclick='window.dispatchEvent(new CustomEvent("sendToTTS", { detail: ${JSON.stringify(message).replace(/'/g, "&apos;")} }))'><span>🔉</span></button>`
+            ? `<button class="tts-button" onclick='window.dispatchEvent(new CustomEvent("sendToTTS", { detail: ${escapedMessageDataObj} }))'><span>🔉</span></button>`
             : '';
         
-        const displayButton = `<button class="display-button" onclick='window.dispatchEvent(new CustomEvent("sendToDisplay", { detail: ${JSON.stringify(message).replace(/'/g, "&apos;")} }))'><span>📌</span></button>`;
+        const displayButton = `<button class="display-button" onclick='window.dispatchEvent(new CustomEvent("sendToDisplay", { detail: ${escapedMessageDataObj} }))'><span>📌</span></button>`;
         
+        const saveButton = `<button class="save-button" onclick='window.chatManager.saveMessage(${escapedMessageData})'><span>💾</span></button>`;
+
         return `
             <div class="message-main">
-                <span class="${authorClasses.join(' ')}">${authorName}:</span>
+                <span class="${authorClasses.join(' ')}">${this.cleanString(authorName)}:</span>
                 <span class="message-content">${displayContent}</span>
             </div>
             <div class="message-actions">
                 ${ttsButton}
                 ${displayButton}
+                ${saveButton}
             </div>
         `;
     }
@@ -182,5 +308,17 @@ export class ChatManager {
         } catch (error) {
             console.error('Error handling chat message:', error);
         }
+    }
+
+    // Helper method to clean strings
+    cleanString(str) {
+        if (!str) return '';
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/=/g, '&#61;');
     }
 } 

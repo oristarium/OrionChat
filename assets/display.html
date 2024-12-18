@@ -414,9 +414,7 @@
             
             evtSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
-                console.log("SSE message received - Full data:", data);
-                console.log("Message type:", data.type);
-
+                
                 // Only handle display and clear_display types
                 if (data.type !== 'display' && data.type !== 'clear_display') {
                     console.log('Ignoring non-display message type:', data.type);
@@ -424,36 +422,29 @@
                 }
 
                 // Handle clear display command
-                if (data.type === "clear_display") {
+                if (data.type === 'clear_display') {
                     clearDisplay();
                     return;
                 }
 
-                // Safely access the chat message data
-                const messageData = data.data?.data;
-                if (!messageData) {
-                    console.error('Invalid message structure - missing data');
+                // Validate required fields
+                if (!data.data?.content) {
+                    console.error('Invalid message structure - missing required content');
                     return;
                 }
 
-                // Check if this is a duplicate message - safely access message_id
-                const messageId = data.data?.message_id;
+                // Check for duplicate message
+                const messageId = data.message_id;
                 if (messageId && messageId === lastMessageId) {
-                    console.log('Duplicate message detected, clearing display');
-                    clearDisplay();
-                    lastMessageId = null; // Reset the last message ID
+                    console.log('Duplicate message detected, skipping');
                     return;
                 }
 
-                // Update last message ID if it exists
+                // Update last message ID
                 lastMessageId = messageId || null;
 
-                // Create and display the new message
-                displayMessage({
-                    platform: data.data?.platform,
-                    data: messageData,
-                    message_id: messageId
-                });
+                // Display the message
+                displayMessage(data);
             };
 
             evtSource.onerror = (error) => {
@@ -512,14 +503,12 @@
             const newContainer = document.createElement('div');
             newContainer.id = 'message-container';
 
-            // Get the content for display - handle nested content structure
+            // Get the content for display according to priority in docs
             let displayText = '';
             const content = chatMessage.data?.content;
             
-            if (typeof content === 'string') {
-                displayText = content;
-            } else if (content) {
-                // Try to get content from any of the three possible fields
+            if (content) {
+                // Use first available content field in order: formatted → raw → sanitized
                 displayText = content.formatted || content.raw || content.sanitized || '';
             }
 
@@ -529,17 +518,18 @@
                 return;
             }
 
-            // Get author information safely
+            // Get author information
             const author = chatMessage.data?.author || {};
-            const hasAuthorInfo = author.display_name || author.username || author.avatar_url;
-
+            
             // Create the message HTML
             let messageHTML = '';
 
-            // Only include avatar and author section if we have author info
-            if (hasAuthorInfo) {
-                const authorName = author.display_name || author.username || '';
+            // Only include avatar and author section if we have required fields
+            if (author.display_name || author.username) {
+                const authorName = author.display_name || author.username;
                 const avatarUrl = author.avatar_url || '';
+                
+                // Generate badges HTML if badges exist
                 const badgesHtml = author.badges?.map(badge => 
                     `<img class="badge" src="${badge.image_url}" alt="${badge.label}" title="${badge.label}">`
                 ).join('') || '';
@@ -547,21 +537,19 @@
                 messageHTML = `
                     ${avatarUrl ? `<img class="chat-message__avatar" src="${avatarUrl}" alt="${authorName}'s avatar">` : ''}
                     <div class="chat-message__content">
-                        ${authorName ? `
-                            <div class="chat-message__content_header">
-                                <span class="chat-message__author_name">${authorName}</span>
-                                ${badgesHtml ? `
-                                    <div class="badges-container">
-                                        ${badgesHtml}
-                                    </div>
-                                ` : ''}
-                            </div>
-                        ` : ''}
+                        <div class="chat-message__content_header">
+                            <span class="chat-message__author_name">${authorName}</span>
+                            ${badgesHtml ? `
+                                <div class="badges-container">
+                                    ${badgesHtml}
+                                </div>
+                            ` : ''}
+                        </div>
                         <div class="chat-message__text">${displayText}</div>
                     </div>
                 `;
             } else {
-                // Simple message-only layout
+                // Message-only layout when no author info
                 messageHTML = `
                     <div class="chat-message__content">
                         <div class="chat-message__text">${displayText}</div>
@@ -572,15 +560,20 @@
             // Update the message container HTML
             newContainer.innerHTML = messageHTML;
 
-            // Handle super chat styling safely
-            const isSuperChat = chatMessage.data?.metadata?.type === 'super_chat';
-            const superChatStyle = isSuperChat 
-                ? `background-color: ${chatMessage.data?.metadata?.monetary_data?.color || '#4CAF50'};`
+            // Handle styling based on metadata
+            const metadata = chatMessage.data?.metadata || {};
+            const isSuperChat = metadata.type === 'super_chat';
+            const superChatStyle = isSuperChat && metadata.monetary_data?.color 
+                ? `background-color: ${metadata.monetary_data.color};`
                 : '';
 
-            // Update container classes safely
-            const roleClass = author.roles ? getRoleClasses(author.roles) : '';
-            newContainer.className = `chat-message ${platform ? `chat-message_${platform}` : ''} ${roleClass} ${isSuperChat ? 'chat-message_super' : ''}`;
+            // Apply classes based on platform and roles
+            const roleClasses = getRoleClasses(author.roles || {});
+            newContainer.className = `chat-message ${platform ? `chat-message_${platform}` : ''} ${roleClasses} ${isSuperChat ? 'chat-message_super' : ''}`;
+            
+            if (superChatStyle) {
+                newContainer.style = superChatStyle;
+            }
 
             // Replace or append the new container
             if (messageContainer) {
@@ -589,17 +582,17 @@
                 document.querySelector('#viewport-container').appendChild(newContainer);
             }
             
-            // Update the container reference
             messageContainer = newContainer;
         }
 
-        // Keep the getRoleClasses function
+        // Update the getRoleClasses function to match documented roles
         function getRoleClasses(roles) {
-            if (roles.broadcaster) return 'chat-message_role-broadcaster';
-            if (roles.moderator) return 'chat-message_role-moderator';
-            if (roles.subscriber) return 'chat-message_role-subscriber';
-            if (roles.verified) return 'chat-message_role-verified';
-            return '';
+            const classes = [];
+            if (roles.broadcaster) classes.push('chat-message_role-broadcaster');
+            if (roles.moderator) classes.push('chat-message_role-moderator');
+            if (roles.subscriber) classes.push('chat-message_role-subscriber');
+            if (roles.verified) classes.push('chat-message_role-verified');
+            return classes.join(' ');
         }
 
         // Initialize the application

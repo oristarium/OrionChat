@@ -31,6 +31,9 @@ class Controller {
         this.avatarManager = new AvatarManager(this.voiceManager);
         window.voiceManager = this.voiceManager;
         
+        // Make chatManager globally available
+        window.chatManager = this.chat;
+        
         this.init();
     }
 

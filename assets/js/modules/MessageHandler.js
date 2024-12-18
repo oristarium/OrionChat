@@ -9,15 +9,17 @@ export class MessageHandler {
             ? {
                 type: "display",
                 data: {
-                    data: {
-                        content: {
-                            sanitized: message,
-                            raw: message
-                        }
+                    content: {
+                        formatted: message,
+                        raw: message,
+                        sanitized: message
                     }
                 }
             }
-            : message;
+            : {
+                type: "display",
+                data: message.data
+            };
 
         await this.sendMessage(displayData);
     }
@@ -27,15 +29,23 @@ export class MessageHandler {
             ? {
                 type: "tts",
                 data: {
-                    data: {
-                        content: {
-                            sanitized: message,
-                            raw: message
-                        }
+                    content: {
+                        formatted: message,
+                        raw: message,
+                        sanitized: message,
+                        rawHtml: `<span class="text">${message}</span>`,
+                        elements: [{
+                            type: "text",
+                            value: message,
+                            position: [0, message.length]
+                        }]
                     }
                 }
             }
-            : message;
+            : {
+                type: "tts",
+                data: message.data
+            };
 
         await this.sendMessage(ttsData);
     }
@@ -66,8 +76,7 @@ export class MessageHandler {
     async clearDisplay() {
         console.log('Clearing display...');
         const update = {
-            type: 'clear_display',
-            data: {}
+            type: 'clear_display'
         };
 
         await this.sendMessage(update);
@@ -76,8 +85,7 @@ export class MessageHandler {
     async clearTTSQueue() {
         try {
             const update = {
-                type: 'clear_tts',
-                data: {}
+                type: 'clear_tts'
             };
 
             await this.sendMessage(update);

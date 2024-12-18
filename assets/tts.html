@@ -273,17 +273,21 @@
             updateMessageContent(message) {
                 if (!this.element) return;
 
-                const content = message.data?.content;
-                if (!content) return;
+                // Validate required content field
+                if (!message.data?.content?.sanitized) {
+                    console.error('Invalid message structure - missing required content');
+                    return;
+                }
 
-                // Get the display text
-                const displayText = content.sanitized || '';
-                
+                // Get the display text - use formatted or raw if available, fallback to sanitized
+                const content = message.data.content;
+                const displayText = content.formatted || content.raw || content.sanitized;
+
                 // Get author information
                 const author = message.data?.author || {};
                 const authorName = author.display_name || author.username || '';
 
-                // Update message bubble
+                // Update message bubble with display text
                 this.element.$messageBubble.text(displayText);
                 
                 // Handle author display
@@ -291,7 +295,6 @@
                     this.element.$username.text(authorName);
                     this.element.$username.removeClass('hidden');
                 } else {
-                    this.element.$username.text('');
                     this.element.$username.addClass('hidden');
                 }
             }
@@ -461,21 +464,36 @@
             evtSource.onmessage = async (event) => {
                 const data = JSON.parse(event.data);
                 
-                // Log all SSE messages
-                console.log("SSE message received - Full data:", data);
-                console.log("Message type:", data.type);
-
                 if (data.type === 'avatar_update') {
                     avatarManager.updateAvatars(data.data.avatars);
                 } else if (data.type === 'tts') {
-                    // Log TTS specific data
-                    console.log("TTS message content:", data.data?.data?.content);
-                    console.log("TTS message author:", data.data?.data?.author);
-                    
-                    // Pass the entire message data structure
-                    await avatarManager.processTTSMessage(data.data);
+                    // Log the full TTS message structure
+                    console.log('TTS message received:', data);
+
+                    // The message structure is nested under data.data
+                    const ttsMessage = {
+                        type: 'tts',
+                        message_id: data.data?.message_id,
+                        platform: data.data?.platform,
+                        timestamp: data.data?.timestamp,
+                        voice_id: data.data?.voice_id,
+                        voice_provider: data.data?.voice_provider,
+                        data: {
+                            content: data.data?.content,
+                            author: data.data?.author,
+                            metadata: data.data?.metadata
+                        }
+                    };
+
+                    // Validate required fields
+                    if (!ttsMessage.data?.content?.sanitized) {
+                        console.error('Invalid TTS message - missing required content');
+                        return;
+                    }
+
+                    await avatarManager.processTTSMessage(ttsMessage);
                 } else if (data.type === 'clear_tts') {
-                    console.log("Clearing TTS queue");
+                    console.log('Clearing TTS queue');
                     ttsManager.clearQueue();
                 }
             };
