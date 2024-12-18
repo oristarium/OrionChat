@@ -6,32 +6,45 @@
     <link rel="icon" href="icon.ico" />
     <title>Chat Display</title>
     <style>
+        .viewport-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            padding: 32px;
+            box-sizing: border-box;
+            pointer-events: none;
+        }
+
         body {
             margin: 0;
-            padding: 2vh;
+            padding: 0;
             background: transparent;
             font-family: Arial, sans-serif;
             color: #000;
+            overflow: hidden;
         }
 
         .chat-message {
             display: flex;
             align-items: center;
-            gap: 2vw;
-            padding: 3vh 3vw;
+            gap: 32px;
+            padding: 1.5em;
             background: white;
-            border-radius: 1vw;
-            box-shadow: 0 0.2vw 1vw rgba(0,0,0,0.1);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: center center;
             will-change: transform, opacity;
         }
 
         .chat-message__avatar {
-            width: clamp(48px, 8vw, 96px);
-            height: clamp(48px, 8vw, 96px);
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            border: 0.3vw solid var(--role-color, #4CAF50);
+            border: 3px solid var(--role-color, #4CAF50);
         }
 
         .chat-message__content {
@@ -41,62 +54,50 @@
         .chat-message__content_header {
             display: flex;
             align-items: center;
-            gap: 1vw;
-            margin-bottom: 1vh;
+            gap: 16px;
+            margin-bottom: 0.25em;
         }
 
         .chat-message__author_name {
             color: var(--role-color, #4CAF50);
             font-weight: bold;
-            font-size: clamp(16px, 2.5vw, 32px);
+            font-size: 20px;
         }
 
         .chat-message__text {
-            font-size: clamp(24px, 4vw, 48px);
+            font-size: 28px;
             word-wrap: break-word;
             line-height: 1.4;
-            color: #000;
         }
 
-        .chat-message__text_emote {
-            height: 1.2em;
+        .badge {
+            height: 1em;
             width: auto;
             vertical-align: middle;
-            margin: 0 0.1em;
+        }
+
+        .badges-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
         /* Platform-specific styles */
-        .chat-message_youtube .chat-message__avatar { border-color: var(--role-color, #FF0000); }
-        .chat-message_youtube .chat-message__author_name { color: var(--role-color, #CC0000); }
-        
-        .chat-message_twitch .chat-message__avatar { border-color: var(--role-color, #9146FF); }
-        .chat-message_twitch .chat-message__author_name { color: var(--role-color, #7829E1); }
-        
-        .chat-message_tiktok .chat-message__avatar { border-color: var(--role-color, #00F2EA); }
-        .chat-message_tiktok .chat-message__author_name { color: var(--role-color, #00C5BE); }
+        .chat-message_youtube { --role-color: #FF0000; }
+        .chat-message_twitch { --role-color: #9146FF; }
+        .chat-message_tiktok { --role-color: #000; }
 
         /* Role-based colors */
-        .chat-message_role-broadcaster {
-            --role-color: #FF4B4B;
-        }
+        .chat-message_role-broadcaster { --role-color: #FF4B4B; }
+        .chat-message_role-moderator { --role-color: #00A0FF; }
+        .chat-message_role-subscriber { --role-color: #8E44AD; }
+        .chat-message_role-verified { --role-color: #1DB954; }
 
-        .chat-message_role-moderator {
-            --role-color: #00A0FF;
-        }
-
-        .chat-message_role-subscriber {
-            --role-color: #8E44AD;
-        }
-
-        .chat-message_role-verified {
-            --role-color: #1DB954;
-        }
-
-        /* Animations */
+        /* Animation */
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(2vh);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
@@ -104,14 +105,303 @@
             }
         }
 
-        @media screen and (max-width: 600px) {
-            .chat-message__text_emote {
-                height: clamp(24px, 1.2em, 48px);
-            }
+        /* Add config panel styles */
+        #configToggle {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border: none;
+            border-radius: 9999px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.3s ease, background-color 0.2s;
+        }
+
+        #configToggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        #configToggle svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        #configPanel {
+            position: fixed;
+            top: 16px;
+            left: 64px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+
+        #configPanel.hidden {
+            display: none;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+
+        .space-y-4 > * + * {
+            margin-top: 16px;
+        }
+
+        .space-y-1 > * + * {
+            margin-top: 4px;
+        }
+
+        .text-sm {
+            font-size: 14px;
+        }
+
+        .text-xs {
+            font-size: 12px;
+        }
+
+        .font-bold {
+            font-weight: bold;
+        }
+
+        .text-white\/60 {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .text-white\/80 {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .border-b {
+            border-bottom: 1px solid;
+        }
+
+        .border-white\/20 {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .border-white\/10 {
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .pb-1 {
+            padding-bottom: 4px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            height: 6px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .position-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            background: transparent;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .position-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .position-btn.bg-white\/20 {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .w-24 {
+            width: 96px;
+        }
+
+        .aspect-square {
+            aspect-ratio: 1;
+        }
+
+        /* Position grid container */
+        .position-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2px;
+            padding: 4px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 4px;
+            width: 96px;
+        }
+
+        /* Position button styling */
+        .position-btn {
+            width: 100%;
+            aspect-ratio: 1;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .position-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .position-btn.bg-white\/20,
+        .position-btn[data-active="true"] {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        /* Add dot indicators for position */
+        .position-btn::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: currentColor;
+            border-radius: 50%;
+            opacity: 0.6;
+        }
+
+        /* Position the dots based on alignment */
+        .position-btn[data-justify="start"][data-align="start"]::before { top: 25%; left: 25%; }
+        .position-btn[data-justify="center"][data-align="start"]::before { top: 25%; left: 50%; transform: translateX(-50%); }
+        .position-btn[data-justify="end"][data-align="start"]::before { top: 25%; right: 25%; }
+
+        .position-btn[data-justify="start"][data-align="center"]::before { top: 50%; left: 25%; transform: translateY(-50%); }
+        .position-btn[data-justify="center"][data-align="center"]::before { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .position-btn[data-justify="end"][data-align="center"]::before { top: 50%; right: 25%; transform: translateY(-50%); }
+
+        .position-btn[data-justify="start"][data-align="end"]::before { bottom: 25%; left: 25%; }
+        .position-btn[data-justify="center"][data-align="end"]::before { bottom: 25%; left: 50%; transform: translateX(-50%); }
+        .position-btn[data-justify="end"][data-align="end"]::before { bottom: 25%; right: 25%; }
+
+        /* Mock message avatar style */
+        .chat-message__avatar:empty {
+            background-color: var(--role-color, #4CAF50);
         }
     </style>
 </head>
 <body>
+    <div id="viewport-container" class="viewport-container">
+        <!-- Message will be inserted here -->
+    </div>
+
+    <button id="configToggle" class="fixed top-4 left-4 w-10 h-10 bg-black/80 hover:bg-black/90 text-white rounded-full shadow-lg z-[1000] flex items-center justify-center transition-transform duration-300">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+        </svg>
+    </button>
+
+    <div id="configPanel" class="fixed top-4 left-16 bg-black/80 text-white p-4 rounded shadow-lg z-[1000] hidden">
+        <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-bold border-b border-white/20 pb-1">Display Configurer</div>
+        </div>
+        
+        <div class="grid grid-cols-2 gap-6">
+            <!-- Text Settings Group -->
+            <div class="space-y-4">
+                <div class="text-xs font-semibold text-white/60 border-b border-white/10 pb-1">Text Settings</div>
+                
+                <!-- Message Font Size -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Message Font Size</label>
+                    <input type="range" id="messageFontSize" min="12" max="72" step="1" value="28" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageFontSizeValue">28</span>px</div>
+                </div>
+
+                <!-- Author Name Font Size -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Author Name Font Size</label>
+                    <input type="range" id="authorFontSize" min="8" max="48" step="1" value="20" class="w-full">
+                    <div class="text-xs text-white/60"><span id="authorFontSizeValue">20</span>px</div>
+                </div>
+
+                <!-- Author Name Bottom Margin -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Author Name Bottom Margin</label>
+                    <input 
+                        type="range" 
+                        id="authorMarginBottom" 
+                        min="-10" 
+                        max="10" 
+                        step="0.5" 
+                        value="0.25" 
+                        class="w-full"
+                    >
+                    <div class="text-xs text-white/60"><span id="authorMarginBottomValue">0.25</span>em</div>
+                </div>
+
+                <!-- Message Box X Padding -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Message H-Padding</label>
+                    <input type="range" id="messageHPadding" min="0.2" max="3" step="0.1" value="1.5" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageHPaddingValue">1.5</span>em</div>
+                </div>
+
+                <!-- Message Box Y Padding -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Message V-Padding</label>
+                    <input type="range" id="messageVPadding" min="0.2" max="3" step="0.1" value="1.5" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageVPaddingValue">1.5</span>em</div>
+                </div>
+            </div>
+
+            <!-- Layout Settings Group -->
+            <div class="space-y-4">
+                <div class="text-xs font-semibold text-white/60 border-b border-white/10 pb-1">Layout Settings</div>
+                
+                <!-- Avatar Size -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Avatar Size</label>
+                    <input type="range" id="avatarSize" min="32" max="128" step="4" value="64" class="w-full">
+                    <div class="text-xs text-white/60"><span id="avatarSizeValue">64</span>px</div>
+                </div>
+
+                <!-- Position -->
+                <div class="space-y-1">
+                    <label class="text-xs block text-white/80">Position</label>
+                    <div class="position-grid">
+                        <button class="position-btn" data-justify="start" data-align="start"></button>
+                        <button class="position-btn" data-justify="center" data-align="start"></button>
+                        <button class="position-btn" data-justify="end" data-align="start"></button>
+                        <button class="position-btn" data-justify="start" data-align="center"></button>
+                        <button class="position-btn" data-justify="center" data-align="center"></button>
+                        <button class="position-btn" data-justify="end" data-align="center"></button>
+                        <button class="position-btn" data-justify="start" data-align="end"></button>
+                        <button class="position-btn" data-justify="center" data-align="end"></button>
+                        <button class="position-btn" data-justify="end" data-align="end"></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         let messageContainer = null;
         const evtSource = new EventSource('/sse');
@@ -201,28 +491,29 @@
                 return '';
             }
 
-            // Update the container class assignment
-            const roleClass = getRoleClasses(author.roles);
-            newContainer.className = `chat-message chat-message_${platform} ${roleClass} ${isSuperChat ? 'chat-message_super' : ''}`;
-
-            // Update the message container
-            newContainer.style = superChatStyle;
+            // Update the message container HTML template
             newContainer.innerHTML = `
                 <img class="chat-message__avatar" src="${avatarUrl}" alt="${authorName}'s avatar">
                 <div class="chat-message__content">
                     <div class="chat-message__content_header">
                         <span class="chat-message__author_name">${authorName}</span>
-                        ${badgesHtml}
+                        <div class="badges-container">
+                            ${badgesHtml}
+                        </div>
                     </div>
                     <div class="chat-message__text">${displayText}</div>
                 </div>
             `;
 
+            // Update container classes
+            const roleClass = getRoleClasses(author.roles);
+            newContainer.className = `chat-message chat-message_${platform} ${roleClass} ${isSuperChat ? 'chat-message_super' : ''}`;
+
             // Replace or append the new container
             if (messageContainer) {
-                document.body.replaceChild(newContainer, messageContainer);
+                document.querySelector('#viewport-container').replaceChild(newContainer, messageContainer);
             } else {
-                document.body.appendChild(newContainer);
+                document.querySelector('#viewport-container').appendChild(newContainer);
             }
             
             // Update the container reference
@@ -242,5 +533,7 @@
             console.log("SSE connection established");
         };
     </script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/js/display-config-manager.js"></script>
 </body>
 </html> 
