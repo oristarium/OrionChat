@@ -57,14 +57,18 @@ class Controller {
             console.log('Clear display button clicked - Controller handling');
             this.messageHandler.clearDisplay().catch(error => {
                 console.error('Error in clearDisplay:', error);
+                $.toast('Error clearing display');
             });
+            $.toast('Display cleared');
         });
 
         $('#clear-tts').on('click', () => {
             console.log('Clear TTS queue button clicked');
             this.messageHandler.clearTTSQueue().catch(error => {
                 console.error('Error in clearTTSQueue:', error);
+                $.toast('Error clearing TTS queue');
             });
+            $.toast('TTS queue cleared');
         });
 
         // Make necessary methods available globally
@@ -78,8 +82,10 @@ class Controller {
                 try {
                     await this.messageHandler.sendToTTS(message);
                     console.log('Manual TTS message sent successfully');
+                    $.toast('Message sent to TTS');
                 } catch (error) {
                     console.error('Error sending manual TTS message:', error);
+                    $.toast('Error sending message to TTS');
                 }
             }
         });
@@ -90,8 +96,10 @@ class Controller {
                 try {
                     await this.messageHandler.sendToDisplay(message);
                     console.log('Manual display message sent successfully');
+                    $.toast('Message sent to display');
                 } catch (error) {
                     console.error('Error sending manual display message:', error);
+                    $.toast('Error sending message to display');
                 }
             }
         });
