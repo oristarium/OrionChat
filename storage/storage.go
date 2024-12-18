@@ -11,6 +11,10 @@ import (
 	"go.etcd.io/bbolt"
 )
 
+const (
+	GeneralBucket = "general"
+)
+
 // BBoltStorage implements FileStorage using BBolt
 type BBoltStorage struct {
 	db *bbolt.DB
@@ -32,6 +36,11 @@ func NewBBoltStorage(dbPath string) (*BBoltStorage, error) {
 		// Create images bucket
 		if _, err := tx.CreateBucketIfNotExists([]byte(avatar.ImagesBucket)); err != nil {
 			return fmt.Errorf("create images bucket: %w", err)
+		}
+		
+		// Add general bucket
+		if _, err := tx.CreateBucketIfNotExists([]byte(GeneralBucket)); err != nil {
+			return fmt.Errorf("create general bucket: %w", err)
 		}
 		
 		return nil

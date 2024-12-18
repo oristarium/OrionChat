@@ -6,7 +6,7 @@ const (
 	AvatarAssetsDir = "avatars" // means /assets/avatars/
 
 	// Storage
-	DBPath       = "avatars.db"
+	DBPath       = "database.db"
 	AvatarBucket = "avatars"
 	ConfigKey    = "config"
 	ImagesBucket = "avatar_images"

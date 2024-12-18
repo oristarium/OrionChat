@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"path/filepath"
@@ -127,6 +128,7 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/api/avatar-images/delete/", s.avatarHandler.HandleAvatarImageDelete)
 	http.HandleFunc("/api/avatar/upload", s.avatarHandler.HandleAvatarUpload)
 	http.HandleFunc("/tts-service", s.ttsHandler.HandleTTS)
+	http.HandleFunc("/api/kv/", s.handleKeyValue)
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
@@ -151,6 +153,74 @@ func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Broadcast(update broadcast.Update) error {
 	return s.broadcaster.Broadcast(update)
+}
+
+func (s *Server) handleKeyValue(w http.ResponseWriter, r *http.Request) {
+	store := s.fileHandler.GetStorage()
+	if store == nil {
+		http.Error(w, "Storage not available", http.StatusInternalServerError)
+		return
+	}
+
+	key := r.URL.Path[len("/api/kv/"):]
+	if key == "" {
+		http.Error(w, "Key is required", http.StatusBadRequest)
+		return
+	}
+
+	switch r.Method {
+	case http.MethodGet:
+		value, err := store.Get(key, storage.GeneralBucket)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		if value == "" {
+			http.Error(w, "Key not found", http.StatusNotFound)
+			return
+		}
+
+		// Try to parse as JSON first
+		var jsonData interface{}
+		if err := json.Unmarshal([]byte(value), &jsonData); err == nil {
+			// If it parses as JSON, return it as JSON
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(jsonData)
+		} else {
+			// If it's not JSON, return as plain text
+			w.Header().Set("Content-Type", "text/plain")
+			w.Write([]byte(value))
+		}
+
+	case http.MethodPut:
+		contentType := r.Header.Get("Content-Type")
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		defer r.Body.Close()
+
+		// If content type is JSON, validate it
+		if contentType == "application/json" {
+			var jsonData interface{}
+			if err := json.Unmarshal(body, &jsonData); err != nil {
+				http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+				return
+			}
+		}
+
+		// Store the raw value regardless of type
+		err = store.Save(key, string(body), storage.GeneralBucket)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 func main() {

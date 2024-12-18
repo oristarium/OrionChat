@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/oristarium/orionchat/storage"
 	"github.com/oristarium/orionchat/types"
 )
 
@@ -62,4 +63,11 @@ func (h *FileHandler) HandleUpload(w http.ResponseWriter, r *http.Request, optio
 	}
 
 	json.NewEncoder(w).Encode(map[string]string{"path": path})
+}
+
+func (h *FileHandler) GetStorage() *storage.BBoltStorage {
+	if store, ok := h.storage.(*storage.BBoltStorage); ok {
+		return store
+	}
+	return nil
 } 
