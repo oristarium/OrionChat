@@ -387,7 +387,7 @@
         $(async function() {
             await avatarManager.initialize();
             ttsManager = new TTSManager();
-            setupConfigPanel();
+            await setupConfigPanel();
             setupEventSource();
         });
 
@@ -408,27 +408,27 @@
         }
 
         // Configuration panel functionality
-        function setupConfigPanel() {
+        async function setupConfigPanel() {
             configManager = new ConfigManager(); // Assign to global variable
             const configInputs = configManager.getConfigInputs();
 
             // Load saved configuration on init
-            configManager.loadConfig();
+            await configManager.loadConfig();
 
             // Update event listeners
             Object.entries(configInputs).forEach(([key, config]) => {
                 if (config.input && config.value) {
-                    config.input.on('input', function() {
+                    config.input.on('input', async function() {
                         const value = $(this).val();
                         config.value.text(value);
                         config.apply(value);
-                        configManager.saveConfig();
+                        await configManager.saveConfig();
                     });
                 }
             });
 
-            // Update all event handlers to use configManager.saveConfig()
-            $('.position-btn').on('click', function() {
+            // Update position button handlers to be async
+            $('.position-btn').on('click', async function() {
                 // Remove active state from all buttons
                 $('.position-btn').removeClass('bg-white/20');
                 // Add active state to clicked button
@@ -440,10 +440,11 @@
                 configInputs.containerPosition.value = { justify, align };
                 configInputs.containerPosition.apply({ justify, align });
 
-                configManager.saveConfig();
+                await configManager.saveConfig();
             });
 
-            $('#stackingOrderToggle').on('click', function() {
+            // Update stacking order toggle to be async
+            $('#stackingOrderToggle').on('click', async function() {
                 const $this = $(this);
                 const currentValue = $this.data('reversed');
                 const newValue = !currentValue;
@@ -457,12 +458,36 @@
                 configInputs.stackingOrder.value = newValue;
                 configInputs.stackingOrder.apply(newValue);
 
-                configManager.saveConfig();
+                await configManager.saveConfig();
             });
 
-            $('#increaseAll, #decreaseAll').on('click', function() {
-                // ... existing code ...
-                configManager.saveConfig();
+            // Update quick resize buttons to be async
+            $('#increaseAll, #decreaseAll').on('click', async function() {
+                const isIncrease = $(this).attr('id') === 'increaseAll';
+                const factor = isIncrease ? SCALE_FACTOR : 1 / SCALE_FACTOR;
+                
+                // Scale message font size
+                const msgFont = $('#messageFontSize');
+                const newMsgSize = Math.round(msgFont.val() * factor);
+                msgFont.val(newMsgSize).trigger('input');
+                
+                // Scale author font size
+                const authorFont = $('#authorFontSize');
+                const newAuthorSize = Math.round(authorFont.val() * factor);
+                authorFont.val(newAuthorSize).trigger('input');
+                
+                // Scale avatar size
+                const avatarSize = $('#avatarSize');
+                const newAvatarSize = Math.round(avatarSize.val() * factor);
+                avatarSize.val(newAvatarSize).trigger('input');
+                
+                // Scale avatar gap
+                const avatarGap = $('#avatarGap');
+                const newGapSize = Math.round(avatarGap.val() * factor);
+                avatarGap.val(newGapSize).trigger('input');
+                
+                // Save all changes
+                await configManager.saveConfig();
             });
         }
 

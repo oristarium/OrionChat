@@ -48,7 +48,7 @@ class DisplayConfigManager {
                 }
             },
             containerPosition: {
-                value: { justify: 'end', align: 'end' },
+                value: { justify: 'center', align: 'end' },
                 apply: (value) => {
                     this.updateStyle('#viewport-container', 
                         `justify-content: ${value.justify}; align-items: ${value.align}`
@@ -64,6 +64,10 @@ class DisplayConfigManager {
             }
         };
         
+        // Apply default styles immediately
+        this.applyDefaultStyles();
+        
+        // Setup toggle button functionality
         this.setupToggleButton();
         this.setupPositionButtons();
     }
@@ -106,12 +110,52 @@ class DisplayConfigManager {
         }
     }
 
+    // Add new method to apply default styles
+    applyDefaultStyles() {
+        // Apply all default values from the config inputs
+        Object.values(this.configInputs).forEach(config => {
+            if (config.apply) {
+                if (config.input) {
+                    // Use the default value from the HTML input
+                    config.apply(config.input.val());
+                } else {
+                    // Use the default value from the config object
+                    config.apply(config.value);
+                }
+            }
+        });
+
+        // Add any additional base styles needed
+        this.updateStyle('.chat-message', `
+            display: flex;
+            align-items: center;
+            gap: 32px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center center;
+            will-change: transform, opacity;
+            max-width: 800px;
+        `);
+
+        this.updateStyle('.chat-message__content', `
+            flex-grow: 1;
+            min-width: 0;
+        `);
+
+        this.updateStyle('.chat-message__text', `
+            word-wrap: break-word;
+            line-height: 1.4;
+        `);
+    }
+
     setupToggleButton() {
         const $configToggle = $('#configToggle');
         const $configPanel = $('#configPanel');
         
         $configToggle.on('click', () => {
-            $(this).toggleClass('rotate-180');
+            $configToggle.toggleClass('rotate-180');
             $configPanel.toggleClass('hidden');
             
             // Show/hide sample message when config panel is toggled
@@ -177,10 +221,19 @@ class DisplayConfigManager {
         });
     }
 
-    loadConfig() {
-        const savedConfig = localStorage.getItem('displayConfig');
-        if (savedConfig) {
-            const config = JSON.parse(savedConfig);
+    async loadConfig() {
+        try {
+            const response = await fetch('/api/kv/displayConfig');
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('No saved config found, using defaults');
+                    return; // This is fine, we'll use default values
+                }
+                console.error('Failed to load display config:', response.statusText);
+                return;
+            }
+            
+            const config = await response.json();
             Object.entries(config).forEach(([key, value]) => {
                 if (this.configInputs[key]) {
                     if (key === 'containerPosition') {
@@ -195,10 +248,12 @@ class DisplayConfigManager {
                     }
                 }
             });
+        } catch (error) {
+            console.error('Error loading display config:', error);
         }
     }
 
-    saveConfig() {
+    async saveConfig() {
         const config = {};
         Object.entries(this.configInputs).forEach(([key, control]) => {
             if (key === 'containerPosition') {
@@ -207,26 +262,24 @@ class DisplayConfigManager {
                 config[key] = control.input.val();
             }
         });
-        localStorage.setItem('displayConfig', JSON.stringify(config));
+
+        try {
+            const response = await fetch('/api/kv/displayConfig', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save display config: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error saving display config:', error);
+        }
     }
 }
 
-// Initialize when document is ready
-$(document).ready(() => {
-    const displayConfig = new DisplayConfigManager();
-    
-    // Load saved configuration
-    displayConfig.loadConfig();
-    
-    // Setup input event listeners
-    Object.entries(displayConfig.configInputs).forEach(([key, config]) => {
-        if (config.input && config.value) {
-            config.input.on('input', function() {
-                const value = $(this).val();
-                config.value.text(value);
-                config.apply(value);
-                displayConfig.saveConfig();
-            });
-        }
-    });
-}); 
+// Remove the jQuery initialization block and just export the class
+window.DisplayConfigManager = DisplayConfigManager; 

@@ -331,15 +331,15 @@
                 <!-- Message Font Size -->
                 <div class="space-y-1">
                     <label class="text-xs block text-white/80">Message Font Size</label>
-                    <input type="range" id="messageFontSize" min="12" max="72" step="1" value="28" class="w-full">
-                    <div class="text-xs text-white/60"><span id="messageFontSizeValue">28</span>px</div>
+                    <input type="range" id="messageFontSize" min="12" max="72" step="1" value="32" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageFontSizeValue">32</span>px</div>
                 </div>
 
                 <!-- Author Name Font Size -->
                 <div class="space-y-1">
                     <label class="text-xs block text-white/80">Author Name Font Size</label>
-                    <input type="range" id="authorFontSize" min="8" max="48" step="1" value="20" class="w-full">
-                    <div class="text-xs text-white/60"><span id="authorFontSizeValue">20</span>px</div>
+                    <input type="range" id="authorFontSize" min="8" max="48" step="1" value="26" class="w-full">
+                    <div class="text-xs text-white/60"><span id="authorFontSizeValue">26</span>px</div>
                 </div>
 
                 <!-- Author Name Bottom Margin -->
@@ -351,24 +351,24 @@
                         min="-10" 
                         max="10" 
                         step="0.5" 
-                        value="0.25" 
+                        value="0" 
                         class="w-full"
                     >
-                    <div class="text-xs text-white/60"><span id="authorMarginBottomValue">0.25</span>em</div>
+                    <div class="text-xs text-white/60"><span id="authorMarginBottomValue">0</span>em</div>
                 </div>
 
                 <!-- Message Box X Padding -->
                 <div class="space-y-1">
                     <label class="text-xs block text-white/80">Message H-Padding</label>
-                    <input type="range" id="messageHPadding" min="0.2" max="3" step="0.1" value="1.5" class="w-full">
-                    <div class="text-xs text-white/60"><span id="messageHPaddingValue">1.5</span>em</div>
+                    <input type="range" id="messageHPadding" min="0.2" max="3" step="0.1" value="2" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageHPaddingValue">2</span>em</div>
                 </div>
 
                 <!-- Message Box Y Padding -->
                 <div class="space-y-1">
                     <label class="text-xs block text-white/80">Message V-Padding</label>
-                    <input type="range" id="messageVPadding" min="0.2" max="3" step="0.1" value="1.5" class="w-full">
-                    <div class="text-xs text-white/60"><span id="messageVPaddingValue">1.5</span>em</div>
+                    <input type="range" id="messageVPadding" min="0.2" max="3" step="0.1" value="1.6" class="w-full">
+                    <div class="text-xs text-white/60"><span id="messageVPaddingValue">1.6</span>em</div>
                 </div>
             </div>
 
@@ -402,58 +402,101 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/js/display-config-manager.js"></script>
     <script>
         let messageContainer = null;
-        const evtSource = new EventSource('/sse');
-        
-        evtSource.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            console.log("SSE message received - Full data:", data);
-            console.log("Message type:", data.type);
+        let displayConfig;
+        let lastMessageId = null;
 
-            // Only handle display and clear_display types
-            if (data.type !== 'display' && data.type !== 'clear_display') {
-                console.log('Ignoring non-display message type:', data.type);
-                return;
-            }
+        function setupEventSource() {
+            const evtSource = new EventSource('/sse');
+            
+            evtSource.onmessage = async (event) => {
+                const data = JSON.parse(event.data);
+                console.log("SSE message received - Full data:", data);
+                console.log("Message type:", data.type);
 
-            // Handle clear display command
-            if (data.type === "clear_display") {
-                console.log("Clear display command received");
-                if (messageContainer) {
-                    console.log("Starting fade out animation");
-                    
-                    const animation = messageContainer.animate([
-                        {
-                            opacity: 1,
-                            transform: 'translateY(0)'
-                        },
-                        {
-                            opacity: 0,
-                            transform: 'translateY(2vh)'
-                        }
-                    ], {
-                        duration: 300,
-                        easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
-                        fill: 'forwards'
-                    });
-
-                    animation.onfinish = () => {
-                        console.log("Animation completed");
-                        if (messageContainer && messageContainer.parentNode) {
-                            messageContainer.remove();
-                            messageContainer = null;
-                            console.log("Message container removed");
-                        }
-                    };
-                } else {
-                    console.log("No message container to clear");
+                // Only handle display and clear_display types
+                if (data.type !== 'display' && data.type !== 'clear_display') {
+                    console.log('Ignoring non-display message type:', data.type);
+                    return;
                 }
-                return;
-            }
 
-            // Handle display message
-            const chatMessage = data.data.message;
+                // Handle clear display command
+                if (data.type === "clear_display") {
+                    clearDisplay();
+                    return;
+                }
+
+                // Handle display message
+                const chatMessage = data.data.message;
+                
+                // Check if this is a duplicate message
+                if (lastMessageId === chatMessage.message_id) {
+                    console.log('Duplicate message detected, clearing display');
+                    clearDisplay();
+                    lastMessageId = null; // Reset the last message ID
+                    return;
+                }
+
+                // Update last message ID
+                lastMessageId = chatMessage.message_id;
+
+                // Create and display the new message
+                displayMessage(chatMessage);
+            };
+
+            evtSource.onerror = (error) => {
+                console.error("SSE connection error:", error);
+                setTimeout(() => {
+                    console.log("Attempting to reconnect...");
+                    evtSource.close();
+                    location.reload();
+                }, 1000);
+            };
+
+            evtSource.onopen = () => {
+                console.log("SSE connection established");
+            };
+        }
+
+        // Separate the clear display logic
+        function clearDisplay() {
+            console.log("Clearing display");
+            if (messageContainer) {
+                console.log("Starting fade out animation");
+                
+                const animation = messageContainer.animate([
+                    {
+                        opacity: 1,
+                        transform: 'translateY(0)'
+                    },
+                    {
+                        opacity: 0,
+                        transform: 'translateY(2vh)'
+                    }
+                ], {
+                    duration: 300,
+                    easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+                    fill: 'forwards'
+                });
+
+                animation.onfinish = () => {
+                    console.log("Animation completed");
+                    if (messageContainer && messageContainer.parentNode) {
+                        messageContainer.remove();
+                        messageContainer = null;
+                        console.log("Message container removed");
+                    }
+                };
+            } else {
+                console.log("No message container to clear");
+            }
+        }
+
+        // Separate the display message logic
+        function displayMessage(chatMessage) {
             const platform = chatMessage.platform;
 
             // Create a new container for the animation to restart
@@ -482,15 +525,6 @@
                 ? `background-color: ${chatMessage.data.metadata.monetary_data?.color || '#4CAF50'};`
                 : '';
 
-            // Add this function to get role classes
-            function getRoleClasses(roles) {
-                if (roles.broadcaster) return 'chat-message_role-broadcaster';
-                if (roles.moderator) return 'chat-message_role-moderator';
-                if (roles.subscriber) return 'chat-message_role-subscriber';
-                if (roles.verified) return 'chat-message_role-verified';
-                return '';
-            }
-
             // Update the message container HTML template
             newContainer.innerHTML = `
                 <img class="chat-message__avatar" src="${avatarUrl}" alt="${authorName}'s avatar">
@@ -518,22 +552,44 @@
             
             // Update the container reference
             messageContainer = newContainer;
-        };
+        }
 
-        evtSource.onerror = (error) => {
-            console.error("SSE connection error:", error);
-            setTimeout(() => {
-                console.log("Attempting to reconnect...");
-                evtSource.close();
-                location.reload();
-            }, 1000);
-        };
+        // Keep the getRoleClasses function
+        function getRoleClasses(roles) {
+            if (roles.broadcaster) return 'chat-message_role-broadcaster';
+            if (roles.moderator) return 'chat-message_role-moderator';
+            if (roles.subscriber) return 'chat-message_role-subscriber';
+            if (roles.verified) return 'chat-message_role-verified';
+            return '';
+        }
 
-        evtSource.onopen = () => {
-            console.log("SSE connection established");
-        };
+        // Initialize the application
+        $(async function() {
+            try {
+                // Create global instance
+                displayConfig = new DisplayConfigManager();
+                window.displayConfig = displayConfig; // Make it globally available
+                
+                // Load saved configuration
+                await displayConfig.loadConfig();
+                
+                // Setup input event listeners
+                Object.entries(displayConfig.configInputs).forEach(([key, config]) => {
+                    if (config.input && config.value) {
+                        config.input.on('input', async function() {
+                            const value = $(this).val();
+                            config.value.text(value);
+                            config.apply(value);
+                            await displayConfig.saveConfig();
+                        });
+                    }
+                });
+
+                setupEventSource();
+            } catch (error) {
+                console.error('Error initializing display config:', error);
+            }
+        });
     </script>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="/js/display-config-manager.js"></script>
 </body>
 </html> 

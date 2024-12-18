@@ -116,10 +116,29 @@ class ConfigManager {
         });
     }
 
-    loadConfig() {
-        const savedConfig = localStorage.getItem('ttsConfig');
-        if (savedConfig) {
-            const config = JSON.parse(savedConfig);
+    async loadConfig() {
+        try {
+            const response = await fetch('/api/kv/ttsConfig');
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('No saved config found, using defaults');
+                    // Apply default values
+                    Object.values(this.configInputs).forEach(config => {
+                        if (config.apply) {
+                            if (config.input) {
+                                config.apply(config.input.val());
+                            } else {
+                                config.apply(config.value);
+                            }
+                        }
+                    });
+                    return;
+                }
+                console.error('Failed to load config:', response.statusText);
+                return;
+            }
+            
+            const config = await response.json();
             Object.entries(config).forEach(([key, value]) => {
                 if (this.configInputs[key]) {
                     if (key === 'containerPosition' || key === 'stackingOrder') {
@@ -142,10 +161,22 @@ class ConfigManager {
                     }
                 }
             });
+        } catch (error) {
+            console.error('Error loading config:', error);
+            // Apply default values on error
+            Object.values(this.configInputs).forEach(config => {
+                if (config.apply) {
+                    if (config.input) {
+                        config.apply(config.input.val());
+                    } else {
+                        config.apply(config.value);
+                    }
+                }
+            });
         }
     }
 
-    saveConfig() {
+    async saveConfig() {
         const config = {};
         Object.entries(this.configInputs).forEach(([key, control]) => {
             if (key === 'containerPosition' || key === 'stackingOrder') {
@@ -154,7 +185,22 @@ class ConfigManager {
                 config[key] = control.input.val();
             }
         });
-        localStorage.setItem('ttsConfig', JSON.stringify(config));
+
+        try {
+            const response = await fetch('/api/kv/ttsConfig', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(config)
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to save config: ${response.statusText}`);
+            }
+        } catch (error) {
+            console.error('Error saving config:', error);
+        }
     }
 
     getConfigInputs() {
