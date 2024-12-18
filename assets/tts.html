@@ -42,7 +42,21 @@
     </button>
 
     <div id="configPanel" class="fixed top-4 left-16 bg-black/80 text-white p-4 rounded shadow-lg z-[1000] hidden min-w-[600px]">
-        <div class="text-sm font-bold mb-3 border-b border-white/20 pb-1">Configurer</div>
+        <div class="flex items-center justify-between mb-4">
+            <div class="text-sm font-bold border-b border-white/20 pb-1">Configurer</div>
+            <div class="flex gap-2">
+                <button id="decreaseAll" class="px-3 py-1.5 bg-black/40 rounded text-xs text-white/80 hover:bg-white/20 transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                    </svg>
+                </button>
+                <button id="increaseAll" class="px-3 py-1.5 bg-black/40 rounded text-xs text-white/80 hover:bg-white/20 transition-colors">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
         
         <div class="grid grid-cols-3 gap-6">
             <!-- Text Settings Group -->
@@ -58,10 +72,10 @@
                             min="12" 
                             max="72" 
                             step="1" 
-                            value="36" 
+                            value="27" 
                             class="w-full"
                         >
-                        <div class="text-xs text-white/60"><span id="messageFontSizeValue">36</span>px</div>
+                        <div class="text-xs text-white/60"><span id="messageFontSizeValue">27</span>px</div>
                     </div>
 
                     <!-- Author Name Font Size -->
@@ -73,25 +87,40 @@
                             min="8" 
                             max="48" 
                             step="1" 
-                            value="20" 
+                            value="17" 
                             class="w-full"
                         >
-                        <div class="text-xs text-white/60"><span id="authorFontSizeValue">20</span>px</div>
+                        <div class="text-xs text-white/60"><span id="authorFontSizeValue">17</span>px</div>
                     </div>
 
-                    <!-- Message Box Padding -->
+                    <!-- Message Horizontal Padding -->
                     <div class="space-y-1">
-                        <label class="text-xs block text-white/80">Message Box Padding</label>
+                        <label class="text-xs block text-white/80">Message H-Padding</label>
                         <input 
                             type="range" 
-                            id="messagePadding" 
+                            id="messageHPadding" 
                             min="0.2" 
                             max="3" 
                             step="0.1" 
-                            value="0.5" 
+                            value="0.7" 
                             class="w-full"
                         >
-                        <div class="text-xs text-white/60"><span id="messagePaddingValue">0.5</span>em</div>
+                        <div class="text-xs text-white/60"><span id="messageHPaddingValue">0.7</span>em</div>
+                    </div>
+
+                    <!-- Message Vertical Padding -->
+                    <div class="space-y-1">
+                        <label class="text-xs block text-white/80">Message V-Padding</label>
+                        <input 
+                            type="range" 
+                            id="messageVPadding" 
+                            min="0.2" 
+                            max="3" 
+                            step="0.1" 
+                            value="0.7" 
+                            class="w-full"
+                        >
+                        <div class="text-xs text-white/60"><span id="messageVPaddingValue">0.7</span>em</div>
                     </div>
                 </div>
             </div>
@@ -125,10 +154,10 @@
                         min="100" 
                         max="800" 
                         step="50" 
-                        value="400" 
+                        value="500" 
                         class="w-full"
                     >
-                    <div class="text-xs text-white/60"><span id="avatarSizeValue">400</span>px</div>
+                    <div class="text-xs text-white/60"><span id="avatarSizeValue">500</span>px</div>
                 </div>
 
                 <!-- Avatar Gap -->
@@ -140,10 +169,10 @@
                         min="-500" 
                         max="500" 
                         step="10" 
-                        value="0" 
+                        value="120" 
                         class="w-full"
                     >
-                    <div class="text-xs text-white/60"><span id="avatarGapValue">0</span>px</div>
+                    <div class="text-xs text-white/60"><span id="avatarGapValue">120</span>px</div>
                 </div>
 
                 <!-- Stacking Order -->
@@ -164,18 +193,18 @@
         </div>
     </div>
 
-    <div id="avatars-wrapper" class="flex justify-left items-end w-full h-screen w-screen">
+    <div id="avatars-wrapper" class="flex justify-end items-end w-full h-screen w-screen px-5">
         <!-- Avatars will be dynamically inserted here -->
     </div>
 
     <template id="avatar-template">
-        <div class="avatar-container relative flex flex-col items-center w-[400px] [&:nth-child(1)]:z-50 [&:nth-child(2)]:z-40 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-20 [&:nth-child(5)]:z-10" data-avatar-id="">
+        <div class="avatar-container relative flex flex-col items-center w-[500px] [&:nth-child(1)]:z-50 [&:nth-child(2)]:z-40 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-20 [&:nth-child(5)]:z-10" data-avatar-id="">
             <div class="message-bubble absolute bottom-full mb-4 max-h-[50vh] w-fit bg-white/90 text-black rounded-lg text-center shadow-lg translate-y-2.5 transition-all duration-300 text-[36px] font-bold opacity-0 [&.show]:opacity-100 [&.show]:translate-y-0 p-[0.5em]"></div>
             <div class="username bg-black/50 text-white px-4 py-2 rounded-lg font-bold mb-2 whitespace-nowrap overflow-hidden text-ellipsis text-center translate-y-2.5 transition-all duration-300 text-[20px] opacity-0 [&.show]:opacity-100 [&.show]:translate-y-0"></div>
             <div class="avatar-wrapper flex items-end justify-center m-0 p-0 w-fit h-fit">
                 <img class="avatar-image w-full h-full object-contain origin-bottom -mb-1" src="" alt="Avatar">
             </div>
-            <div class="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/70 text-white px-2.5 py-1.5 rounded text-xs pointer-events-none select-none opacity-75 flex items-center gap-1">
+            <div class="absolute bottom-1 left-1/2 -translate-x-1/2 bg-black/70 text-white px-2.5 py-1.5 rounded text-xs pointer-events-none select-none opacity-50 flex items-center gap-1">
                 Powered by 
                 <img 
                     src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/50x50/" 
@@ -187,6 +216,7 @@
     </template>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/js/config-manager.js"></script>
     <script>
         // Constants and Element References
         const ELEMENTS = {
@@ -196,6 +226,8 @@
             $debugQueueStatus: $('#queue-status'),
             $debugBox: $('.debug-box')
         };
+        const SCALE_FACTOR = 1.2; // 20% increase/decrease per click
+        let configManager; // Declare configManager in global scope
 
         // Add debug mode initialization
         const urlParams = new URLSearchParams(window.location.search);
@@ -248,7 +280,8 @@
                 const authorFontSize = $('#authorFontSize').val();
                 const avatarSize = $('#avatarSize').val();
                 const avatarGap = $('#avatarGap').val();
-                const messagePadding = $('#messagePadding').val();
+                const messageHPadding = $('#messageHPadding').val();
+                const messageVPadding = $('#messageVPadding').val();
                 const isStackingReversed = $('#stackingOrderToggle').data('reversed');
                 
                 // Apply configuration including stacking order
@@ -262,7 +295,10 @@
                 $container.css('marginRight', `${avatarGap}px`);
                 $container.find('.message-bubble').css({
                     'fontSize': `${messageFontSize}px`,
-                    'padding': `${messagePadding}em`
+                    'padding-left': `${messageHPadding}em`,
+                    'padding-right': `${messageHPadding}em`,
+                    'padding-top': `${messageVPadding}em`,
+                    'padding-bottom': `${messageVPadding}em`
                 });
                 $container.find('.username').css('fontSize', `${authorFontSize}px`);
                 
@@ -554,175 +590,40 @@
 
         // Configuration panel functionality
         function setupConfigPanel() {
-            const configInputs = {
-                messageFontSize: {
-                    input: $('#messageFontSize'),
-                    value: $('#messageFontSizeValue'),
-                    apply: (value) => {
-                        $('.message-bubble').css('fontSize', `${value}px`);
-                    }
-                },
-                authorFontSize: {
-                    input: $('#authorFontSize'),
-                    value: $('#authorFontSizeValue'),
-                    apply: (value) => {
-                        $('.username').css('fontSize', `${value}px`);
-                    }
-                },
-                avatarSize: {
-                    input: $('#avatarSize'),
-                    value: $('#avatarSizeValue'),
-                    apply: (value) => {
-                        $('.avatar-container').css('width', `${value}px`);
-                    }
-                },
-                avatarGap: {
-                    input: $('#avatarGap'),
-                    value: $('#avatarGapValue'),
-                    apply: (value) => {
-                        const justify = configInputs.containerPosition.value.justify;
-                        $('.avatar-container').css({
-                            'margin-left': justify === 'center' ? `${value/2}px` : 
-                                          justify === 'end' ? `${value}px` : '0',
-                            'margin-right': justify === 'center' ? `${value/2}px` : 
-                                          justify === 'start' ? `${value}px` : '0'
-                        });
-                    }
-                },
-                messagePadding: {
-                    input: $('#messagePadding'),
-                    value: $('#messagePaddingValue'),
-                    apply: (value) => {
-                        $('.message-bubble').css('padding', `${value}em`);
-                    }
-                },
-                containerPosition: {
-                    value: { justify: 'left', align: 'end' },
-                    apply: (value) => {
-                        $('#avatars-wrapper').css({
-                            'justify-content': value.justify,
-                            'align-items': value.align
-                        });
-                        // Reapply gap with new justification
-                        const gapValue = $('#avatarGap').val();
-                        configInputs.avatarGap.apply(gapValue);
-                    }
-                },
-                stackingOrder: {
-                    value: false, // false = first on top, true = reversed
-                    apply: (value) => {
-                        const $avatars = $('.avatar-container');
-                        if (value) {
-                            // Reversed: Last avatar on top
-                            $avatars.removeClass('[&:nth-child(1)]:z-50 [&:nth-child(2)]:z-40 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-20 [&:nth-child(5)]:z-10')
-                                   .addClass('[&:nth-child(1)]:z-10 [&:nth-child(2)]:z-20 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-40 [&:nth-child(5)]:z-50');
-                        } else {
-                            // Normal: First avatar on top
-                            $avatars.removeClass('[&:nth-child(1)]:z-10 [&:nth-child(2)]:z-20 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-40 [&:nth-child(5)]:z-50')
-                                   .addClass('[&:nth-child(1)]:z-50 [&:nth-child(2)]:z-40 [&:nth-child(3)]:z-30 [&:nth-child(4)]:z-20 [&:nth-child(5)]:z-10');
-                        }
-                    }
-                }
-            };
-
-            function loadConfig() {
-                const savedConfig = localStorage.getItem('ttsConfig');
-                if (savedConfig) {
-                    const config = JSON.parse(savedConfig);
-                    Object.entries(config).forEach(([key, value]) => {
-                        if (configInputs[key]) {
-                            if (key === 'containerPosition') {
-                                configInputs[key].value = value;
-                                configInputs[key].apply(value);
-                                $(`.position-btn[data-justify="${value.justify}"][data-align="${value.align}"]`)
-                                    .addClass('bg-white/20');
-                            } else {
-                                configInputs[key].input.val(value);
-                                configInputs[key].value.text(value);
-                                configInputs[key].apply(value);
-                            }
-                        }
-                    });
-                }
-            }
-
-            function saveConfig() {
-                const config = {};
-                Object.entries(configInputs).forEach(([key, control]) => {
-                    if (key === 'containerPosition' || key === 'stackingOrder') {
-                        // For button-based controls, save the value directly
-                        config[key] = control.value;
-                    } else if (control.input) {
-                        // For input-based controls, save the input value
-                        config[key] = control.input.val();
-                    }
-                });
-                localStorage.setItem('ttsConfig', JSON.stringify(config));
-            }
+            configManager = new ConfigManager(); // Assign to global variable
+            const configInputs = configManager.getConfigInputs();
 
             // Load saved configuration on init
-            loadConfig();
+            configManager.loadConfig();
 
-            // Update event listeners to use jQuery
+            // Update event listeners
             Object.entries(configInputs).forEach(([key, config]) => {
-                // Only add input listeners for controls that have input elements
                 if (config.input && config.value) {
                     config.input.on('input', function() {
                         const value = $(this).val();
                         config.value.text(value);
                         config.apply(value);
-                        saveConfig();
+                        configManager.saveConfig();
                     });
                 }
             });
 
-            // Add toggle button functionality
-            const $configToggle = $('#configToggle');
-            const $configPanel = $('#configPanel');
-            let isConfiguring = false;
-
-            $configToggle.on('click', () => {
-                isConfiguring = !isConfiguring;
-                $configPanel.toggleClass('hidden', !isConfiguring);
-                $configToggle.toggleClass('rotate-180', isConfiguring);
-                
-                // Show/hide sample text in avatars
-                $('.avatar-container').each(function() {
-                    const $messageBubble = $(this).find('.message-bubble');
-                    const $username = $(this).find('.username');
-                    
-                    if (isConfiguring) {
-                        $messageBubble
-                            .text("Sample message text here. Adjust the size using the controls!")
-                            .addClass('show');
-                        $username
-                            .text("Sample Username")
-                            .addClass('show');
-                    } else {
-                        $messageBubble.removeClass('show');
-                        $username.removeClass('show');
-                    }
-                });
-            });
-
-            // Position button handlers
+            // Update all event handlers to use configManager.saveConfig()
             $('.position-btn').on('click', function() {
+                // Remove active state from all buttons
+                $('.position-btn').removeClass('bg-white/20');
+                // Add active state to clicked button
+                $(this).addClass('bg-white/20');
+
+                // Update position value and apply
                 const justify = $(this).data('justify');
                 const align = $(this).data('align');
-                
-                // Update active state
-                $('.position-btn').removeClass('bg-white/20');
-                $(this).addClass('bg-white/20');
-                
-                // Update position
                 configInputs.containerPosition.value = { justify, align };
                 configInputs.containerPosition.apply({ justify, align });
-                
-                // Save to config
-                saveConfig();
+
+                configManager.saveConfig();
             });
 
-            // Stacking order toggle button handlers
             $('#stackingOrderToggle').on('click', function() {
                 const $this = $(this);
                 const currentValue = $this.data('reversed');
@@ -736,15 +637,48 @@
                 // Update stacking order
                 configInputs.stackingOrder.value = newValue;
                 configInputs.stackingOrder.apply(newValue);
-                
-                // Save to config
-                saveConfig();
+
+                configManager.saveConfig();
+            });
+
+            $('#increaseAll, #decreaseAll').on('click', function() {
+                // ... existing code ...
+                configManager.saveConfig();
             });
         }
 
         // Call setupConfigPanel after document is ready
         $(document).ready(function() {
             setupConfigPanel();
+        });
+
+        // Quick resize buttons handlers
+        $('#increaseAll, #decreaseAll').on('click', function() {
+            const isIncrease = $(this).attr('id') === 'increaseAll';
+            const factor = isIncrease ? SCALE_FACTOR : 1 / SCALE_FACTOR;
+            
+            // Scale message font size
+            const msgFont = $('#messageFontSize');
+            const newMsgSize = Math.round(msgFont.val() * factor);
+            msgFont.val(newMsgSize).trigger('input');
+            
+            // Scale author font size
+            const authorFont = $('#authorFontSize');
+            const newAuthorSize = Math.round(authorFont.val() * factor);
+            authorFont.val(newAuthorSize).trigger('input');
+            
+            // Scale avatar size
+            const avatarSize = $('#avatarSize');
+            const newAvatarSize = Math.round(avatarSize.val() * factor);
+            avatarSize.val(newAvatarSize).trigger('input');
+            
+            // Scale avatar gap
+            const avatarGap = $('#avatarGap');
+            const newGapSize = Math.round(avatarGap.val() * factor);
+            avatarGap.val(newGapSize).trigger('input');
+            
+            // Save all changes
+            configManager.saveConfig();
         });
     </script>
 </body>
