@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"go.etcd.io/bbolt"
@@ -91,7 +92,20 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 		})
 	})
 
-	return avatars, err
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort avatars by sort_order
+	sort.Slice(avatars, func(i, j int) bool {
+		// If sort_order is the same, sort by creation time
+		if avatars[i].SortOrder == avatars[j].SortOrder {
+			return avatars[i].CreatedAt < avatars[j].CreatedAt
+		}
+		return avatars[i].SortOrder < avatars[j].SortOrder
+	})
+
+	return avatars, nil
 }
 
 // SaveConfig saves avatar configuration

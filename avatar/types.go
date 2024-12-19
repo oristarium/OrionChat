@@ -20,6 +20,7 @@ type Avatar struct {
     IsActive    bool                   `json:"is_active"`
     CreatedAt   int64                  `json:"created_at"`
     TTSVoices   []types.TTSVoice      `json:"tts_voices"`
+    SortOrder   int                    `json:"sort_order"`
 }
 
 // AvatarList represents a list of avatars with metadata

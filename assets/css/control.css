@@ -1468,3 +1468,51 @@ button:not(:disabled):hover {
     text-align: center;
     color: var(--text-secondary);
 }
+
+/* Add drag handle styles */
+.drag-handle {
+    cursor: move;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    width: 30px !important;
+    text-align: center;
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+/* Style for dragging state */
+.avatar-row.dragging {
+    cursor: move;
+    box-shadow: var(--shadow-md);
+    z-index: 1000;
+}
+
+.avatar-row.ui-sortable-helper {
+    display: table;
+    border-collapse: collapse;
+    width: 100%;
+}
+
+/* Ensure table header stays in place */
+.tts-table thead th {
+    background: var(--color-secondary);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+
+/* Add placeholder styles */
+.ui-sortable-placeholder {
+    visibility: visible !important;
+    background: var(--color-secondary) !important;
+    border: 2px dashed var(--border-color) !important;
+    height: 82px !important; /* Match row height */
+}
+
+/* Prevent text selection while dragging */
+.avatar-row.dragging * {
+    user-select: none;
+}

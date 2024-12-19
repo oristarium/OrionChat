@@ -58,6 +58,7 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 			},
 			IsDefault: true,
 			CreatedAt: time.Now().Unix(),
+			SortOrder: 0,
 		}
 		
 		response := avatar.AvatarList{
@@ -118,6 +119,12 @@ func (h *AvatarHandler) HandleAvatarDetail(w http.ResponseWriter, r *http.Reques
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
+	case "sort":
+		if r.Method != http.MethodPut {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.handleSetAvatarSort(w, r, id)
 	default:
 		http.Error(w, "Invalid action", http.StatusBadRequest)
 	}
@@ -223,6 +230,22 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Get all existing avatars to determine the highest sort order
+	existingAvatars, err := h.avatarManager.ListAvatars()
+	if err != nil {
+		log.Printf("Error getting existing avatars: %v", err)
+		http.Error(w, "Failed to create avatar", http.StatusInternalServerError)
+		return
+	}
+
+	// Find the highest sort order
+	maxSortOrder := 0
+	for _, a := range existingAvatars {
+		if a.SortOrder > maxSortOrder {
+			maxSortOrder = a.SortOrder
+		}
+	}
+
 	// Generate ID first
 	id := fmt.Sprintf("avatar_%d", time.Now().UnixNano())
 	
@@ -237,6 +260,7 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 		IsDefault: false,
 		IsActive:  false,
 		CreatedAt: time.Now().Unix(),
+		SortOrder: maxSortOrder + 1, // Set the sort order to be highest + 1
 	}
 
 	if err := h.avatarManager.Storage.SaveAvatar(newAvatar); err != nil {
@@ -427,6 +451,38 @@ func (h *AvatarHandler) handleSetAvatarVoices(w http.ResponseWriter, r *http.Req
 
 	// Update voices
 	existingAvatar.TTSVoices = request.Voices
+
+	// Save updated avatar
+	if err := h.avatarManager.Storage.SaveAvatar(existingAvatar); err != nil {
+		http.Error(w, "Failed to save avatar", http.StatusInternalServerError)
+		return
+	}
+
+	// Broadcast the update
+	h.broadcastAvatarUpdate()
+
+	w.WriteHeader(http.StatusOK)
+}
+
+// handleSetAvatarSort handles PUT /api/avatars/{id}/sort
+func (h *AvatarHandler) handleSetAvatarSort(w http.ResponseWriter, r *http.Request, id string) {
+	var request struct {
+		SortOrder int `json:"sort_order"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get existing avatar
+	existingAvatar, err := h.avatarManager.Storage.GetAvatar(id)
+	if err != nil {
+		http.Error(w, "Avatar not found", http.StatusNotFound)
+		return
+	}
+
+	// Update sort order
+	existingAvatar.SortOrder = request.SortOrder
 
 	// Save updated avatar
 	if err := h.avatarManager.Storage.SaveAvatar(existingAvatar); err != nil {

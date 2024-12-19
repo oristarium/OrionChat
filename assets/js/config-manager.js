@@ -84,6 +84,80 @@ class ConfigManager {
         
         // Setup toggle button functionality
         this.setupToggleButton();
+        
+        // Setup event listeners for all inputs
+        this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        // Setup range input listeners
+        Object.entries(this.configInputs).forEach(([key, config]) => {
+            if (config.input) {
+                config.input.on('input', (e) => {
+                    const value = e.target.value;
+                    config.value.text(value);
+                    config.apply(value);
+                    this.saveConfig();
+                });
+            }
+        });
+
+        // Setup position button listeners
+        $('.position-btn').on('click', (e) => {
+            const $btn = $(e.currentTarget);
+            $('.position-btn').removeClass('bg-white/20');
+            $btn.addClass('bg-white/20');
+            
+            const justify = $btn.data('justify');
+            const align = $btn.data('align');
+            this.configInputs.containerPosition.value = { justify, align };
+            this.configInputs.containerPosition.apply({ justify, align });
+            this.saveConfig();
+        });
+
+        // Setup stacking order toggle
+        $('#stackingOrderToggle').on('click', (e) => {
+            const $toggle = $(e.currentTarget);
+            const currentValue = $toggle.data('reversed');
+            const newValue = !currentValue;
+            
+            $toggle.data('reversed', newValue);
+            $toggle.find('span').text(newValue ? 'Last Avatar on Top' : 'First Avatar on Top');
+            $toggle.find('svg').toggleClass('rotate-180', newValue);
+            
+            this.configInputs.stackingOrder.value = newValue;
+            this.configInputs.stackingOrder.apply(newValue);
+            this.saveConfig();
+        });
+
+        // Setup increase/decrease all buttons
+        $('#increaseAll').on('click', () => {
+            Object.entries(this.configInputs).forEach(([key, config]) => {
+                if (config.input) {
+                    const input = config.input[0];
+                    const step = parseFloat(input.step) || 1;
+                    const newValue = Math.min(parseFloat(input.value) + step, input.max);
+                    input.value = newValue;
+                    config.value.text(newValue);
+                    config.apply(newValue);
+                }
+            });
+            this.saveConfig();
+        });
+
+        $('#decreaseAll').on('click', () => {
+            Object.entries(this.configInputs).forEach(([key, config]) => {
+                if (config.input) {
+                    const input = config.input[0];
+                    const step = parseFloat(input.step) || 1;
+                    const newValue = Math.max(parseFloat(input.value) - step, input.min);
+                    input.value = newValue;
+                    config.value.text(newValue);
+                    config.apply(newValue);
+                }
+            });
+            this.saveConfig();
+        });
     }
 
     setupToggleButton() {
