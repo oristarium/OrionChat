@@ -48,21 +48,21 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error listing avatars: %v", err)
 		// Return default avatar instead of error
-		defaultAvatar := avatar.Avatar{
+		defaultAvatar := types.Avatar{
 			ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
 			Name:        "Default",
 			Description: "Default avatar",
-			States: map[avatar.AvatarState]string{
-				avatar.StateIdle:    fmt.Sprintf("/%s/idle.png", avatar.AvatarAssetsDir),
-				avatar.StateTalking: fmt.Sprintf("/%s/talking.gif", avatar.AvatarAssetsDir),
+			States: map[types.AvatarState]string{
+				types.StateIdle:    fmt.Sprintf("/%s/idle.png", avatar.AvatarAssetsDir),
+				types.StateTalking: fmt.Sprintf("/%s/talking.gif", avatar.AvatarAssetsDir),
 			},
 			IsDefault: true,
 			CreatedAt: time.Now().Unix(),
 			SortOrder: 0,
 		}
 		
-		response := avatar.AvatarList{
-			Avatars: []avatar.Avatar{defaultAvatar},
+		response := types.AvatarList{
+			Avatars: []types.Avatar{defaultAvatar},
 		}
 		
 		json.NewEncoder(w).Encode(response)
@@ -70,7 +70,7 @@ func (h *AvatarHandler) HandleAvatars(w http.ResponseWriter, r *http.Request) {
 	}
 
 
-	response := avatar.AvatarList{
+	response := types.AvatarList{
 		Avatars: avatars,
 	}
 
@@ -148,7 +148,7 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 	var request struct {
 		Name        string                        `json:"name,omitempty"`
 		Description string                        `json:"description,omitempty"`
-		States      map[avatar.AvatarState]string `json:"states,omitempty"`
+		States      map[types.AvatarState]string `json:"states,omitempty"`
 		IsActive    *bool                         `json:"is_active,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
@@ -178,7 +178,7 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 	if request.States != nil {
 		// Initialize states map if it doesn't exist
 		if existingAvatar.States == nil {
-			existingAvatar.States = make(map[avatar.AvatarState]string)
+			existingAvatar.States = make(map[types.AvatarState]string)
 		}
 		// Merge new states with existing ones
 		for state, path := range request.States {
@@ -213,7 +213,7 @@ func (h *AvatarHandler) HandleActiveAvatars(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	response := avatar.AvatarList{
+	response := types.AvatarList{
 		Avatars: avatars,
 	}
 
@@ -249,13 +249,13 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 	// Generate ID first
 	id := fmt.Sprintf("avatar_%d", time.Now().UnixNano())
 	
-	newAvatar := avatar.Avatar{
+	newAvatar := types.Avatar{
 		ID:          id,  // Set the ID explicitly
 		Name:        "New Avatar",
 		Description: "New avatar",
-		States: map[avatar.AvatarState]string{
-			avatar.StateIdle:    "/avatars/idle.png",
-			avatar.StateTalking: "/avatars/talking.gif",
+		States: map[types.AvatarState]string{
+			types.StateIdle:    "/avatars/idle.png",
+			types.StateTalking: "/avatars/talking.gif",
 		},
 		IsDefault: false,
 		IsActive:  false,

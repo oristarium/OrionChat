@@ -1,19 +1,21 @@
-package tts
+package handlers
 
 import (
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/oristarium/orionchat/tts"
 )
 
 // TTSHandler handles HTTP requests for TTS operations
 type TTSHandler struct {
-	service *TTSService
+	service *tts.TTSService
 }
 
 // NewTTSHandler creates a new TTS handler
-func NewTTSHandler(service *TTSService) *TTSHandler {
+func NewTTSHandler(service *tts.TTSService) *TTSHandler {
 	return &TTSHandler{
 		service: service,
 	}
@@ -40,7 +42,7 @@ func (h *TTSHandler) HandleTTS(w http.ResponseWriter, r *http.Request) {
 	log.Printf("TTS Request - Text: %q, VoiceID: %q, Provider: %q", request.Text, request.VoiceID, request.VoiceProvider)
 
 	// Get the requested provider
-	provider, err := GetProvider(request.VoiceProvider)
+	provider, err := tts.GetProvider(request.VoiceProvider)
 	if err != nil {
 		log.Printf("Provider error: %v", err)
 		http.Error(w, fmt.Sprintf("TTS provider error: %v", err), http.StatusBadRequest)

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/oristarium/orionchat/types"
 	"go.etcd.io/bbolt"
 )
 
@@ -21,7 +22,7 @@ func NewStorage(db *bbolt.DB) *Storage {
 }
 
 // SaveAvatar saves or updates an avatar
-func (s *Storage) SaveAvatar(avatar Avatar) error {
+func (s *Storage) SaveAvatar(avatar types.Avatar) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(AvatarBucket))
 		if err != nil {
@@ -45,8 +46,8 @@ func (s *Storage) SaveAvatar(avatar Avatar) error {
 }
 
 // GetAvatar retrieves an avatar by ID
-func (s *Storage) GetAvatar(id string) (Avatar, error) {
-	var avatar Avatar
+func (s *Storage) GetAvatar(id string) (types.Avatar, error) {
+	var avatar types.Avatar
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(AvatarBucket))
 		if b == nil {
@@ -64,8 +65,8 @@ func (s *Storage) GetAvatar(id string) (Avatar, error) {
 }
 
 // ListAvatars returns all avatars
-func (s *Storage) ListAvatars() ([]Avatar, error) {
-	var avatars []Avatar
+func (s *Storage) ListAvatars() ([]types.Avatar, error) {
+	var avatars []types.Avatar
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(AvatarBucket))
 		if b == nil {
@@ -82,7 +83,7 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 				return nil
 			}
 
-			var avatar Avatar
+			var avatar types.Avatar
 			if err := json.Unmarshal(v, &avatar); err != nil {
 				log.Printf("Error unmarshaling avatar data %q: %v", string(v), err)
 				return fmt.Errorf("unmarshal avatar: %w", err)
@@ -109,7 +110,7 @@ func (s *Storage) ListAvatars() ([]Avatar, error) {
 }
 
 // SaveConfig saves avatar configuration
-func (s *Storage) SaveConfig(config AvatarList) error {
+func (s *Storage) SaveConfig(config types.AvatarList) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(AvatarBucket))
 		if err != nil {
@@ -126,8 +127,8 @@ func (s *Storage) SaveConfig(config AvatarList) error {
 }
 
 // GetConfig retrieves avatar configuration
-func (s *Storage) GetConfig() (AvatarList, error) {
-	var config AvatarList
+func (s *Storage) GetConfig() (types.AvatarList, error) {
+	var config types.AvatarList
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(AvatarBucket))
 		if b == nil {
@@ -145,7 +146,7 @@ func (s *Storage) GetConfig() (AvatarList, error) {
 }
 
 // SaveAvatarImage records a new avatar image in the database
-func (s *Storage) SaveAvatarImage(image AvatarImage) error {
+func (s *Storage) SaveAvatarImage(image types.AvatarImage) error {
 	return s.db.Update(func(tx *bbolt.Tx) error {
 		b, err := tx.CreateBucketIfNotExists([]byte(ImagesBucket))
 		if err != nil {
@@ -163,8 +164,8 @@ func (s *Storage) SaveAvatarImage(image AvatarImage) error {
 }
 
 // GetAvatarImage retrieves an avatar image by path
-func (s *Storage) GetAvatarImage(path string) (AvatarImage, error) {
-	var image AvatarImage
+func (s *Storage) GetAvatarImage(path string) (types.AvatarImage, error) {
+	var image types.AvatarImage
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(ImagesBucket))
 		if b == nil {
@@ -182,8 +183,8 @@ func (s *Storage) GetAvatarImage(path string) (AvatarImage, error) {
 }
 
 // ListAvatarImages returns all available avatar images
-func (s *Storage) ListAvatarImages() ([]AvatarImage, error) {
-	var images []AvatarImage
+func (s *Storage) ListAvatarImages() ([]types.AvatarImage, error) {
+	var images []types.AvatarImage
 	err := s.db.View(func(tx *bbolt.Tx) error {
 		b := tx.Bucket([]byte(ImagesBucket))
 		if b == nil {
@@ -191,7 +192,7 @@ func (s *Storage) ListAvatarImages() ([]AvatarImage, error) {
 		}
 
 		return b.ForEach(func(k, v []byte) error {
-			var image AvatarImage
+			var image types.AvatarImage
 			if err := json.Unmarshal(v, &image); err != nil {
 				return fmt.Errorf("unmarshal image: %w", err)
 			}

@@ -13,14 +13,14 @@ import (
 // Manager handles avatar business logic
 type Manager struct {
 	Storage *Storage
-	config  AvatarList
+	config  types.AvatarList
 }
 
 // NewManager creates a new avatar manager
 func NewManager(storage *Storage) (*Manager, error) {
 	m := &Manager{
 		Storage: storage,
-		config:  AvatarList{},
+		config:  types.AvatarList{},
 	}
 
 	// Load or initialize config
@@ -30,7 +30,7 @@ func NewManager(storage *Storage) (*Manager, error) {
 			return nil, fmt.Errorf("get config: %w", err)
 		}
 		// Initialize empty config if not found
-		config = AvatarList{}
+		config = types.AvatarList{}
 		if err := storage.SaveConfig(config); err != nil {
 			return nil, fmt.Errorf("save initial config: %w", err)
 		}
@@ -90,13 +90,13 @@ func (m *Manager) initializeDefaultAvatar() error {
 		}
 	}
 
-	defaultAvatar := Avatar{
+	defaultAvatar := types.Avatar{
 		ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
 		Name:        "Default",
 		Description: "Default avatar",
-		States: map[AvatarState]string{
-			StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
-			StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
+		States: map[types.AvatarState]string{
+			types.StateIdle:    fmt.Sprintf("/%s/idle.png", AvatarAssetsDir),
+			types.StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
 		},
 		IsDefault: true,
 		IsActive:  true,
@@ -114,7 +114,7 @@ func (m *Manager) initializeDefaultAvatar() error {
 		return fmt.Errorf("save default avatar: %w", err)
 	}
 
-	m.config.Avatars = []Avatar{defaultAvatar}
+	m.config.Avatars = []types.Avatar{defaultAvatar}
 	// m.config.HasDefault = true
 	// m.config.CurrentID = defaultAvatar.ID
 
@@ -123,8 +123,8 @@ func (m *Manager) initializeDefaultAvatar() error {
 }
 
 // CreateAvatar creates a new avatar
-func (m *Manager) CreateAvatar(name, description string, states map[AvatarState]string) (*Avatar, error) {
-	avatar := Avatar{
+func (m *Manager) CreateAvatar(name, description string, states map[types.AvatarState]string) (*types.Avatar, error) {
+	avatar := types.Avatar{
 		ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
 		Name:        name,
 		Description: description,
@@ -193,7 +193,7 @@ func (m *Manager) CreateAvatar(name, description string, states map[AvatarState]
 // }
 
 // GetAvatarState returns the file path for a specific avatar state
-func (m *Manager) GetAvatarState(id string, state AvatarState) (string, error) {
+func (m *Manager) GetAvatarState(id string, state types.AvatarState) (string, error) {
 	avatar, err := m.Storage.GetAvatar(id)
 	if err != nil {
 		return "", fmt.Errorf("get avatar: %w", err)
@@ -208,7 +208,7 @@ func (m *Manager) GetAvatarState(id string, state AvatarState) (string, error) {
 }
 
 // UpdateAvatarState updates a specific state for an avatar
-func (m *Manager) UpdateAvatarState(id string, state AvatarState, imagePath string) error {
+func (m *Manager) UpdateAvatarState(id string, state types.AvatarState, imagePath string) error {
 	log.Printf("UpdateAvatarState called - ID: %s, State: %s, Path: %s", id, state, imagePath)
 
 	// Verify image exists
@@ -227,7 +227,7 @@ func (m *Manager) UpdateAvatarState(id string, state AvatarState, imagePath stri
 
 	if avatar.States == nil {
 		log.Printf("Initializing States map")
-		avatar.States = make(map[AvatarState]string)
+		avatar.States = make(map[types.AvatarState]string)
 	}
 
 	avatar.States[state] = imagePath
@@ -237,7 +237,7 @@ func (m *Manager) UpdateAvatarState(id string, state AvatarState, imagePath stri
 }
 
 // ListAvatars returns all available avatars
-func (m *Manager) ListAvatars() ([]Avatar, error) {
+func (m *Manager) ListAvatars() ([]types.Avatar, error) {
 	return m.Storage.ListAvatars()
 }
 
@@ -259,7 +259,7 @@ func (m *Manager) DeleteAvatar(id string) error {
 	}
 
 	// Then remove from config
-	var updatedAvatars []Avatar
+	var updatedAvatars []types.Avatar
 	for _, a := range m.config.Avatars {
 		if a.ID != id {
 			updatedAvatars = append(updatedAvatars, a)
@@ -271,14 +271,14 @@ func (m *Manager) DeleteAvatar(id string) error {
 }
 
 // ValidateAvatarState checks if a file is valid for the given state
-func (m *Manager) ValidateAvatarState(filePath string, state AvatarState) error {
+func (m *Manager) ValidateAvatarState(filePath string, state types.AvatarState) error {
 	ext := filepath.Ext(filePath)
 	switch state {
-	case StateIdle:
+	case types.StateIdle:
 		if ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
 			return fmt.Errorf("idle state must be a static image (png/jpg)")
 		}
-	case StateTalking:
+	case types.StateTalking:
 		if ext != ".gif" {
 			return fmt.Errorf("talking state must be an animated gif")
 		}
@@ -291,7 +291,7 @@ func (m *Manager) ValidateAvatarState(filePath string, state AvatarState) error 
 // RegisterAvatarImage adds a new avatar image to the system
 func (m *Manager) RegisterAvatarImage(path string) error {
 	ext := filepath.Ext(path)
-	image := AvatarImage{
+	image := types.AvatarImage{
 		Path:      path,
 		Type:      ext[1:], // remove dot
 		CreatedAt: time.Now().Unix(),
@@ -300,13 +300,13 @@ func (m *Manager) RegisterAvatarImage(path string) error {
 }
 
 // GetActiveAvatars returns all active avatars
-func (m *Manager) GetActiveAvatars() ([]Avatar, error) {
+func (m *Manager) GetActiveAvatars() ([]types.Avatar, error) {
 	avatars, err := m.Storage.ListAvatars()
 	if err != nil {
 		return nil, fmt.Errorf("list avatars: %w", err)
 	}
 
-	var activeAvatars []Avatar
+	var activeAvatars []types.Avatar
 	for _, avatar := range avatars {
 		if avatar.IsActive {
 			activeAvatars = append(activeAvatars, avatar)

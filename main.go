@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/oristarium/orionchat/avatar" // Replace with your actual module name
-	"github.com/oristarium/orionchat/tts"    // Replace with your actual module name
-	"github.com/oristarium/orionchat/ui"     // Add this import
+	"github.com/oristarium/orionchat/avatar"
+	"github.com/oristarium/orionchat/tts"
+	"github.com/oristarium/orionchat/ui"
 
 	"github.com/oristarium/orionchat/broadcast"
 	"github.com/oristarium/orionchat/handlers"
@@ -30,7 +30,7 @@ const (
 type Server struct {
 	config  types.Config
 	fileHandler *handlers.FileHandler
-	ttsHandler *tts.TTSHandler
+	ttsHandler *handlers.TTSHandler
 	avatarManager *avatar.Manager
 	avatarHandler *handlers.AvatarHandler
 	broadcaster *broadcast.Broadcaster
@@ -65,7 +65,7 @@ func NewServer() *Server {
 			},
 		},
 		fileHandler:   fileHandler,
-		ttsHandler:    tts.NewTTSHandler(ttsService),
+		ttsHandler:    handlers.NewTTSHandler(ttsService),
 		avatarManager: avatarManager,
 		broadcaster: broadcast.New(),
 	}
