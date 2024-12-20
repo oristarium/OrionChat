@@ -93,6 +93,32 @@ export class AvatarManager {
                 await this.deleteAvatar(avatarId);
             }
         });
+
+        // Add copy URL button handler
+        $(document).on('click', '.copy-url-btn', async (e) => {
+            const avatarId = $(e.target).closest('.copy-url-btn').data('avatarId');
+            const url = `${window.location.origin}/avatar/${avatarId}`;
+            
+            try {
+                await navigator.clipboard.writeText(url);
+                $.toast({
+                    text: 'URL copied to clipboard!',
+                    position: 'bottom-right',
+                    showHideTransition: 'slide',
+                    icon: 'success',
+                    hideAfter: 3000
+                });
+            } catch (err) {
+                console.error('Failed to copy URL:', err);
+                $.toast({
+                    text: 'Failed to copy URL',
+                    position: 'bottom-right',
+                    showHideTransition: 'slide',
+                    icon: 'error',
+                    hideAfter: 3000
+                });
+            }
+        });
     }
 
     async loadAvatars() {
@@ -139,6 +165,13 @@ export class AvatarManager {
                             <path d="M8 2v12M4 6v4M12 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                         <span class="voice-count">${(avatar.tts_voices || []).length}</span>
+                    </button>
+                </td>
+                <td>
+                    <button class="copy-url-btn" data-avatar-id="${avatar.id}" title="Copy avatar URL">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.3 4.7L11.3 2.7C11.1 2.5 10.9 2.4 10.6 2.4H5.4C4.6 2.4 4 3 4 3.8V12.2C4 13 4.6 13.6 5.4 13.6H10.6C11.4 13.6 12 13 12 12.2V5.4C12 5.1 11.9 4.9 11.7 4.7L13.3 4.7ZM10.6 12.4H5.4C5.2 12.4 5 12.2 5 12V4C5 3.8 5.2 3.6 5.4 3.6H9.8L11.2 5H10.6C10.3 5 10 4.7 10 4.4V3.8H9.2V4.4C9.2 5.1 9.9 5.8 10.6 5.8H11.2V12C11.2 12.2 11 12.4 10.6 12.4Z" fill="currentColor"/>
+                        </svg>
                     </button>
                 </td>
                 <td>

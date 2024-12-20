@@ -6,95 +6,252 @@
     <title>Avatar __TTS_ID__ - TTS Monitor</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .avatar-container {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 800px;
+            padding: 0;
+        }
+        .avatar-image {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+        }
+        .message-box {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            margin-bottom: 30px;
+            min-width: 500px;
+            max-width: 800px;
+            background: white;
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+            width: fit-content;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, 30px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+        @keyframes speaking {
+            0%, 100% { transform: scale(1, 1); }
+            25% { transform: scale(1.05, 0.95); }
+            50% { transform: scale(0.95, 1.05); }
+            75% { transform: scale(1.02, 0.98); }
+        }
+        .animate-speaking {
+            animation: speaking 0.5s ease-in-out infinite;
+            transform-origin: bottom center;
+        }
+        .message-box::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 20px 20px 0;
+            border-style: solid;
+            border-color: white transparent transparent;
+        }
+        .message-content {
+            font-size: 1.5rem;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .message-content :first-child {
+            margin-top: 0;
+        }
+        .message-content :last-child {
+            margin-bottom: 0;
+        }
+        .message-content img.emote {
+            display: inline-block;
+            width: 2rem;
+            height: 2rem;
+            vertical-align: middle;
+        }
+
+        /* Status messages */
+        .status-message {
+            font-size: 1.2rem;
+            padding: 1rem 1.5rem;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
-    <div id="app" class="container mx-auto px-4 py-8 max-w-2xl">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6">Avatar TTS Monitor</h1>
-        
-        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <div class="text-lg text-gray-600 mb-4">
-                Avatar ID: <span class="font-semibold text-gray-800">__TTS_ID__</span>
-            </div>
-            
+    <div id="app">
+        <!-- Connection Status -->
+        <div v-if="!isConnected || audioStatus?.type === 'error'" 
+             class="fixed top-6 right-6 z-50">
             <div :class="[
-                'px-4 py-3 rounded-md mb-6 text-sm font-medium',
-                isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                'px-6 py-3 rounded-xl text-base font-medium shadow-lg status-message',
+                isConnected ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
             ]">
-                {{ connectionStatus }}
-            </div>
-
-            <div v-if="latestMessage" class="space-y-4">
-                <!-- Message Content -->
-                <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
-                    <div class="text-gray-800" v-html="latestMessage.content?.rawHtml"></div>
-                </div>
-
-                <!-- Raw Data Viewer -->
-                <div class="mt-4 border-t pt-4">
-                    <button @click="showRaw = !showRaw" 
-                            class="text-sm text-gray-500 hover:text-gray-700">
-                        {{ showRaw ? 'Hide' : 'Show' }} Raw Data
-                    </button>
-                    <pre v-if="showRaw" 
-                         class="mt-2 bg-gray-50 p-4 rounded-md border border-gray-200 text-gray-700 font-mono text-sm whitespace-pre-wrap">{{ JSON.stringify(latestMessage, null, 2) }}</pre>
-                </div>
-            </div>
-            <div v-else class="text-gray-500">
-                Waiting for messages...
+                {{ !isConnected ? connectionStatus : audioStatus.message }}
             </div>
         </div>
+
+        <!-- Avatar Display -->
+        <div class="avatar-container">
+            <!-- Message Box -->
+            <div v-if="isPlaying && latestMessage?.content?.rawHtml" 
+                 class="message-box">
+                <div class="message-content" v-html="latestMessage.content.rawHtml"></div>
+            </div>
+
+            <!-- Avatar Image -->
+            <img :src="currentAvatarState" 
+                 :alt="isPlaying ? 'Avatar Speaking' : 'Avatar Idle'"
+                 :class="['avatar-image', { 'animate-speaking': isPlaying }]">
+        </div>
+
+        <!-- Debug Panel (Hidden by default) -->
+        <div v-if="showDebug" class="fixed top-6 left-6 z-50 bg-white rounded-xl shadow-lg p-6 max-w-2xl max-h-[80vh] overflow-auto">
+            <h2 class="text-xl font-semibold mb-4">Debug Information</h2>
+            <div v-if="avatarData" class="mb-4">
+                <h3 class="font-medium mb-2">Avatar Data:</h3>
+                <pre class="bg-gray-50 p-4 rounded-lg text-base">{{ JSON.stringify(avatarData, null, 2) }}</pre>
+            </div>
+            <div v-if="latestMessage" class="mb-4">
+                <h3 class="font-medium mb-2">Latest Message:</h3>
+                <pre class="bg-gray-50 p-4 rounded-lg text-base">{{ JSON.stringify(latestMessage, null, 2) }}</pre>
+            </div>
+            <div class="text-base text-gray-600">
+                Audio Status: {{ audioStatus?.message || 'No audio playing' }}
+            </div>
+        </div>
+
+        <!-- Hidden audio element -->
+        <audio ref="audioElement" style="display: none"></audio>
     </div>
 
     <script>
-        const { createApp, ref, onMounted } = Vue
+        const { createApp, ref, onMounted, onUnmounted } = Vue
 
         createApp({
             setup() {
                 const isConnected = ref(false)
                 const connectionStatus = ref('Disconnected')
                 const latestMessage = ref(null)
-                const showRaw = ref(false)
-                let audioContext = null
+                const audioStatus = ref(null)
+                const audioElement = ref(null)
+                const avatarData = ref(null)
+                const isPlaying = ref(false)
+                const showDebug = ref(false) // Set to true to show debug panel
                 let ws = null
                 const avatarId = '__TTS_ID__'
 
-                // Initialize audio context on mount
-                onMounted(() => {
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)()
-                })
+                // Avatar states
+                const currentAvatarState = ref('')
 
-                async function playAudio(url) {
+                async function fetchAvatarData() {
                     try {
-                        // Ensure audio context is running
-                        if (audioContext.state === 'suspended') {
-                            await audioContext.resume()
-                        }
-
-                        // Fetch the audio file
-                        const response = await fetch(url)
-                        const arrayBuffer = await response.arrayBuffer()
+                        const response = await fetch(`/api/avatars/${avatarId}/get`)
+                        if (!response.ok) throw new Error('Failed to fetch avatar data')
+                        avatarData.value = await response.json()
                         
-                        // Decode the audio data
-                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
-                        
-                        // Create and configure source
-                        const source = audioContext.createBufferSource()
-                        source.buffer = audioBuffer
-                        source.connect(audioContext.destination)
-                        
-                        // Add ended event handler
-                        source.onended = () => {
-                            ws.send(JSON.stringify({
-                                signal: "avatar_finished",
-                                avatar_id: avatarId,
-                                avatar_audio: url
-                            }))
-                        }
-                        
-                        // Play immediately
-                        source.start(0)
+                        // Set initial idle state
+                        currentAvatarState.value = avatarData.value.states.idle
                     } catch (e) {
-                        console.error('Failed to play audio:', e)
+                        console.error('Error fetching avatar data:', e)
+                    }
+                }
+
+                function setAudioStatus(type, message) {
+                    audioStatus.value = { type, message }
+                    console.log(`Audio Status [${type}]:`, message)
+                }
+
+                function clearAudioStatus() {
+                    audioStatus.value = null
+                }
+
+                function sendAvatarFinished(url, reason = '') {
+                    const message = {
+                        signal: "avatar_finished",
+                        avatar_id: avatarId,
+                        avatar_audio: url
+                    }
+                    if (reason) {
+                        message.reason = reason
+                    }
+                    ws.send(JSON.stringify(message))
+                    console.log('Sent avatar_finished signal:', message)
+                }
+
+                function setAvatarState(playing) {
+                    if (!avatarData.value) return
+                    isPlaying.value = playing
+                    currentAvatarState.value = playing ? 
+                        avatarData.value.states.talking : 
+                        avatarData.value.states.idle
+                }
+
+                function playAudio(url) {
+                    const audio = audioElement.value
+                    if (!audio) {
+                        const error = 'Audio element not found'
+                        setAudioStatus('error', error)
+                        sendAvatarFinished(url, error)
+                        return
+                    }
+
+                    // Clear previous event listeners
+                    audio.onended = null
+                    audio.onerror = null
+                    audio.onplay = null
+                    audio.onpause = null
+
+                    // Set up new event listeners
+                    audio.onended = () => {
+                        clearAudioStatus()
+                        setAvatarState(false)
+                        sendAvatarFinished(url, 'Playback completed')
+                    }
+
+                    audio.onerror = () => {
+                        const error = `Audio error: ${audio.error?.message || 'Unknown error'}`
+                        setAudioStatus('error', error)
+                        setAvatarState(false)
+                        sendAvatarFinished(url, error)
+                    }
+
+                    audio.onplay = () => {
+                        setAudioStatus('info', 'Playing audio...')
+                        setAvatarState(true)
+                    }
+
+                    audio.onpause = () => {
+                        if (!audio.ended) {
+                            setAudioStatus('info', 'Audio buffering...')
+                        }
+                    }
+
+                    try {
+                        setAudioStatus('info', 'Loading audio...')
+                        audio.src = url
+                        
+                        audio.play().catch(e => {
+                            const error = `Failed to play audio: ${e.message}`
+                            setAudioStatus('error', error)
+                            setAvatarState(false)
+                            sendAvatarFinished(url, error)
+                        })
+                    } catch (e) {
+                        const error = `Failed to set up audio: ${e.message}`
+                        setAudioStatus('error', error)
+                        setAvatarState(false)
+                        sendAvatarFinished(url, error)
                     }
                 }
 
@@ -104,11 +261,13 @@
                     ws.onopen = () => {
                         isConnected.value = true
                         connectionStatus.value = 'Connected'
+                        console.log('WebSocket connected')
                     }
                     
                     ws.onclose = () => {
                         isConnected.value = false
                         connectionStatus.value = 'Disconnected - Reconnecting in 3 seconds...'
+                        console.log('WebSocket disconnected, reconnecting...')
                         setTimeout(connect, 3000)
                     }
                     
@@ -120,8 +279,8 @@
                         try {
                             const data = JSON.parse(event.data)
                             latestMessage.value = data
+                            console.log('Received message:', data)
 
-                            // Handle audio URL
                             if (data.avatar_audio) {
                                 playAudio(data.avatar_audio)
                             }
@@ -131,14 +290,56 @@
                     }
                 }
                 
-                // Start connection
-                connect()
+                // Initialize
+                onMounted(() => {
+                    fetchAvatarData()
+                    connect()
+
+                    // Set up SSE connection
+                    const eventSource = new EventSource('/sse')
+                    
+                    eventSource.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data)
+                            console.log('SSE message received:', data)
+                            
+                            // Handle avatar update broadcast
+                            if (data.type === 'avatar_update') {
+                                console.log('Avatar update detected, refreshing avatar data')
+                                fetchAvatarData()
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse SSE message:', e)
+                        }
+                    }
+
+                    eventSource.onerror = (error) => {
+                        console.error('SSE connection error:', error)
+                    }
+
+                    // Clean up SSE connection on component unmount
+                    onUnmounted(() => {
+                        eventSource.close()
+                    })
+
+                    // Enable debug panel with 'd' key
+                    window.addEventListener('keydown', (e) => {
+                        if (e.key === 'd') {
+                            showDebug.value = !showDebug.value
+                        }
+                    })
+                })
 
                 return {
                     isConnected,
                     connectionStatus,
                     latestMessage,
-                    showRaw
+                    audioStatus,
+                    audioElement,
+                    avatarData,
+                    currentAvatarState,
+                    isPlaying,
+                    showDebug
                 }
             }
         }).mount('#app')
