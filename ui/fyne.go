@@ -95,7 +95,7 @@ func RunUI(serverPort string, shutdown chan bool, serverStarted chan bool, wg *s
 	}
 
 	copyControlBtn := createCopyButton("Control", "/control")
-	copyTTSBtn := createCopyButton("TTS", "/tts")
+	copyTTSBtn := createCopyButton("Avatar", "/avatar")
 	copyDisplayBtn := createCopyButton("Display", "/display")
 
 	// Create buttons container
