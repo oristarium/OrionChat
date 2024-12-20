@@ -5,67 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="icon.ico" />
     <title>OrionChat Tutorial</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
     <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            line-height: 1.6;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f5f5f5;
-            color: #333;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #2c3e50;
-            border-bottom: 2px solid #3498db;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #2c3e50;
-            margin-top: 30px;
-        }
-        .step {
-            background: #f8f9fa;
-            padding: 20px;
-            border-left: 4px solid #3498db;
-            margin: 20px 0;
-            border-radius: 0 4px 4px 0;
-        }
-        code {
-            background: #eee;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: monospace;
-        }
+        /* Additional styles for specific elements */
         .tip {
             background: #fff3cd;
             border-left: 4px solid #ffc107;
             padding: 15px;
             margin: 20px 0;
-            border-radius: 0 4px 4px 0;
-        }
-        img {
-            max-width: 100%;
-            height: auto;
-            margin: 20px 0;
-            border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        code {
+            background: #2c3e50;
+            color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <main>
         <h1>OrionChat Tutorial</h1>
         <p>This guide will help you set up OrionChat for your streaming needs.</p>
 
         <h2>1. Control Panel Setup in OBS</h2>
-        <div class="step">
+        <div>
             <p>The control panel is where you manage all your OrionChat settings.</p>
             <ol>
                 <li>In OBS Studio, go to "View" → "Docks" → "Custom Browser Docks..."</li>
@@ -81,38 +45,60 @@
             </ol>
         </div>
 
-        <h2>2. Adding Sources in OBS Studio</h2>
-        <div class="step">
+        <h2>2. Avatar Setup</h2>
+        <div>
+            <h3>2.1 Browse Available Avatars</h3>
             <ol>
-                <li>Open OBS Studio</li>
-                <li>Right-click in the "Sources" panel</li>
-                <li>Select "Add" → "Browser"</li>
-                <li>Create new and name it (example: "OrionChat Display")</li>
-                <li>Add these sources one by one:
+                <li>Open <code>http://localhost:7777/avatar</code> in your browser</li>
+                <li>View all available avatars and their configurations</li>
+                <li>Each avatar card shows:
                     <ul>
-                        <li>Chat Display: <code>http://localhost:7777/display</code> (Width: 400, Height: 600)</li>
-                        <li>TTS Avatar: <code>http://localhost:7777/tts</code> (Width: 300, Height: 300)</li>
+                        <li>Avatar ID (needed for setup)</li>
+                        <li>Preview of idle and talking states</li>
+                        <li>Available voice options</li>
                     </ul>
                 </li>
             </ol>
+
+            <h3>2.2 Adding Avatar Sources in OBS</h3>
+            <ol>
+                <li>In OBS Studio, right-click in the "Sources" panel</li>
+                <li>Select "Add" → "Browser"</li>
+                <li>Create new and name it (example: "Avatar 1")</li>
+                <li>Set URL to <code>http://localhost:7777/avatar/{avatar_id}</code>
+                    <br>Replace <code>{avatar_id}</code> with the actual ID from the avatar index</li>
+                <li>Set dimensions:
+                    <ul>
+                        <li>Width: 1080</li>
+                        <li>Height: 1080</li>
+                    </ul>
+                </li>
+                <li>Repeat for each avatar you want to display</li>
+            </ol>
+
+            <div class="tip">
+                <strong>Important:</strong>
+                <ul>
+                    <li>Each avatar needs its own browser source</li>
+                    <li>Avatars will coordinate automatically to prevent speech overlap</li>
+                    <li>Messages are distributed among available avatars</li>
+                </ul>
+            </div>
         </div>
 
         <h2>3. Using with VTube Studio</h2>
-        <div class="step">
+        <div>
             <ol>
                 <li>Open VTube Studio</li>
                 <li>Click the "+" button in the bottom right to add a new item</li>
                 <li>Select "Web Item"</li>
-                <li>Add these URLs one at a time:
+                <li>For each avatar:
                     <ul>
-                        <li>For Chat Display: <code>http://localhost:7777/display</code>
-                            <br>Recommended size: 400x600</li>
-                        <li>For TTS Avatar: <code>http://localhost:7777/tts</code>
-                            <br>Recommended size: 300x300</li>
+                        <li>URL: <code>http://localhost:7777/avatar/{avatar_id}</code></li>
+                        <li>Recommended size: 1080x1080</li>
+                        <li>Position as needed in your scene</li>
                     </ul>
                 </li>
-                <li>Position and resize the web items as needed in your scene</li>
-                <li>Use the OBS Control Panel dock to manage settings</li>
             </ol>
             <p>For more detailed information about Web Items in VTube Studio, please refer to the <a href="https://github.com/DenchiSoft/VTubeStudio/wiki/Web-Items/" target="_blank">official VTube Studio Wiki</a>.</p>
         </div>
@@ -129,15 +115,15 @@
         </div>
 
         <h2>Troubleshooting</h2>
-        <div class="step">
+        <div>
             <ul>
-                <li>If you can't see the chat or avatar, make sure OrionChat is running</li>
+                <li>If you can't see the avatars, make sure OrionChat is running</li>
                 <li>Try refreshing your browser sources in OBS or web items in VTube Studio</li>
                 <li>Check if your antivirus is blocking the application</li>
-                <li>Make sure you're using the correct URLs</li>
+                <li>Make sure you're using the correct avatar IDs in your URLs</li>
                 <li>If nothing works, restart OrionChat and your streaming software</li>
             </ul>
         </div>
-    </div>
+    </main>
 </body>
 </html> 

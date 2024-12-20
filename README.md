@@ -14,12 +14,12 @@ Read this in other languages: [English](README.md) | [Indonesia](README.id.md)
 
 ## ✨ Features
 
-- 🎮 **Easy OBS Integration** - Simple browser source setup for chat display and TTS avatar
+- 💬 **Multi-Platform Support** - Works with YouTube, TikTok, and Twitch
 - 🗣️ **Text-to-Speech** - Multi-language TTS support with customizable avatar animations
 - 💬 **Multiple TTS Providers** - Support for both Google Translate and TikTok voices
 - 🗣️ **Rich Voice Selection** - Over 50 TikTok voices including character voices and singing voices
+- 🎮 **Easy OBS Integration** - Simple browser source setup for chat display and TTS avatar
 - 💬 **Multi-Avatar System** - Support for multiple active avatars with individual voice pools
-- 💬 **Multi-Platform Support** - Works with YouTube, TikTok, and Twitch
 - 🎨 **Advanced Avatar Management** - Customizable avatars with individual voice assignments and state management
 - 🎯 **Real-time Chat Display** - Show highlighted messages on stream
 - 🔧 **Control Panel** - User-friendly interface for managing all features
@@ -66,19 +66,16 @@ Your support helps us continue building for the community!
 3. Select "Add" → "Browser"
 4. Create new and name it (example: "OrionChat Display")
 5. Add these sources one by one:
-   - Chat Display: `http://localhost:7777/display` (Width: 400, Height: 600)
-   - TTS Avatars: `http://localhost:7777/tts` (Width: 800, Height: 300)
-   Note: Adjust width based on number of active avatars
+   - Individual Avatars: `http://localhost:7777/avatar/{avatar_id}` (Width: 1080, Height: 1080)
+   Note: You can add multiple individual avatar sources, each with its own ID
 
 ### 🎭 Using with VTube Studio
 1. Open VTube Studio
 2. Click the "+" button in the bottom right to add a new item
 3. Select "Web Item"
 4. Add these URLs one at a time:
-   - For Chat Display: `http://localhost:7777/display`
-     - Recommended size: 400x600
-   - For TTS Avatars: `http://localhost:7777/tts`
-     - Recommended size: 800x300 (adjust based on number of avatars)
+   - For Individual Avatars: `http://localhost:7777/avatar/{avatar_id}`
+     - Recommended size: 1080x1080 per avatar
 5. Position and resize the web items as needed in your scene
 6. Use the OBS Control Panel dock to manage settings
 
@@ -101,11 +98,12 @@ Note: For more detailed information about Web Items in VTube Studio, please refe
 ## 🛠️ Configuration
 
 ### Avatar System
-- **Multiple Active Avatars**
-  - Configure multiple avatars simultaneously
-  - Each avatar can have its own voice pool
-  - Random avatar selection for each message
-  - Smooth transitions between avatar states
+- **Multiple Independent Avatars**
+  - Each avatar runs in its own browser source
+  - Avatars coordinate through a central queue system
+  - No overlapping speech between avatars
+  - Automatic avatar selection with weighted distribution
+  - Real-time state synchronization across all avatars
 
 - **Voice Assignment**
   - Assign multiple voices to each avatar
@@ -117,7 +115,16 @@ Note: For more detailed information about Web Items in VTube Studio, please refe
   - Idle and talking states per avatar
   - Automatic state transitions
   - Synchronized animations
-  - Customizable transition effects
+  - No speech overlap between avatars
+  - Smart queuing system for messages
+  - Automatic cleanup of audio resources
+
+### Avatar Index Page
+- Browse all available avatars
+- Preview idle and talking states
+- View assigned voices for each avatar
+- Direct links to individual avatar pages
+- Real-time updates when avatars change
 
 ### TTS Providers
 - **Google Translate TTS**

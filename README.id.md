@@ -14,10 +14,13 @@ Baca ini dalam bahasa lain: [English](README.md) | [Indonesia](README.id.md)
 
 ## ✨ Fitur
 
-- 🎮 **Integrasi OBS yang Mudah** - Pengaturan browser source yang sederhana untuk tampilan chat dan avatar TTS
+- 🎮 **Dukungan Multi-Platform** - Bekerja dengan YouTube, TikTok, dan Twitch
 - 🗣️ **Text-to-Speech** - Dukungan TTS multi-bahasa dengan animasi avatar yang dapat disesuaikan
-- 💬 **Dukungan Multi-Platform** - Bekerja dengan YouTube, TikTok, dan Twitch
-- 🎨 **Avatar yang Dapat Disesuaikan** - Mendukung avatar statis dan animasi
+- 💬 **Penyedia TTS Beragam** - Mendukung suara dari Google Translate dan TikTok
+- 🗣️ **Pilihan Suara yang Kaya** - Lebih dari 50 suara TikTok termasuk suara karakter dan suara menyanyi
+- 🎮 **Integrasi OBS yang Mudah** - Pengaturan browser source yang sederhana untuk tampilan chat dan avatar TTS
+- 🗣 **Sistem Multi-Avatar** - Mendukung beberapa avatar aktif dengan kumpulan suara individual
+- 🎨 **Manajemen Avatar Lanjutan** - Avatar yang dapat disesuaikan dengan pengaturan suara dan status individual
 - 🎯 **Tampilan Chat Real-time** - Tampilkan pesan yang disorot di stream
 - 🔧 **Panel Kontrol** - Antarmuka yang mudah digunakan untuk mengelola semua fitur
 
@@ -67,18 +70,16 @@ Dukungan Anda membantu kami terus berkarya untuk komunitas!
 3. Pilih "Add" → "Browser"
 4. Buat baru dan beri nama (contoh: "OrionChat Display")
 5. Tambahkan source ini satu per satu:
-   - Chat Display: `http://localhost:7777/display` (Lebar: 400, Tinggi: 600)
-   - TTS Avatar: `http://localhost:7777/tts` (Lebar: 300, Tinggi: 300)
+   - Avatar Individual: `http://localhost:7777/avatar/{avatar_id}` (Lebar: 1080, Tinggi: 1080)
+   Catatan: Anda dapat menambahkan beberapa source avatar individual, masing-masing dengan ID sendiri
 
 ### 🎭 Menggunakan dengan VTube Studio
 1. Buka VTube Studio
 2. Klik tombol "+" di pojok kanan bawah untuk menambahkan item baru
 3. Pilih "Web Item"
 4. Tambahkan URL ini satu per satu:
-   - Untuk Chat Display: `http://localhost:7777/display`
-     - Ukuran yang disarankan: 400x600
-   - Untuk TTS Avatar: `http://localhost:7777/tts`
-     - Ukuran yang disarankan: 300x300
+   - Untuk Avatar Individual: `http://localhost:7777/avatar/{avatar_id}`
+     - Ukuran yang disarankan: 1080x1080 per avatar
 5. Atur posisi dan ukuran web item sesuai kebutuhan di scene Anda
 6. Gunakan dock Panel Kontrol OBS untuk mengatur pengaturan
 
@@ -97,6 +98,71 @@ Catatan: Untuk informasi lebih detail tentang Web Item di VTube Studio, silakan 
 - Periksa apakah antivirus Anda memblokir aplikasi
 - Pastikan Anda menggunakan URL yang benar
 - Jika tidak ada yang berhasil, restart OrionChat dan software streaming Anda
+
+## 🛠️ Konfigurasi
+
+### Sistem Avatar
+- **Avatar Individual yang Terpisah**
+  - Setiap avatar berjalan di browser source-nya sendiri
+  - Avatar berkoordinasi melalui sistem antrian pusat
+  - Tidak ada tumpang tindih suara antar avatar
+  - Pemilihan avatar otomatis dengan distribusi berbobot
+  - Sinkronisasi status real-time di semua avatar
+
+- **Pengaturan Suara**
+  - Tetapkan beberapa suara untuk setiap avatar
+  - Pemilihan suara acak dari kumpulan suara avatar
+  - Pengaturan suara individual per avatar
+  - Pratinjau suara di panel kontrol
+
+- **Manajemen Status**
+  - Status diam dan berbicara per avatar
+  - Transisi status otomatis
+  - Animasi tersinkronisasi
+  - Tidak ada tumpang tindih suara antar avatar
+  - Sistem antrian pesan yang cerdas
+  - Pembersihan sumber daya audio otomatis
+
+### Halaman Indeks Avatar
+- Jelajahi semua avatar yang tersedia
+- Pratinjau status diam dan berbicara
+- Lihat suara yang ditetapkan untuk setiap avatar
+- Tautan langsung ke halaman avatar individual
+- Pembaruan real-time saat avatar berubah
+
+### Penyedia TTS
+- **Google Translate TTS**
+  - Suara berbasis bahasa yang sederhana
+  - Mendukung berbagai bahasa
+  
+- **TikTok TTS**
+  - 50+ suara karakter unik
+  - Beberapa gaya suara per bahasa
+  - Suara karakter khusus (Disney, Star Wars, dll.)
+  - Suara menyanyi dengan berbagai gaya
+  - Pratinjau sampel audio untuk setiap suara
+  - Pemilihan suara acak dari favorit
+  - [Lihat daftar lengkap suara TikTok](assets/data/tiktok_voice_ids.csv)
+
+### Kategori Suara
+Suara TikTok meliputi:
+- 🎭 Suara Karakter (Disney, Star Wars, dll.)
+- 🎵 Suara Menyanyi
+- 🌍 Beragam aksen (UK, US, AU)
+- 👥 Opsi Pria/Wanita/Netral
+- 🎬 Suara Narator/Pendongeng
+- 🎪 Suara Lucu/Unik
+
+### Bahasa yang Didukung
+- 🇮🇩 Indonesia
+- 🇺🇸 Inggris (varian US/UK/AU)
+- 🇰🇷 Korea
+- 🇯🇵 Jepang
+- 🇫🇷 Prancis
+- 🇩🇪 Jerman
+- 🇪🇸 Spanyol
+- 🇵🇹 Portugis
+- Dan lainnya...
 
 ## 💖 Dukungan
 
