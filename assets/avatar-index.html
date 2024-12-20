@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar Index</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .avatar-link:hover .avatar-image {
+            transform: scale(1.05);
+        }
+        .avatar-image {
+            transition: transform 0.3s ease;
+        }
+        @keyframes talking {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        .preview-talking {
+            animation: talking 1s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div id="app">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-4xl font-bold text-gray-800 mb-8">Available Avatars</h1>
+            
+            <!-- Avatar Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div v-for="avatar in avatars" :key="avatar.id" 
+                     class="bg-white rounded-xl shadow-lg overflow-hidden avatar-link hover:shadow-xl transition-shadow duration-300">
+                    <a :href="'/avatar/' + avatar.id" class="block p-6">
+                        <!-- Avatar Info -->
+                        <div class="mb-4">
+                            <h2 class="text-2xl font-semibold text-gray-800">{{ avatar.name }}</h2>
+                            <p class="text-gray-600">{{ avatar.description }}</p>
+                            <p class="text-sm text-gray-500 mt-1">ID: {{ avatar.id }}</p>
+                        </div>
+
+                        <!-- Avatar Preview -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <!-- Idle State -->
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600 mb-2">Idle</p>
+                                <img :src="avatar.states.idle" 
+                                     :alt="avatar.name + ' (Idle)'"
+                                     class="avatar-image w-full h-48 object-contain rounded-lg bg-gray-50">
+                            </div>
+                            <!-- Talking State -->
+                            <div class="text-center">
+                                <p class="text-sm text-gray-600 mb-2">Talking</p>
+                                <img :src="avatar.states.talking" 
+                                     :alt="avatar.name + ' (Talking)'"
+                                     class="avatar-image preview-talking w-full h-48 object-contain rounded-lg bg-gray-50">
+                            </div>
+                        </div>
+
+                        <!-- Voice Info -->
+                        <div class="mt-4 text-sm text-gray-600" v-if="avatar.tts_voices && avatar.tts_voices.length">
+                            <p class="font-medium">Available Voices:</p>
+                            <ul class="list-disc list-inside">
+                                <li v-for="voice in avatar.tts_voices" :key="voice.voice_id">
+                                    {{ voice.provider }}: {{ voice.voice_id }}
+                                </li>
+                            </ul>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted } = Vue
+
+        createApp({
+            setup() {
+                const avatars = ref([])
+
+                async function fetchAvatars() {
+                    try {
+                        const response = await fetch('/api/avatars')
+                        const data = await response.json()
+                        avatars.value = data.avatars
+                    } catch (error) {
+                        console.error('Error fetching avatars:', error)
+                    }
+                }
+
+                // Set up SSE connection for live updates
+                function setupSSE() {
+                    const eventSource = new EventSource('/sse')
+                    
+                    eventSource.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data)
+                            if (data.type === 'avatar_update') {
+                                avatars.value = data.data.avatars
+                            }
+                        } catch (error) {
+                            console.error('Error processing SSE message:', error)
+                        }
+                    }
+
+                    eventSource.onerror = (error) => {
+                        console.error('SSE connection error:', error)
+                    }
+                }
+
+                onMounted(() => {
+                    fetchAvatars()
+                    setupSSE()
+                })
+
+                return {
+                    avatars
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html> 

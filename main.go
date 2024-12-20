@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -142,31 +143,14 @@ func (s *Server) setupRoutes() {
 
 	// Handle TTS individual pages with ID parameter
 	http.HandleFunc("/avatar/", func(w http.ResponseWriter, r *http.Request) {
-		avatarId := r.URL.Path[len("/avatar/"):]
+		avatarId := strings.TrimPrefix(r.URL.Path, "/avatar/")
 		if avatarId == "" {
-			http.Error(w, "avatarId is required", http.StatusBadRequest)
+			http.Redirect(w, r, "/avatar-index.html", http.StatusFound)
 			return
 		}
-
-		// Read the template file
-		filePath := s.config.AssetsDir + "/avatar.html"
-		content, err := os.ReadFile(filePath)
-		if err != nil {
-			http.Error(w, "Template not found", http.StatusInternalServerError)
-			return
-		}
-
-		// Replace placeholder with actual avatarId
-		modifiedContent := strings.Replace(
-			string(content),
-			"__TTS_ID__",
-			avatarId,
-			-1,
-		)
-
-		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(modifiedContent))
+		serveAvatarPage(w, r, avatarId)
 	})
+	http.HandleFunc("/avatar-index.html", serveFile("assets/avatar-index.html"))
 
 	// Handle TTS audio blobs
 	http.HandleFunc("/tts-blob/", func(w http.ResponseWriter, r *http.Request) {
@@ -275,6 +259,52 @@ func (s *Server) handleKeyValue(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+// Helper function to serve static files
+func serveFile(filepath string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		content, err := os.ReadFile(filepath)
+		if err != nil {
+			http.Error(w, "File not found", http.StatusNotFound)
+			return
+		}
+		
+		// Set content type based on file extension
+		ext := path.Ext(filepath)
+		switch ext {
+		case ".html":
+			w.Header().Set("Content-Type", "text/html")
+		case ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case ".css":
+			w.Header().Set("Content-Type", "text/css")
+		}
+		
+		w.Write(content)
+	}
+}
+
+// Helper function to serve avatar pages with ID replacement
+func serveAvatarPage(w http.ResponseWriter, r *http.Request, avatarId string) {
+	// Read the template file
+	filePath := "assets/avatar.html"
+	content, err := os.ReadFile(filePath)
+	if err != nil {
+		http.Error(w, "Template not found", http.StatusInternalServerError)
+		return
+	}
+
+	// Replace placeholder with actual avatarId
+	modifiedContent := strings.Replace(
+		string(content),
+		"__TTS_ID__",
+		avatarId,
+		-1,
+	)
+
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(modifiedContent))
 }
 
 func main() {

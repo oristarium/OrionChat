@@ -10,6 +10,42 @@ export class AvatarManager {
         this.setupAddAvatarButton();
         this.setupVoiceModal();
         this.setupSortable();
+
+        // Add CSS styles for the URL display
+        const style = document.createElement('style');
+        style.textContent = `
+            .url-display {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 8px;
+                background: var(--color-background-secondary);
+                border-radius: 4px;
+                margin: 4px 0;
+            }
+            .url-text {
+                font-family: monospace;
+                flex: 1;
+                overflow: auto;
+                white-space: nowrap;
+                padding: 4px 8px;
+                background: var(--color-background);
+                border-radius: 4px;
+            }
+            .toggle-url-btn, .copy-url-btn {
+                padding: 4px;
+                border: none;
+                background: none;
+                cursor: pointer;
+                color: var(--color-text);
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            .toggle-url-btn:hover, .copy-url-btn:hover {
+                opacity: 1;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     createUploadModal() {
@@ -94,7 +130,19 @@ export class AvatarManager {
             }
         });
 
-        // Add copy URL button handler
+        // Replace copy URL button handler with toggle URL handler
+        $(document).on('click', '.toggle-url-btn', (e) => {
+            const avatarId = $(e.target).closest('.toggle-url-btn').data('avatarId');
+            const urlRow = $(`.url-row[data-avatar-id="${avatarId}"]`);
+            
+            // Hide all other URL rows
+            $('.url-row').not(urlRow).hide();
+            
+            // Toggle this URL row
+            urlRow.toggle();
+        });
+
+        // Keep the copy URL functionality as a bonus
         $(document).on('click', '.copy-url-btn', async (e) => {
             const avatarId = $(e.target).closest('.copy-url-btn').data('avatarId');
             const url = `${window.location.origin}/avatar/${avatarId}`;
@@ -147,6 +195,7 @@ export class AvatarManager {
             return '';
         }
 
+        const url = `${window.location.origin}/avatar/${avatar.id}`;
         return `
             <tr class="avatar-row" data-avatar-id="${avatar.id}">
                 <td>
@@ -168,9 +217,9 @@ export class AvatarManager {
                     </button>
                 </td>
                 <td>
-                    <button class="copy-url-btn" data-avatar-id="${avatar.id}" title="Copy avatar URL">
+                    <button class="toggle-url-btn" data-avatar-id="${avatar.id}" title="Show/Hide avatar URL">
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M13.3 4.7L11.3 2.7C11.1 2.5 10.9 2.4 10.6 2.4H5.4C4.6 2.4 4 3 4 3.8V12.2C4 13 4.6 13.6 5.4 13.6H10.6C11.4 13.6 12 13 12 12.2V5.4C12 5.1 11.9 4.9 11.7 4.7L13.3 4.7ZM10.6 12.4H5.4C5.2 12.4 5 12.2 5 12V4C5 3.8 5.2 3.6 5.4 3.6H9.8L11.2 5H10.6C10.3 5 10 4.7 10 4.4V3.8H9.2V4.4C9.2 5.1 9.9 5.8 10.6 5.8H11.2V12C11.2 12.2 11 12.4 10.6 12.4Z" fill="currentColor"/>
+                            <path d="M8 2v12M4 6v4M12 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         </svg>
                     </button>
                 </td>
@@ -184,6 +233,18 @@ export class AvatarManager {
                                   stroke-linejoin="round"/>
                         </svg>
                     </button>
+                </td>
+            </tr>
+            <tr class="url-row" data-avatar-id="${avatar.id}" style="display: none;">
+                <td colspan="5">
+                    <div class="url-display">
+                        <span class="url-text">${url}</span>
+                        <button class="copy-url-btn" data-avatar-id="${avatar.id}" title="Copy avatar URL">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M13.3 4.7L11.3 2.7C11.1 2.5 10.9 2.4 10.6 2.4H5.4C4.6 2.4 4 3 4 3.8V12.2C4 13 4.6 13.6 5.4 13.6H10.6C11.4 13.6 12 13 12 12.2V5.4C12 5.1 11.9 4.9 11.7 4.7L13.3 4.7ZM10.6 12.4H5.4C5.2 12.4 5 12.2 5 12V4C5 3.8 5.2 3.6 5.4 3.6H9.8L11.2 5H10.6C10.3 5 10 4.7 10 4.4V3.8H9.2V4.4C9.2 5.1 9.9 5.8 10.6 5.8H11.2V12C11.2 12.2 11 12.4 10.6 12.4Z" fill="currentColor"/>
+                            </svg>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;

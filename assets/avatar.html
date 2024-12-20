@@ -7,6 +7,15 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent !important;
+            overflow: hidden;
+        }
+        #app {
+            background: transparent !important;
+        }
         .avatar-container {
             position: fixed;
             bottom: 0;
@@ -15,6 +24,7 @@
             width: 100%;
             max-width: 800px;
             padding: 0;
+            background: transparent;
         }
         .avatar-image {
             width: 100%;
@@ -29,11 +39,10 @@
             margin-bottom: 30px;
             min-width: 500px;
             max-width: 800px;
-            background: white;
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 1.5rem;
             padding: 1.5rem;
-            box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
-            border: 2px solid rgba(0, 0, 0, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
             transition: all 0.3s ease;
             opacity: 0;
             animation: fadeIn 0.3s ease forwards;
@@ -61,12 +70,15 @@
             transform: translateX(-50%);
             border-width: 20px 20px 0;
             border-style: solid;
-            border-color: white transparent transparent;
+            border-color: rgba(255, 255, 255, 0.9) transparent transparent;
         }
         .message-content {
-            font-size: 1.5rem;
+            font-size: 3.5rem;
+            font-weight: 700;
             line-height: 1.6;
             text-align: center;
+            color: #000;
+            text-shadow: 0 0 2px rgba(255, 255, 255, 0.2);
         }
         .message-content :first-child {
             margin-top: 0;
@@ -81,17 +93,23 @@
             vertical-align: middle;
         }
 
-        /* Status messages */
+        /* Status messages - only visible in debug mode */
         .status-message {
             font-size: 1.2rem;
             padding: 1rem 1.5rem;
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        /* Debug panel - semi-transparent */
+        .debug-panel {
+            background: rgba(255, 255, 255, 0.8) !important;
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
     <div id="app">
-        <!-- Connection Status -->
-        <div v-if="!isConnected || audioStatus?.type === 'error'" 
+        <!-- Connection Status (only shown in debug mode) -->
+        <div v-if="showDebug && (!isConnected || audioStatus?.type === 'error')" 
              class="fixed top-6 right-6 z-50">
             <div :class="[
                 'px-6 py-3 rounded-xl text-base font-medium shadow-lg status-message',
@@ -113,10 +131,20 @@
             <img :src="currentAvatarState" 
                  :alt="isPlaying ? 'Avatar Speaking' : 'Avatar Idle'"
                  :class="['avatar-image', { 'animate-speaking': isPlaying }]">
+
+            <!-- Credit Footer -->
+            <div class="absolute bottom-[20px] px-4 left-[50%] translate-x-[-50%] text-xl opacity-50 bg-black rounded-xl p-2 text-white flex items-center justify-center">
+                <span>Powered by</span>
+                <img 
+                    src="https://ucarecdn.com/87bb45de-4a95-40d7-83c6-73866de942d5/-/crop/5518x2493/1408,2949/-/preview/80x80/" 
+                    alt="Oristarium" 
+                    class="object-contain -mb-0.5"
+                >
+            </div>
         </div>
 
         <!-- Debug Panel (Hidden by default) -->
-        <div v-if="showDebug" class="fixed top-6 left-6 z-50 bg-white rounded-xl shadow-lg p-6 max-w-2xl max-h-[80vh] overflow-auto">
+        <div v-if="showDebug" class="fixed top-6 left-6 z-50 debug-panel rounded-xl shadow-lg p-6 max-w-2xl max-h-[80vh] overflow-auto">
             <h2 class="text-xl font-semibold mb-4">Debug Information</h2>
             <div v-if="avatarData" class="mb-4">
                 <h3 class="font-medium mb-2">Avatar Data:</h3>

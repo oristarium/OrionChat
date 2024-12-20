@@ -1516,3 +1516,19 @@ button:not(:disabled):hover {
 .avatar-row.dragging * {
     user-select: none;
 }
+
+.credit-footer {
+    text-align: center;
+    font-size: 12px;
+    color: #888;
+    width: 100%;
+    background-color: var(--color-background-secondary);
+    flex-grow: 0;
+    padding: 0px;
+    border-radius: 4px;
+}
+
+.credit-footer p {
+    margin: 0;
+}
+

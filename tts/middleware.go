@@ -20,19 +20,24 @@ import (
 	"github.com/oristarium/orionchat/types"
 )
 
-// TTSQueueItem represents a queued TTS message
+// TTSQueueItem represents an item in the TTS queue
 type TTSQueueItem struct {
-	Data       map[string]interface{}
-	AvatarID   string
-	BlobURL    string
-	VoiceID    string
-	Provider   string
+	Data     map[string]interface{}
+	AvatarID string
+	BlobURL  string
+	VoiceID  string
+	Provider string
 }
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
+}
+
+type cleanupJob struct {
+	path      string
+	cleanupAt time.Time
 }
 
 type TTSMiddleware struct {
@@ -49,75 +54,161 @@ type TTSMiddleware struct {
 	// Avatar selection tracking
 	lastUsedAvatars []string
 	maxLastUsed     int
+
+	// Cleanup channel
+	cleanupChan chan cleanupJob
 }
 
 func NewTTSMiddleware() *TTSMiddleware {
 	blobDir := filepath.Join(os.TempDir(), "tts_blobs")
 	os.MkdirAll(blobDir, 0755)
 
-	return &TTSMiddleware{
+	tm := &TTSMiddleware{
 		clients:         make(map[*websocket.Conn]string),
 		avatarIds:       make(map[string]bool),
 		blobDir:        blobDir,
 		queue:          make([]TTSQueueItem, 0),
 		isSpeaking:     false,
-		maxLastUsed:    3, // Keep track of last 3 avatars used
+		maxLastUsed:    3,
 		lastUsedAvatars: make([]string, 0),
+		cleanupChan:    make(chan cleanupJob, 100), // Buffer for cleanup requests
+	}
+
+	// Start cleanup goroutine
+	go tm.cleanupWorker()
+
+	return tm
+}
+
+// cleanupWorker handles blob deletion in a separate goroutine
+func (tm *TTSMiddleware) cleanupWorker() {
+	// Use a priority queue to track delayed cleanups
+	type scheduledCleanup struct {
+		job      cleanupJob
+		deadline time.Time
+	}
+	
+	scheduled := make(map[string]scheduledCleanup)
+	
+	for {
+		select {
+		case job := <-tm.cleanupChan:
+			if job.cleanupAt.IsZero() {
+				// Immediate cleanup
+				if err := os.Remove(job.path); err != nil {
+					if !os.IsNotExist(err) {
+						log.Printf("Queue: Error removing blob file in cleanup worker - %v", err)
+					}
+				} else {
+					log.Printf("Queue: Cleaned up blob file in worker - %s", filepath.Base(job.path))
+				}
+			} else {
+				// Schedule for later cleanup
+				scheduled[job.path] = scheduledCleanup{
+					job:      job,
+					deadline: job.cleanupAt,
+				}
+				log.Printf("Queue: Scheduled cleanup for %s at %v", filepath.Base(job.path), job.cleanupAt)
+			}
+			
+		case <-time.After(10 * time.Second): // Check scheduled cleanups every 10 seconds
+			now := time.Now()
+			for path, cleanup := range scheduled {
+				if now.After(cleanup.deadline) {
+					if err := os.Remove(cleanup.job.path); err != nil {
+						if !os.IsNotExist(err) {
+							log.Printf("Queue: Error removing scheduled blob file - %v", err)
+						}
+					} else {
+						log.Printf("Queue: Cleaned up scheduled blob file - %s", filepath.Base(cleanup.job.path))
+					}
+					delete(scheduled, path)
+				}
+			}
+		}
 	}
 }
 
-// processNextInQueue attempts to process the next item in the queue
-func (tm *TTSMiddleware) processNextInQueue() {
-	tm.queueMux.Lock()
-	defer tm.queueMux.Unlock()
-
-	queueLength := len(tm.queue)
-	if tm.isSpeaking {
-		log.Printf("Queue: Cannot process next item - Avatar currently speaking. Queue length: %d", queueLength)
-		return
+// queueCleanup adds a blob path to the cleanup queue
+func (tm *TTSMiddleware) queueCleanup(blobPath string, delay time.Duration) {
+	job := cleanupJob{
+		path: blobPath,
+	}
+	if delay > 0 {
+		job.cleanupAt = time.Now().Add(delay)
 	}
 	
-	if queueLength == 0 {
-		log.Printf("Queue: Empty - No items to process")
+	select {
+	case tm.cleanupChan <- job:
+		// Successfully queued for cleanup
+	default:
+		// Channel is full, log warning and try to delete immediately
+		log.Printf("Queue: Cleanup channel full, attempting immediate deletion - %s", filepath.Base(blobPath))
+		if err := os.Remove(blobPath); err != nil {
+			log.Printf("Queue: Error removing blob file (immediate) - %v", err)
+		}
+	}
+}
+
+// processNextInQueue processes the next item in the queue if available
+func (tm *TTSMiddleware) processNextInQueue() {
+	tm.queueMux.Lock()
+	if tm.isSpeaking || len(tm.queue) == 0 {
+		tm.queueMux.Unlock()
 		return
 	}
 
-	// Get next item
+	// Get next item and mark as speaking
 	item := tm.queue[0]
 	tm.queue = tm.queue[1:]
 	tm.isSpeaking = true
+	queueLength := len(tm.queue)
+	tm.queueMux.Unlock()
 
-	log.Printf("Queue: Processing item - Avatar: %s, Voice: %s (%s), Queue position: 1/%d", 
-		item.AvatarID, item.VoiceID, item.Provider, queueLength)
+	log.Printf("Queue: Processing next item - Avatar: %s, Queue length: %d", 
+		item.AvatarID, queueLength)
 
-	// Add audio URL and signal to the data
-	item.Data["avatar_audio"] = item.BlobURL
-	item.Data["signal"] = "avatar_speak"
+	// Update last used avatars list
+	tm.updateLastUsedAvatars(item.AvatarID)
 
-	// Send only to clients of the chosen avatar
+	// Prepare WebSocket message
+	message := map[string]interface{}{
+		"signal":       "avatar_speak",
+		"content":      item.Data["content"],
+		"avatar_audio": item.BlobURL,
+	}
+
+	// Send to matching clients
 	tm.clientsMux.RLock()
-	sentCount := 0
+	sent := false
 	for client, avatarId := range tm.clients {
 		if avatarId == item.AvatarID {
-			if err := client.WriteJSON(item.Data); err != nil {
-				log.Printf("Queue: Error sending to client - Avatar: %s, Error: %v", avatarId, err)
-			} else {
-				sentCount++
-				log.Printf("Queue: Sent message to client - Avatar: %s", avatarId)
+			if err := client.WriteJSON(message); err != nil {
+				log.Printf("Queue: Error sending to client - %v", err)
+				continue
 			}
+			sent = true
+			log.Printf("Queue: Sent message to avatar %s", avatarId)
 		}
 	}
 	tm.clientsMux.RUnlock()
 
-	if sentCount == 0 {
-		log.Printf("Queue: Warning - No clients found for avatar %s, message dropped", item.AvatarID)
-		// Reset speaking state since no clients received the message
+	if !sent {
+		log.Printf("Queue: No matching clients found for avatar %s, skipping audio", 
+			item.AvatarID)
+		
+		// Clean up the blob since it won't be used
+		filename := filepath.Base(item.BlobURL)
+		blobPath := filepath.Join(tm.blobDir, filename)
+		tm.queueCleanup(blobPath, 0)
+
+		// Mark as not speaking and process next item
+		tm.queueMux.Lock()
 		tm.isSpeaking = false
+		tm.queueMux.Unlock()
+
 		// Try next item
 		tm.processNextInQueue()
-	} else {
-		log.Printf("Queue: Message sent to %d client(s) for avatar %s, Remaining in queue: %d", 
-			sentCount, item.AvatarID, len(tm.queue))
 	}
 }
 
@@ -176,11 +267,7 @@ func (tm *TTSMiddleware) getAudioBlob(text string, voiceId string, provider stri
 	blobFile.Close()
 
 	// Schedule cleanup after 5 minutes
-	go func(filename string) {
-		time.Sleep(5 * time.Minute)
-		os.Remove(filename)
-		log.Printf("Cleaned up audio blob: %s", filename)
-	}(blobFile.Name())
+	tm.queueCleanup(blobFile.Name(), 5*time.Minute)
 
 	// Return the blob URL
 	return fmt.Sprintf("/tts-blob/%s", filepath.Base(blobFile.Name())), nil
@@ -224,92 +311,104 @@ func (tm *TTSMiddleware) getRandomAvatarVoice(avatarId string) (map[string]inter
 
 // HandleWebSocket handles new WebSocket connections
 func (tm *TTSMiddleware) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Upgrade HTTP connection to WebSocket
+	c, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Printf("WebSocket upgrade error: %v", err)
+		return
+	}
+
+	// Get avatarId from query parameters
 	avatarId := r.URL.Query().Get("avatarId")
 	if avatarId == "" {
-		log.Printf("Queue: WebSocket connection attempt without avatarId")
-		http.Error(w, "avatarId is required", http.StatusBadRequest)
+		log.Printf("WebSocket connection attempt without avatarId")
+		c.Close()
 		return
 	}
 
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Printf("Queue: WebSocket upgrade failed - %v", err)
-		return
-	}
-
-	// Add new client to the pool
+	// Register new client
 	tm.clientsMux.Lock()
-	tm.clients[conn] = avatarId
+	tm.clients[c] = avatarId
 	tm.avatarIds[avatarId] = true
-	connectedAvatars := len(tm.avatarIds)
+	numClients := len(tm.clients)
 	tm.clientsMux.Unlock()
 
-	log.Printf("Queue: New WebSocket client connected - Avatar: %s, Total avatars: %d", 
-		avatarId, connectedAvatars)
+	log.Printf("New WebSocket client connected - Avatar: %s, Total clients: %d", 
+		avatarId, numClients)
 
-	// Wait for messages or disconnect
+	// Schedule queue processing after 4 seconds
+	go func() {
+		time.Sleep(4 * time.Second)
+		tm.queueMux.Lock()
+		if tm.isSpeaking {
+			log.Printf("Queue: New client connected but queue is already speaking")
+			tm.queueMux.Unlock()
+			return
+		}
+		tm.queueMux.Unlock()
+		
+		log.Printf("Queue: Processing queue after new client connection delay")
+		tm.processNextInQueue()
+	}()
+
+	// Handle incoming messages
 	for {
-		messageType, message, err := conn.ReadMessage()
+		_, message, err := c.ReadMessage()
 		if err != nil {
 			tm.clientsMux.Lock()
-			delete(tm.clients, conn)
+			delete(tm.clients, c)
 			
+			// Check if this was the last connection for this avatar
 			lastConnection := true
-			for _, id := range tm.clients {
-				if id == avatarId {
+			for conn, id := range tm.clients {
+				if id == avatarId && conn != c {
 					lastConnection = false
 					break
 				}
 			}
+			
+			// If this was the last connection for this avatar, remove it from active avatars
 			if lastConnection {
 				delete(tm.avatarIds, avatarId)
-				log.Printf("Queue: Avatar %s disconnected - No more connections for this avatar", avatarId)
 			}
 			
-			conn.Close()
+			c.Close()
 			remainingAvatars := len(tm.avatarIds)
 			tm.clientsMux.Unlock()
 			
-			log.Printf("Queue: WebSocket client disconnected - Remaining avatars: %d", remainingAvatars)
-			break
+			log.Printf("Queue: WebSocket client disconnected - Avatar: %s, Remaining avatars: %d", 
+				avatarId, remainingAvatars)
+			return
 		}
 
-		// Handle incoming messages
-		if messageType == websocket.TextMessage {
-			var msg map[string]interface{}
-			if err := json.Unmarshal(message, &msg); err != nil {
-				log.Printf("Queue: Error unmarshaling message - %v", err)
-				continue
-			}
+		// Process the message
+		var msg map[string]interface{}
+		if err := json.Unmarshal(message, &msg); err != nil {
+			log.Printf("Queue: Error parsing WebSocket message - %v", err)
+			continue
+		}
 
-			// Handle avatar_finished signal
-			if signal, ok := msg["signal"].(string); ok && signal == "avatar_finished" {
-				if blobURL, ok := msg["avatar_audio"].(string); ok {
-					log.Printf("Queue: Received avatar_finished signal - Avatar: %s, Audio: %s", 
-						avatarId, blobURL)
+		// Handle avatar_finished signal
+		if signal, ok := msg["signal"].(string); ok && signal == "avatar_finished" {
+			if blobURL, ok := msg["avatar_audio"].(string); ok {
+				log.Printf("Queue: Received avatar_finished signal - Avatar: %s, Audio: %s", 
+					avatarId, blobURL)
 
-					// Extract filename from URL
-					filename := filepath.Base(blobURL)
-					blobPath := filepath.Join(tm.blobDir, filename)
-					
-					// Remove the blob file
-					if err := os.Remove(blobPath); err != nil {
-						log.Printf("Queue: Error removing blob file - %v", err)
-					} else {
-						log.Printf("Queue: Cleaned up blob file - %s", filename)
-					}
+				// Extract filename from URL and queue for cleanup
+				filename := filepath.Base(blobURL)
+				blobPath := filepath.Join(tm.blobDir, filename)
+				tm.queueCleanup(blobPath, 0) // immediate cleanup
 
-					// Mark as not speaking and process next item
-					tm.queueMux.Lock()
-					tm.isSpeaking = false
-					queueLength := len(tm.queue)
-					tm.queueMux.Unlock()
-					
-					log.Printf("Queue: Avatar finished speaking - Avatar: %s, Remaining in queue: %d", 
-						avatarId, queueLength)
-					
-					tm.processNextInQueue()
-				}
+				// Mark as not speaking and process next item
+				tm.queueMux.Lock()
+				tm.isSpeaking = false
+				queueLength := len(tm.queue)
+				tm.queueMux.Unlock()
+				
+				log.Printf("Queue: Avatar finished speaking - Avatar: %s, Remaining in queue: %d", 
+					avatarId, queueLength)
+				
+				tm.processNextInQueue()
 			}
 		}
 	}
@@ -319,11 +418,19 @@ func (tm *TTSMiddleware) HandleWebSocket(w http.ResponseWriter, r *http.Request)
 func (tm *TTSMiddleware) GetConnectedAvatars() []string {
 	tm.clientsMux.RLock()
 	defer tm.clientsMux.RUnlock()
-	
-	avatars := make([]string, 0, len(tm.avatarIds))
-	for id := range tm.avatarIds {
-		avatars = append(avatars, id)
+
+	// Use a map to deduplicate avatar IDs
+	avatarMap := make(map[string]bool)
+	for _, avatarId := range tm.clients {
+		avatarMap[avatarId] = true
 	}
+
+	// Convert map to slice
+	avatars := make([]string, 0, len(avatarMap))
+	for avatarId := range avatarMap {
+		avatars = append(avatars, avatarId)
+	}
+
 	return avatars
 }
 
@@ -392,12 +499,7 @@ func (tm *TTSMiddleware) InterceptTTS(updateType string, data interface{}) bool 
 		for _, item := range tm.queue {
 			filename := filepath.Base(item.BlobURL)
 			blobPath := filepath.Join(tm.blobDir, filename)
-			
-			if err := os.Remove(blobPath); err != nil {
-				log.Printf("Queue: Error removing blob file during clear - %v", err)
-			} else {
-				log.Printf("Queue: Cleaned up blob file during clear - %s", filename)
-			}
+			tm.queueCleanup(blobPath, 0)
 		}
 		
 		// Clear the queue and reset speaking state
@@ -409,6 +511,7 @@ func (tm *TTSMiddleware) InterceptTTS(updateType string, data interface{}) bool 
 		return true // Allow the clear signal to be broadcasted
 	}
 
+	// Handle TTS updates
 	if updateType == "tts" {
 		startTime := time.Now()
 		log.Printf("Queue: New TTS update received at %s", startTime.Format(time.RFC3339))
@@ -483,16 +586,34 @@ func (tm *TTSMiddleware) InterceptTTS(updateType string, data interface{}) bool 
 		tm.queueMux.Lock()
 		tm.queue = append(tm.queue, queueItem)
 		queueLength := len(tm.queue)
+		isSpeaking := tm.isSpeaking
 		tm.queueMux.Unlock()
 
 		processingTime := time.Since(startTime)
 		log.Printf("Queue: Item added - Avatar: %s, Position: %d, Processing time: %v", 
 			chosenAvatarId, queueLength, processingTime)
 
-		// Try to process next item
-		tm.processNextInQueue()
-		
+		// Process queue if not currently speaking
+		if !isSpeaking {
+			go tm.processNextInQueue()
+		}
+
 		return false // Don't broadcast
 	}
+
 	return true // Continue with broadcast
-} 
+}
+
+// updateLastUsedAvatars maintains a list of recently used avatars
+func (tm *TTSMiddleware) updateLastUsedAvatars(avatarId string) {
+	// Add the new avatar to the front of the list
+	tm.lastUsedAvatars = append([]string{avatarId}, tm.lastUsedAvatars...)
+
+	// Trim the list if it exceeds maxLastUsed
+	if len(tm.lastUsedAvatars) > tm.maxLastUsed {
+		tm.lastUsedAvatars = tm.lastUsedAvatars[:tm.maxLastUsed]
+	}
+
+	log.Printf("Queue: Updated last used avatars: %s", strings.Join(tm.lastUsedAvatars, ", "))
+}
+ 
