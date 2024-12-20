@@ -65,7 +65,6 @@ func NewServer() *Server {
 			Routes: map[string]string{
 				"/control":  "/control.html",
 				"/display": "/display.html",
-				"/tts":     "/tts.html",
 				"/tutorial": "/tutorial.html",
 			},
 		},
