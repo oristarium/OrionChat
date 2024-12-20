@@ -99,12 +99,11 @@ func (m *Manager) initializeDefaultAvatar() error {
 			types.StateTalking: fmt.Sprintf("/%s/talking.gif", AvatarAssetsDir),
 		},
 		IsDefault: true,
-		IsActive:  true,
 		CreatedAt: time.Now().Unix(),
 		TTSVoices: []types.TTSVoice{
 			{
-				VoiceID: "id",
-				Provider: "google",
+				VoiceID: "id_male_darma",
+				Provider: "tiktok",
 			},
 		},
 	}
@@ -122,75 +121,6 @@ func (m *Manager) initializeDefaultAvatar() error {
 	return m.Storage.SaveConfig(m.config)
 }
 
-// CreateAvatar creates a new avatar
-func (m *Manager) CreateAvatar(name, description string, states map[types.AvatarState]string) (*types.Avatar, error) {
-	avatar := types.Avatar{
-		ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
-		Name:        name,
-		Description: description,
-		States:      states,
-		CreatedAt:   time.Now().Unix(),
-		IsActive:    false,
-	}
-
-	if err := m.Storage.SaveAvatar(avatar); err != nil {
-		return nil, fmt.Errorf("save avatar: %w", err)
-	}
-
-	// Get existing avatars and append the new one
-	existingAvatars, err := m.Storage.ListAvatars()
-	if err != nil {
-		return nil, fmt.Errorf("list avatars: %w", err)
-	}
-
-	// Append new avatar to existing ones
-	m.config.Avatars = append(existingAvatars, avatar)
-	if err := m.Storage.SaveConfig(m.config); err != nil {
-		return nil, fmt.Errorf("save config: %w", err)
-	}
-
-	return &avatar, nil
-}
-
-// GetCurrentAvatar returns the currently active avatar
-// func (m *Manager) GetCurrentAvatar() (*Avatar, error) {
-// 	// // If no current ID set, try to initialize
-// 	// if m.config.CurrentID == "" {
-// 	// 	if err := m.initializeDefaultAvatar(); err != nil {
-// 	// 		return nil, fmt.Errorf("failed to initialize default avatar: %w", err)
-// 	// 	}
-// 	// }
-
-// 	avatar, err := m.Storage.GetAvatar(m.config.CurrentID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return &avatar, nil
-// }
-
-// SetCurrentAvatar sets the active avatar
-// func (m *Manager) SetCurrentAvatar(id string) error {
-// 	// Verify avatar exists
-// 	if _, err := m.Storage.GetAvatar(id); err != nil {
-// 		return fmt.Errorf("avatar not found: %w", err)
-// 	}
-
-// 	// Update active states
-// 	avatars, err := m.Storage.ListAvatars()
-// 	if err != nil {
-// 		return fmt.Errorf("list avatars: %w", err)
-// 	}
-
-// 	for _, avatar := range avatars {
-// 		avatar.IsActive = avatar.ID == id
-// 		if err := m.Storage.SaveAvatar(avatar); err != nil {
-// 			return fmt.Errorf("save avatar: %w", err)
-// 		}
-// 	}
-
-// 	m.config.CurrentID = id
-// 	return m.Storage.SaveConfig(m.config)
-// }
 
 // GetAvatarState returns the file path for a specific avatar state
 func (m *Manager) GetAvatarState(id string, state types.AvatarState) (string, error) {
@@ -297,23 +227,6 @@ func (m *Manager) RegisterAvatarImage(path string) error {
 		CreatedAt: time.Now().Unix(),
 	}
 	return m.Storage.SaveAvatarImage(image)
-}
-
-// GetActiveAvatars returns all active avatars
-func (m *Manager) GetActiveAvatars() ([]types.Avatar, error) {
-	avatars, err := m.Storage.ListAvatars()
-	if err != nil {
-		return nil, fmt.Errorf("list avatars: %w", err)
-	}
-
-	var activeAvatars []types.Avatar
-	for _, avatar := range avatars {
-		if avatar.IsActive {
-			activeAvatars = append(activeAvatars, avatar)
-		}
-	}
-
-	return activeAvatars, nil
 }
 
 // DeleteAvatarImage removes an avatar image from the system

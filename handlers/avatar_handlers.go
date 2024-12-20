@@ -149,7 +149,6 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 		Name        string                        `json:"name,omitempty"`
 		Description string                        `json:"description,omitempty"`
 		States      map[types.AvatarState]string `json:"states,omitempty"`
-		IsActive    *bool                         `json:"is_active,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -169,9 +168,6 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 	}
 	if request.Description != "" {
 		existingAvatar.Description = request.Description
-	}
-	if request.IsActive != nil {
-		existingAvatar.IsActive = *request.IsActive
 	}
 	
 	// Update states if provided
@@ -198,30 +194,7 @@ func (h *AvatarHandler) handleSetAvatarDetail(w http.ResponseWriter, r *http.Req
 	w.WriteHeader(http.StatusOK)
 }
 
-// HandleActiveAvatars handles GET /api/avatars/active
-func (h *AvatarHandler) HandleActiveAvatars(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
 
-	avatars, err := h.avatarManager.GetActiveAvatars()
-	if err != nil {
-		log.Printf("Error getting active avatars: %v", err)
-		http.Error(w, "Failed to get active avatars", http.StatusInternalServerError)
-		return
-	}
-
-	response := types.AvatarList{
-		Avatars: avatars,
-	}
-
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		log.Printf("Error encoding response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
-	}
-}
 
 // HandleCreateAvatar handles POST /api/avatars/create
 func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Request) {
@@ -258,9 +231,14 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 			types.StateTalking: "/avatars/talking.gif",
 		},
 		IsDefault: false,
-		IsActive:  false,
 		CreatedAt: time.Now().Unix(),
 		SortOrder: maxSortOrder + 1, // Set the sort order to be highest + 1
+		TTSVoices: []types.TTSVoice{
+			{
+				VoiceID: "id_male_darma",
+				Provider: "tiktok",
+			},
+		},
 	}
 
 	if err := h.avatarManager.Storage.SaveAvatar(newAvatar); err != nil {
@@ -504,7 +482,7 @@ const (
 // Modify the helper method to only send active avatars
 func (h *AvatarHandler) broadcastAvatarUpdate() {
 	// Get active avatars
-	activeAvatars, err := h.avatarManager.GetActiveAvatars()
+	avatars, err := h.avatarManager.ListAvatars()
 	if err != nil {
 		log.Printf("Error getting active avatars for broadcast: %v", err)
 		return
@@ -512,7 +490,7 @@ func (h *AvatarHandler) broadcastAvatarUpdate() {
 
 	// Create update data
 	updateData := map[string]interface{}{
-		"avatars": activeAvatars,
+		"avatars": avatars,
 	}
 
 	// Broadcast the update

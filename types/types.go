@@ -19,7 +19,6 @@ type Avatar struct {
     Description string                 `json:"description"`
     States      map[AvatarState]string `json:"states"` // maps state to file path
     IsDefault   bool                   `json:"is_default"`
-    IsActive    bool                   `json:"is_active"`
     CreatedAt   int64                  `json:"created_at"`
     TTSVoices   []TTSVoice            `json:"tts_voices"`
     SortOrder   int                    `json:"sort_order"`

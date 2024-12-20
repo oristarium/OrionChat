@@ -60,12 +60,6 @@ export class AvatarManager {
     }
 
     setupEventListeners() {
-        // Use jQuery event delegation for checkbox changes
-        $(document).on('change', '.avatar-active-toggle', async (e) => {
-            const avatarId = $(e.target).data('avatarId');
-            const isActive = $(e.target).prop('checked');
-            await this.updateAvatarActive(avatarId, isActive);
-        });
 
         // Use jQuery event delegation for preview image clicks
         $(document).on('click', '.preview-img', (e) => {
@@ -135,12 +129,6 @@ export class AvatarManager {
                     </svg>
                 </td>
                 <td>
-                    <input type="checkbox" 
-                           class="avatar-active-toggle" 
-                           data-avatar-id="${avatar.id}" 
-                           ${avatar.is_active ? 'checked' : ''}>
-                </td>
-                <td>
                     <div class="avatar-preview" data-state-type="idle">
                         <img src="${avatar.states?.idle || ''}" alt="Idle state" class="preview-img">
                     </div>
@@ -173,44 +161,6 @@ export class AvatarManager {
         `;
     }
 
-    async updateAvatarActive(avatarId, isActive) {
-        const $checkbox = $(`.avatar-active-toggle[data-avatar-id="${avatarId}"]`);
-        const $row = $checkbox.closest('.avatar-row');
-        
-        // Disable checkbox and add loading state
-        $checkbox.prop('disabled', true);
-        $row.addClass('loading');
-
-        try {
-            const response = await fetch(`/api/avatars/${avatarId}/set`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_active: isActive
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update avatar active state');
-            }
-
-            // Update local state
-            const avatar = this.avatars.find(a => a.id === avatarId);
-            if (avatar) {
-                avatar.is_active = isActive;
-            }
-        } catch (error) {
-            console.error('Error updating avatar active state:', error);
-            // Revert checkbox state on error
-            $checkbox.prop('checked', !isActive);
-        } finally {
-            // Re-enable checkbox and remove loading state
-            $checkbox.prop('disabled', false);
-            $row.removeClass('loading');
-        }
-    }
 
     openUploadModal(avatarId, stateType) {
         // Reset form and store current context
