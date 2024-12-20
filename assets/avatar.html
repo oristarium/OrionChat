@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avatar __TTS_ID__ - TTS Monitor</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <div id="app" class="container mx-auto px-4 py-8 max-w-2xl">
+        <h1 class="text-3xl font-bold text-gray-800 mb-6">Avatar TTS Monitor</h1>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <div class="text-lg text-gray-600 mb-4">
+                Avatar ID: <span class="font-semibold text-gray-800">__TTS_ID__</span>
+            </div>
+            
+            <div :class="[
+                'px-4 py-3 rounded-md mb-6 text-sm font-medium',
+                isConnected ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+            ]">
+                {{ connectionStatus }}
+            </div>
+
+            <div class="space-y-2">
+                <h2 class="text-xl font-semibold text-gray-800">Latest TTS Message:</h2>
+                <pre class="bg-gray-50 p-4 rounded-md border border-gray-200 text-gray-700 font-mono text-sm whitespace-pre-wrap">{{ latestMessage }}</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue
+
+        createApp({
+            setup() {
+                const isConnected = ref(false)
+                const connectionStatus = ref('Disconnected')
+                const latestMessage = ref('Waiting for messages...')
+                const avatarId = '__TTS_ID__'
+                let ws = null
+
+                function connect() {
+                    ws = new WebSocket(`ws://localhost:7777/ws/tts?avatarId=${avatarId}`)
+                    
+                    ws.onopen = () => {
+                        isConnected.value = true
+                        connectionStatus.value = 'Connected'
+                    }
+                    
+                    ws.onclose = () => {
+                        isConnected.value = false
+                        connectionStatus.value = 'Disconnected - Reconnecting in 3 seconds...'
+                        setTimeout(connect, 3000)
+                    }
+                    
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error)
+                    }
+                    
+                    ws.onmessage = (event) => {
+                        try {
+                            const data = JSON.parse(event.data)
+                            latestMessage.value = JSON.stringify(data, null, 2)
+                        } catch (e) {
+                            latestMessage.value = event.data
+                        }
+                    }
+                }
+                
+                // Start connection
+                connect()
+
+                return {
+                    isConnected,
+                    connectionStatus,
+                    latestMessage
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html> 

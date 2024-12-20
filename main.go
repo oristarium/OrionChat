@@ -7,7 +7,9 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +36,7 @@ type Server struct {
 	avatarManager *avatar.Manager
 	avatarHandler *handlers.AvatarHandler
 	broadcaster *broadcast.Broadcaster
+	ttsMiddleware *tts.TTSMiddleware
 }
 
 // NewServer creates and configures a new server instance
@@ -52,6 +55,7 @@ func NewServer() *Server {
 	fileHandler := handlers.NewFileHandler(store)
 
 	ttsService := tts.NewTTSService()
+	ttsMiddleware := tts.NewTTSMiddleware()
 
 	server := &Server{
 		config: types.Config{
@@ -67,7 +71,8 @@ func NewServer() *Server {
 		fileHandler:   fileHandler,
 		ttsHandler:    handlers.NewTTSHandler(ttsService),
 		avatarManager: avatarManager,
-		broadcaster: broadcast.New(),
+		broadcaster:   broadcast.New(),
+		ttsMiddleware: ttsMiddleware,
 	}
 
 	server.avatarHandler = handlers.NewAvatarHandler(
@@ -75,6 +80,9 @@ func NewServer() *Server {
 		server.fileHandler,
 		server,
 	)
+
+	// Connect the TTS middleware to the broadcaster
+	server.broadcaster.SetTTSMiddleware(server.ttsMiddleware)
 
 	return server
 }
@@ -129,6 +137,37 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/api/avatar/upload", s.avatarHandler.HandleAvatarUpload)
 	http.HandleFunc("/tts-service", s.ttsHandler.HandleTTS)
 	http.HandleFunc("/api/kv/", s.handleKeyValue)
+
+	// Add WebSocket endpoint for TTS
+	http.HandleFunc("/ws/tts", s.ttsMiddleware.HandleWebSocket)
+
+	// Handle TTS individual pages with ID parameter
+	http.HandleFunc("/avatar/", func(w http.ResponseWriter, r *http.Request) {
+		avatarId := r.URL.Path[len("/avatar/"):]
+		if avatarId == "" {
+			http.Error(w, "avatarId is required", http.StatusBadRequest)
+			return
+		}
+
+		// Read the template file
+		filePath := s.config.AssetsDir + "/avatar.html"
+		content, err := os.ReadFile(filePath)
+		if err != nil {
+			http.Error(w, "Template not found", http.StatusInternalServerError)
+			return
+		}
+
+		// Replace placeholder with actual avatarId
+		modifiedContent := strings.Replace(
+			string(content),
+			"__TTS_ID__",
+			avatarId,
+			-1,
+		)
+
+		w.Header().Set("Content-Type", "text/html")
+		w.Write([]byte(modifiedContent))
+	})
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {

@@ -6,6 +6,7 @@ toolchain go1.22.10
 
 require (
 	fyne.io/fyne/v2 v2.5.3
+	github.com/gorilla/websocket v1.5.3
 	go.etcd.io/bbolt v1.3.11
 )
 

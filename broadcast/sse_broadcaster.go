@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"sync"
+
+	"github.com/oristarium/orionchat/tts"
 )
 
 // Update represents a message to be broadcasted
@@ -22,6 +24,7 @@ type SSEClient chan string
 type Broadcaster struct {
 	clients map[SSEClient]bool
 	mu      sync.RWMutex
+	ttsMiddleware *tts.TTSMiddleware
 }
 
 // New creates a new Broadcaster instance
@@ -29,6 +32,11 @@ func New() *Broadcaster {
 	return &Broadcaster{
 		clients: make(map[SSEClient]bool),
 	}
+}
+
+// SetTTSMiddleware sets the TTS middleware instance
+func (b *Broadcaster) SetTTSMiddleware(middleware *tts.TTSMiddleware) {
+	b.ttsMiddleware = middleware
 }
 
 // HandleSSE handles SSE connections
@@ -65,6 +73,12 @@ func (b *Broadcaster) HandleSSE(w http.ResponseWriter, r *http.Request) {
 // Broadcast sends an update to all connected clients
 func (b *Broadcaster) Broadcast(update Update) error {
 	log.Println("Starting broadcast...")
+
+	// Use TTS middleware to check if we should broadcast
+	if b.ttsMiddleware != nil && !b.ttsMiddleware.InterceptTTS(update.Type, update.Data) {
+		return nil
+	}
+
 	message, err := json.Marshal(update)
 	if err != nil {
 		log.Printf("JSON marshal error: %v", err)
