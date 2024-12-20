@@ -10,17 +10,24 @@ import (
 // TTSService handles text-to-speech conversion
 type TTSService struct {
 	providers map[string]Provider
+	sanitizer *TextSanitizer
 }
 
 // NewTTSService creates a new TTS service instance
 func NewTTSService() *TTSService {
 	return &TTSService{
 		providers: make(map[string]Provider),
+		sanitizer: NewTextSanitizer(),
 	}
 }
 
 // GetAudioBase64WithProvider converts text to speech and returns base64 encoded audio
 func (s *TTSService) GetAudioBase64WithProvider(text, voiceID string, provider Provider, slow bool) (string, error) {
+	// Check for blocked words before processing
+	if blocked, word := s.sanitizer.ContainsBlockedWords(text, voiceID); blocked {
+		return "", fmt.Errorf("text contains blocked word: %s", word)
+	}
+
 	options := map[string]interface{}{
 		"slow": slow,
 	}
@@ -28,12 +35,33 @@ func (s *TTSService) GetAudioBase64WithProvider(text, voiceID string, provider P
 	if !provider.ValidateVoiceID(voiceID) {
 		return "", fmt.Errorf("invalid voice ID: %s", voiceID)
 	}
+
+	// Sanitize the text before sending to provider
+	sanitizedText := s.sanitizer.Sanitize(text, voiceID)
 	
-	return provider.GetAudioBase64(text, voiceID, options)
+	// Check for blocked words after sanitization
+	if blocked, word := s.sanitizer.ContainsBlockedWords(sanitizedText, voiceID); blocked {
+		return "", fmt.Errorf("sanitized text contains blocked word: %s", word)
+	}
+	
+	return provider.GetAudioBase64(sanitizedText, voiceID, options)
 }
 
 // SplitLongText splits text into chunks that are less than maxTextLength
 func (s *TTSService) SplitLongText(text string, splitPunct string) ([]string, error) {
+	// Check for blocked words before processing
+	if blocked, word := s.sanitizer.ContainsBlockedWords(text, ""); blocked {
+		return nil, fmt.Errorf("text contains blocked word: %s", word)
+	}
+
+	// Sanitize the text before splitting
+	text = s.sanitizer.Sanitize(text, "")
+	
+	// Check for blocked words after sanitization
+	if blocked, word := s.sanitizer.ContainsBlockedWords(text, ""); blocked {
+		return nil, fmt.Errorf("sanitized text contains blocked word: %s", word)
+	}
+	
 	log.Printf("Splitting text (length: %d): %q", len(text), text)
 	var chunks []string
 	words := strings.Fields(text)
