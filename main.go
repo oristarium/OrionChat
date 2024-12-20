@@ -167,6 +167,22 @@ func (s *Server) setupRoutes() {
 		w.Header().Set("Content-Type", "text/html")
 		w.Write([]byte(modifiedContent))
 	})
+
+	// Handle TTS audio blobs
+	http.HandleFunc("/tts-blob/", func(w http.ResponseWriter, r *http.Request) {
+		blobName := filepath.Base(r.URL.Path)
+		blobPath := filepath.Join(os.TempDir(), "tts_blobs", blobName)
+
+		// Check if file exists
+		if _, err := os.Stat(blobPath); os.IsNotExist(err) {
+			http.Error(w, "Audio not found", http.StatusNotFound)
+			return
+		}
+
+		// Serve the file
+		w.Header().Set("Content-Type", "audio/mpeg")
+		http.ServeFile(w, r, blobPath)
+	})
 }
 
 func (s *Server) handleUpdate(w http.ResponseWriter, r *http.Request) {

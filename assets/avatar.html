@@ -23,23 +23,80 @@
                 {{ connectionStatus }}
             </div>
 
-            <div class="space-y-2">
-                <h2 class="text-xl font-semibold text-gray-800">Latest TTS Message:</h2>
-                <pre class="bg-gray-50 p-4 rounded-md border border-gray-200 text-gray-700 font-mono text-sm whitespace-pre-wrap">{{ latestMessage }}</pre>
+            <div v-if="latestMessage" class="space-y-4">
+                <!-- Message Content -->
+                <div class="bg-gray-50 p-4 rounded-md border border-gray-200">
+                    <div class="text-gray-800" v-html="latestMessage.content?.rawHtml"></div>
+                </div>
+
+                <!-- Raw Data Viewer -->
+                <div class="mt-4 border-t pt-4">
+                    <button @click="showRaw = !showRaw" 
+                            class="text-sm text-gray-500 hover:text-gray-700">
+                        {{ showRaw ? 'Hide' : 'Show' }} Raw Data
+                    </button>
+                    <pre v-if="showRaw" 
+                         class="mt-2 bg-gray-50 p-4 rounded-md border border-gray-200 text-gray-700 font-mono text-sm whitespace-pre-wrap">{{ JSON.stringify(latestMessage, null, 2) }}</pre>
+                </div>
+            </div>
+            <div v-else class="text-gray-500">
+                Waiting for messages...
             </div>
         </div>
     </div>
 
     <script>
-        const { createApp, ref } = Vue
+        const { createApp, ref, onMounted } = Vue
 
         createApp({
             setup() {
                 const isConnected = ref(false)
                 const connectionStatus = ref('Disconnected')
-                const latestMessage = ref('Waiting for messages...')
-                const avatarId = '__TTS_ID__'
+                const latestMessage = ref(null)
+                const showRaw = ref(false)
+                let audioContext = null
                 let ws = null
+                const avatarId = '__TTS_ID__'
+
+                // Initialize audio context on mount
+                onMounted(() => {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)()
+                })
+
+                async function playAudio(url) {
+                    try {
+                        // Ensure audio context is running
+                        if (audioContext.state === 'suspended') {
+                            await audioContext.resume()
+                        }
+
+                        // Fetch the audio file
+                        const response = await fetch(url)
+                        const arrayBuffer = await response.arrayBuffer()
+                        
+                        // Decode the audio data
+                        const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
+                        
+                        // Create and configure source
+                        const source = audioContext.createBufferSource()
+                        source.buffer = audioBuffer
+                        source.connect(audioContext.destination)
+                        
+                        // Add ended event handler
+                        source.onended = () => {
+                            ws.send(JSON.stringify({
+                                signal: "avatar_finished",
+                                avatar_id: avatarId,
+                                avatar_audio: url
+                            }))
+                        }
+                        
+                        // Play immediately
+                        source.start(0)
+                    } catch (e) {
+                        console.error('Failed to play audio:', e)
+                    }
+                }
 
                 function connect() {
                     ws = new WebSocket(`ws://localhost:7777/ws/tts?avatarId=${avatarId}`)
@@ -62,9 +119,14 @@
                     ws.onmessage = (event) => {
                         try {
                             const data = JSON.parse(event.data)
-                            latestMessage.value = JSON.stringify(data, null, 2)
+                            latestMessage.value = data
+
+                            // Handle audio URL
+                            if (data.avatar_audio) {
+                                playAudio(data.avatar_audio)
+                            }
                         } catch (e) {
-                            latestMessage.value = event.data
+                            console.error('Failed to parse message:', e)
                         }
                     }
                 }
@@ -75,7 +137,8 @@
                 return {
                     isConnected,
                     connectionStatus,
-                    latestMessage
+                    latestMessage,
+                    showRaw
                 }
             }
         }).mount('#app')

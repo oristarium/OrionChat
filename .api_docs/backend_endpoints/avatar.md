@@ -16,7 +16,6 @@ Response: {
                 "talking": "/avatars/talking.gif"
             },
             "is_default": true,
-            "is_active": true,
             "created_at": 1710691200,
             "tts_voices": [
                 {
@@ -47,7 +46,6 @@ Response: {
         "talking": "/avatars/custom_talking.gif"
     },
     "is_default": false,
-    "is_active": false,
     "created_at": 1710691200,
     "tts_voices": [
         {
@@ -80,34 +78,6 @@ Error Cases:
 - 404: Avatar not found
 ```
 
-5. **List Active Avatars**
-```http
-GET /api/avatars/active
-Response: {
-    "avatars": [
-        {
-            "id": "avatar_1734429111883435200",
-            "name": "Active Avatar",
-            "description": "Currently active avatar",
-            "states": {
-                "idle": "/avatars/active_idle.png",
-                "talking": "/avatars/active_talking.gif"
-            },
-            "is_default": false,
-            "is_active": true,
-            "created_at": 1710691200,
-            "tts_voices": [
-                {
-                    "voice_id": "en_female_emotional",
-                    "provider": "tiktok"
-                }
-            ],
-            "sort_order": 2
-        }
-    ]
-}
-```
-
 6. **Create New Avatar**
 ```http
 POST /api/avatars/create
@@ -120,7 +90,6 @@ Response: {
         "talking": "/avatars/talking.gif"
     },
     "is_default": false,
-    "is_active": false,
     "created_at": 1710691200,
     "tts_voices": null,
     "sort_order": 3
@@ -161,7 +130,6 @@ data: {
                     "talking": "/avatars/active_talking.gif"
                 },
                 "is_default": false,
-                "is_active": true,
                 "created_at": 1710691200,
                 "tts_voices": [
                     {

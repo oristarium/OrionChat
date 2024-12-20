@@ -123,11 +123,6 @@ export class AvatarManager {
 
         return `
             <tr class="avatar-row" data-avatar-id="${avatar.id}">
-                <td class="drag-handle">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M4 6h8M4 10h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                </td>
                 <td>
                     <div class="avatar-preview" data-state-type="idle">
                         <img src="${avatar.states?.idle || ''}" alt="Idle state" class="preview-img">
@@ -482,69 +477,69 @@ export class AvatarManager {
     }
 
     setupSortable() {
-        $('#avatar-list').sortable({
-            handle: '.drag-handle',
-            axis: 'y',
-            containment: 'parent',
-            helper: function(e, tr) {
-                // Create a helper that maintains cell widths
-                const $originals = tr.children();
-                const $helper = tr.clone();
-                $helper.children().each(function(index) {
-                    $(this).width($originals.eq(index).width());
-                });
-                return $helper;
-            },
-            start: function(e, ui) {
-                // Add a class to show we're dragging
-                ui.item.addClass('dragging');
-                // Store the original background color
-                ui.item.data('oldBackground', ui.item.css('background-color'));
-                // Add a subtle background color while dragging
-                ui.item.css('background-color', 'var(--color-secondary)');
-            },
-            stop: async (e, ui) => {
-                // Remove dragging class and restore background
-                ui.item.removeClass('dragging');
-                ui.item.css('background-color', ui.item.data('oldBackground'));
+        // $('#avatar-list').sortable({
+        //     handle: '.drag-handle',
+        //     axis: 'y',
+        //     containment: 'parent',
+        //     helper: function(e, tr) {
+        //         // Create a helper that maintains cell widths
+        //         const $originals = tr.children();
+        //         const $helper = tr.clone();
+        //         $helper.children().each(function(index) {
+        //             $(this).width($originals.eq(index).width());
+        //         });
+        //         return $helper;
+        //     },
+        //     start: function(e, ui) {
+        //         // Add a class to show we're dragging
+        //         ui.item.addClass('dragging');
+        //         // Store the original background color
+        //         ui.item.data('oldBackground', ui.item.css('background-color'));
+        //         // Add a subtle background color while dragging
+        //         ui.item.css('background-color', 'var(--color-secondary)');
+        //     },
+        //     stop: async (e, ui) => {
+        //         // Remove dragging class and restore background
+        //         ui.item.removeClass('dragging');
+        //         ui.item.css('background-color', ui.item.data('oldBackground'));
                 
-                // Get all avatar rows and their new positions
-                const rows = $('#avatar-list tr').toArray();
-                const updates = rows.map((row, index) => ({
-                    id: $(row).data('avatarId'),
-                    sort_order: index
-                }));
+        //         // Get all avatar rows and their new positions
+        //         const rows = $('#avatar-list tr').toArray();
+        //         const updates = rows.map((row, index) => ({
+        //             id: $(row).data('avatarId'),
+        //             sort_order: index
+        //         }));
 
-                // Update sort order for each changed avatar
-                for (const update of updates) {
-                    try {
-                        const response = await fetch(`/api/avatars/${update.id}/sort`, {
-                            method: 'PUT',
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                            body: JSON.stringify({
-                                sort_order: update.sort_order
-                            })
-                        });
+        //         // Update sort order for each changed avatar
+        //         for (const update of updates) {
+        //             try {
+        //                 const response = await fetch(`/api/avatars/${update.id}/sort`, {
+        //                     method: 'PUT',
+        //                     headers: {
+        //                         'Content-Type': 'application/json',
+        //                     },
+        //                     body: JSON.stringify({
+        //                         sort_order: update.sort_order
+        //                     })
+        //                 });
 
-                        if (!response.ok) {
-                            throw new Error('Failed to update sort order');
-                        }
-                    } catch (error) {
-                        console.error('Error updating sort order:', error);
-                        // Reload avatars to restore original order
-                        this.loadAvatars();
-                        return;
-                    }
-                }
+        //                 if (!response.ok) {
+        //                     throw new Error('Failed to update sort order');
+        //                 }
+        //             } catch (error) {
+        //                 console.error('Error updating sort order:', error);
+        //                 // Reload avatars to restore original order
+        //                 this.loadAvatars();
+        //                 return;
+        //             }
+        //         }
 
-                // Update local state to match new order
-                this.avatars = rows.map(row => 
-                    this.avatars.find(a => a.id === $(row).data('avatarId'))
-                );
-            }
-        });
-        $('#avatar-list').disableSelection();
+        //         // Update local state to match new order
+        //         this.avatars = rows.map(row => 
+        //             this.avatars.find(a => a.id === $(row).data('avatarId'))
+        //         );
+        //     }
+        // });
+        // $('#avatar-list').disableSelection();
     }
 } 
