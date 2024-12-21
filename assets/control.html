@@ -1,20 +1,95 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <title>OrionChat Control</title>
     <link rel="icon" href="icon.ico" />
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script src="https://unpkg.com/primevue/umd/primevue.min.js"></script>
-    <script src="https://unpkg.com/@primevue/themes/umd/aura.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://unpkg.com/primevue/resources/primevue.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet">
     <script type="module" src="js/control/ConnectionManager.js"></script>
     <script type="module" src="js/control/ChatManager.js"></script>
+    <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
+    <!-- Add MicroModal styles -->
+    <style>
+      .modal {
+        display: none;
+      }
+
+      .modal.is-open {
+        display: block;
+      }
+
+      .modal__overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 50;
+      }
+
+      .modal__container {
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .micromodal-slide {
+        display: none;
+      }
+
+      .micromodal-slide.is-open {
+        display: block;
+      }
+
+      .micromodal-slide[aria-hidden="false"] .modal__overlay {
+        animation: mmfadeIn .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+      }
+
+      .micromodal-slide[aria-hidden="false"] .modal__container {
+        animation: mmslideIn .3s cubic-bezier(0, 0, .2, 1);
+      }
+
+      .micromodal-slide[aria-hidden="true"] .modal__overlay {
+        animation: mmfadeOut .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+      }
+
+      .micromodal-slide[aria-hidden="true"] .modal__container {
+        animation: mmslideOut .3s cubic-bezier(0, 0, .2, 1);
+      }
+
+      .micromodal-slide .modal__container,
+      .micromodal-slide .modal__overlay {
+        will-change: transform;
+      }
+
+      @keyframes mmfadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes mmfadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+
+      @keyframes mmslideIn {
+        from { transform: translateY(15%); }
+        to { transform: translateY(0); }
+      }
+
+      @keyframes mmslideOut {
+        from { transform: translateY(0); }
+        to { transform: translateY(-10%); }
+      }
+    </style>
   </head>
   <body class="h-screen overflow-hidden max-w-[400px] mx-auto">
     <!-- Main Container -->
@@ -43,18 +118,18 @@
           <div class="flex justify-end items-center gap-2 mb-4">
             <button 
               @click="clearAllMessages"
-              class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-700 text-red-400 hover:text-red-300"
+              class="w-8 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border text-red-400 hover:text-red-500"
               title="Clear messages"
             >
               <i class="fas fa-trash-alt text-sm"></i>
             </button>
             <button 
-              @click="showConnectionsModal = true"
-              class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-700 relative"
+              @click="modal.show('modal-connections')"
+              class="w-8 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative"
               title="Manage connections"
             >
               <i class="fas fa-plug text-sm"></i>
-              <span class="absolute -top-1 -right-1 bg-blue-500 w-4 h-4 flex items-center justify-center rounded-full text-[10px]">{{ activeConnections.length }}</span>
+              <span class="absolute -top-1 -right-1 bg-blue-500 w-4 h-4 flex items-center justify-center rounded-full text-[10px] text-white">{{ activeConnections.length }}</span>
             </button>
           </div>
 
@@ -63,10 +138,10 @@
             ref="chatBox"
             @scroll="handleScroll"
             id="livechat-box" 
-            class="flex-1 rounded-lg border border-gray-700 p-1 overflow-y-auto space-y-1 min-h-0 relative"
+            class="flex-1 rounded-lg border p-0 overflow-y-auto space-y-1 min-h-0 relative"
           >
-            <div class="flex flex-col-reverse">
-              <div v-for="message in sortedMessages" :key="message.message_id" class="p-2">
+            <div class="flex flex-col">
+              <div v-for="message in messages" :key="message.message_id" class="p-2">
                 <div class="flex items-start gap-2">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
@@ -79,17 +154,17 @@
                       ></i>
                       <span class="text-xs font-bold truncate"
                         :class="{
-                          'text-red-300': message.data.author.roles.broadcaster,
-                          'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                          'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                          'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                          'text-red-500': message.data.author.roles.broadcaster,
+                          'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                          'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                          'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
                         }"
                       >
                         {{ message.data.author.display_name }}
                       </span>
-                      <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
+                      <!-- <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
                         <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
-                      </div>
+                      </div> -->
                     </div>
                     <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
                   </div>
@@ -139,16 +214,16 @@
         <!-- Saved Tab Content -->
         <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
           <!-- Custom Message Section -->
-          <div class="mb-4 bg-gray-800 rounded-lg border border-gray-700 p-3">
+          <div class="mb-4 rounded-lg border p-3">
             <textarea 
               v-model="customMessage"
               placeholder="Type a custom message..."
-              class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm mb-2 resize-none h-20"
+              class="w-full border rounded p-2 text-sm mb-2 resize-none h-20"
             ></textarea>
             <div class="flex gap-2">
               <button 
                 @click="sendCustomTTS"
-                class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded border border-gray-600 text-sm"
+                class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
               >
                 <i class="fas fa-volume-up mr-2"></i>
                 Send TTS
@@ -156,14 +231,14 @@
               <div class="flex-1 flex gap-1">
                 <button 
                   @click="sendCustomDisplay"
-                  class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded border border-gray-600 text-sm"
+                  class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
                 >
                   <i class="fas fa-tv mr-2"></i>
                   Display
                 </button>
                 <button 
                   @click="clearDisplay"
-                  class="bg-gray-700 hover:bg-gray-600 text-red-400 hover:text-red-300 p-2 rounded border border-gray-600 text-sm"
+                  class="hover:bg-gray-100 text-red-400 hover:text-red-500 p-2 rounded border text-sm"
                   title="Clear display"
                 >
                   <i class="fas fa-times"></i>
@@ -173,8 +248,8 @@
           </div>
 
           <!-- Saved Messages List -->
-          <div id="savedchat-box" class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-1 overflow-y-auto space-y-1 min-h-0">
-            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2 bg-gray-800/50 rounded border border-gray-700/50">
+          <div id="savedchat-box" class="flex-1 rounded-lg border p-1 overflow-y-auto space-y-1 min-h-0">
+            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2 rounded border">
               <div class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
@@ -231,88 +306,93 @@
       </div>
 
       <!-- Connections Modal -->
-      <div v-if="showConnectionsModal" class="fixed inset-0 bg-black/80 flex items-center justify-center">
-        <div class="bg-gray-800 rounded-lg p-4 w-full max-w-[400px] border border-gray-700">
-          <div class="flex justify-between items-center mb-4">
-            <h2 class="text-lg font-bold">Manage Connections</h2>
-            <button @click="showConnectionsModal = false" class="text-gray-400 hover:text-gray-200">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
+      <div class="modal micromodal-slide" id="modal-connections" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+          <div class="modal__container rounded-lg p-4 w-full max-w-[400px] border bg-white" role="dialog" aria-modal="true" aria-labelledby="modal-connections-title">
+            <header class="flex justify-between items-center mb-4">
+              <h2 id="modal-connections-title" class="text-lg font-bold">Manage Connections</h2>
+              <button class="text-gray-500 hover:text-gray-700" aria-label="Close modal" data-micromodal-close>
+                <i class="fas fa-times"></i>
+              </button>
+            </header>
 
-          <!-- Active Connections -->
-          <div class="space-y-2 mb-4">
-            <div v-for="conn in activeConnections" :key="conn.id" 
-              class="flex items-center gap-2 p-2 bg-gray-700/50 rounded border border-gray-600"
-            >
-              <i :class="{
-                'fab fa-youtube text-red-400': conn.platform === 'youtube',
-                'fab fa-twitch text-purple-400': conn.platform === 'twitch',
-                'fab fa-tiktok text-pink-400': conn.platform === 'tiktok'
-              }"></i>
-              <span class="flex-1 truncate text-sm">{{ conn.identifier }}</span>
-              <div class="flex gap-1">
-                <button @click="refreshChat(conn.id)" class="text-blue-400 hover:text-blue-300 p-1">
-                  <i class="fas fa-sync-alt"></i>
-                </button>
-                <button @click="disconnectChat(conn.id)" class="text-red-400 hover:text-red-300 p-1">
-                  <i class="fas fa-times"></i>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- New Connection Form -->
-          <div class="border-t border-gray-700 pt-4">
-            <div class="flex items-center gap-2">
-              <div class="flex border border-gray-600 rounded-lg overflow-hidden">
-                <button 
-                  v-for="platform in ['youtube', 'twitch', 'tiktok']"
-                  :key="platform"
-                  @click="newConnection.platform = platform"
-                  class="p-2 transition-colors"
-                  :class="{
-                    'bg-gray-700 text-red-400': platform === 'youtube' && newConnection.platform === 'youtube',
-                    'bg-gray-700 text-purple-400': platform === 'twitch' && newConnection.platform === 'twitch',
-                    'bg-gray-700 text-pink-400': platform === 'tiktok' && newConnection.platform === 'tiktok',
-                    'hover:bg-gray-700/50': newConnection.platform !== platform
-                  }"
+            <main id="modal-connections-content">
+              <!-- Active Connections -->
+              <div class="space-y-2 mb-4">
+                <div v-for="conn in activeConnections" :key="conn.id" 
+                  class="flex items-center gap-2 p-2 rounded border"
                 >
                   <i :class="{
-                    'fab fa-youtube': platform === 'youtube',
-                    'fab fa-twitch': platform === 'twitch',
-                    'fab fa-tiktok': platform === 'tiktok'
+                    'fab fa-youtube text-red-400': conn.platform === 'youtube',
+                    'fab fa-twitch text-purple-400': conn.platform === 'twitch',
+                    'fab fa-tiktok text-pink-400': conn.platform === 'tiktok'
                   }"></i>
-                </button>
+                  <span class="flex-1 truncate text-sm">{{ conn.identifier }}</span>
+                  <div class="flex gap-1">
+                    <button @click="refreshChat(conn.id)" class="text-blue-400 hover:text-blue-300 p-1">
+                      <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <button @click="disconnectChat(conn.id)" class="text-red-400 hover:text-red-300 p-1">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <select v-if="newConnection.platform === 'youtube'" 
-                v-model="newConnection.identifierType" 
-                class="bg-gray-700 border-gray-600 rounded p-2 text-sm"
-              >
-                <option value="username">@user</option>
-                <option value="channelId">ID</option>
-                <option value="liveId">Live</option>
-              </select>
+              <!-- New Connection Form -->
+              <div class="border-t pt-4">
+                <div class="flex items-center gap-2">
+                  <div class="flex border rounded-lg overflow-hidden">
+                    <button 
+                      v-for="platform in ['youtube', 'twitch', 'tiktok']"
+                      :key="platform"
+                      @click="newConnection.platform = platform"
+                      class="p-2 transition-colors"
+                      :class="{
+                        'bg-gray-100 text-red-400': platform === 'youtube' && newConnection.platform === 'youtube',
+                        'bg-gray-100 text-purple-400': platform === 'twitch' && newConnection.platform === 'twitch',
+                        'bg-gray-100 text-pink-400': platform === 'tiktok' && newConnection.platform === 'tiktok',
+                        'hover:bg-gray-50': newConnection.platform !== platform
+                      }"
+                    >
+                      <i :class="{
+                        'fab fa-youtube': platform === 'youtube',
+                        'fab fa-twitch': platform === 'twitch',
+                        'fab fa-tiktok': platform === 'tiktok'
+                      }"></i>
+                    </button>
+                  </div>
 
-              <div class="flex-1">
-                <input 
-                  v-model="newConnection.identifier" 
-                  :placeholder="getPlaceholder"
-                  class="w-full bg-gray-700 border-gray-600 rounded p-2 text-sm"
-                />
+                  <select v-if="newConnection.platform === 'youtube'" 
+                    v-model="newConnection.identifierType" 
+                    class="border rounded p-2 text-sm"
+                  >
+                    <option value="username">@user</option>
+                    <option value="channelId">ID</option>
+                    <option value="liveId">Live</option>
+                  </select>
+
+                  <div class="flex-1">
+                    <input 
+                      v-model="newConnection.identifier" 
+                      :placeholder="getPlaceholder"
+                      class="w-full border rounded p-2 text-sm"
+                    />
+                  </div>
+
+                  <button 
+                    @click="connectNewChat"
+                    class="p-2 text-green-500 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                    :disabled="!newConnection.identifier"
+                  >
+                    <i class="fas fa-plus"></i>
+                  </button>
+                </div>
               </div>
-
-              <button 
-                @click="connectNewChat"
-                class="p-2 text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                :disabled="!newConnection.identifier"
-              >
-                <i class="fas fa-plus"></i>
-              </button>
-            </div>
+            </main>
           </div>
         </div>
+      </div>
     </main>
 
     <script type="module">
@@ -342,10 +422,16 @@
       const app = createApp({
         setup() {
           const activeTab = ref('livechats');
-          const showConnectionsModal = ref(false);
           const customMessage = ref('');
           const shouldAutoScroll = ref(true);
           const chatBox = ref(null);
+          const lastScrollPosition = ref(0);
+
+          // Make MicroModal available to the component
+          const modal = {
+            show: (modalId) => window.MicroModal.show(modalId),
+            close: (modalId) => window.MicroModal.close(modalId)
+          };
 
           // Initialize managers
           const connectionManager = new ConnectionManager();
@@ -367,8 +453,7 @@
             savedMessages.value = messages;
           };
 
-          connectionManager.onMessageReceived = async (message) => {
-            await chatManager.saveMessage(message, message.connectionId);
+          connectionManager.onMessageReceived = (message) => {
             chatManager.addMessageUnique(message);
           };
 
@@ -404,8 +489,8 @@
           // Initialize on mount
           onMounted(async () => {
             await Promise.all([
-              connectionManager.init(),
-              chatManager.init()
+              chatManager.init(),
+              connectionManager.init(chatManager)
             ]);
           });
 
@@ -422,12 +507,6 @@
                      'Live ID';
             }
             return '@username';
-          });
-
-          const sortedMessages = computed(() => {
-            return [...allMessages.value].sort((a, b) => 
-              new Date(b.timestamp) - new Date(a.timestamp)
-            );
           });
 
           const sortedSavedMessages = computed(() => {
@@ -500,14 +579,27 @@
             chatManager.clearTTS();
           };
 
+          // Watch for tab changes
+          watch(activeTab, (newTab, oldTab) => {
+            if (oldTab === 'livechats' && chatBox.value) {
+              // Store scroll position when leaving livechats tab
+              lastScrollPosition.value = chatBox.value.scrollTop;
+            } else if (newTab === 'livechats') {
+              // Restore scroll position when returning to livechats tab
+              nextTick(() => {
+                if (chatBox.value) {
+                  chatBox.value.scrollTop = lastScrollPosition.value;
+                }
+              });
+            }
+          });
+
           return {
             activeTab,
-            showConnectionsModal,
             customMessage,
             activeConnections,
             newConnection,
             getPlaceholder,
-            sortedMessages,
             sortedSavedMessages,
             connectNewChat,
             refreshChat,
@@ -524,18 +616,29 @@
             sendCustomTTS,
             sendCustomDisplay,
             clearDisplay,
-            clearTTS
+            clearTTS,
+            modal,
+            messages: allMessages,
           };
         },
       });
 
-      app.use(PrimeVue.Config, {
-        theme: {
-          preset: PrimeVue.Themes.Aura,
-        },
-      });
-
       app.mount("#app");
+    </script>
+
+    <script>
+      MicroModal.init({
+        onShow: modal => console.log(`${modal.id} is shown`),
+        onClose: modal => console.log(`${modal.id} is hidden`),
+        openTrigger: 'data-micromodal-trigger',
+        closeTrigger: 'data-micromodal-close',
+        openClass: 'is-open',
+        disableScroll: true,
+        disableFocus: false,
+        awaitOpenAnimation: false,
+        awaitCloseAnimation: false,
+        debugMode: false
+      });
     </script>
   </body>
 </html>

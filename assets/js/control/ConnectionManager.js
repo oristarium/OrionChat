@@ -4,18 +4,25 @@ let db;
 
 export class ConnectionManager {
     constructor() {
+        this.ws = null;
         this.activeConnections = [];
         this.isDBReady = false;
         this.onConnectionsChange = null;
         this.onMessageReceived = null;
         this.showToast = null;
+        this.chatManager = null;
+        this.isConnecting = false;
     }
 
-    async init() {
+    async init(chatManager) {
         try {
+            this.chatManager = chatManager;
             await this.initDB();
             this.isDBReady = true;
-            await this.loadSavedConnections();
+            await this.initWebSocket();
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                await this.loadSavedConnections();
+            }
         } catch (error) {
             console.error('Failed to initialize ConnectionManager:', error);
         }
@@ -49,210 +56,222 @@ export class ConnectionManager {
         });
     }
 
+    initWebSocket() {
+        return new Promise((resolve, reject) => {
+            if (this.ws?.readyState === WebSocket.OPEN) {
+                resolve(this.ws);
+                return;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${protocol}//chatsocket.oristarium.com/ws`;
+            
+            console.log('Connecting to WebSocket:', wsUrl);
+            this.ws = new WebSocket(wsUrl);
+
+            this.ws.onopen = () => {
+                console.log('WebSocket connected successfully');
+                resolve(this.ws);
+            };
+
+            this.ws.onerror = (error) => {
+                console.error('WebSocket connection error:', error);
+                this.showToast?.('WebSocket connection error', 'error');
+                reject(error);
+            };
+
+            this.ws.onclose = () => {
+                console.log('WebSocket disconnected, attempting to reconnect in 5 seconds...');
+                this.ws = null;
+                setTimeout(() => {
+                    console.log('Attempting WebSocket reconnection...');
+                    this.initWebSocket()
+                        .then(() => {
+                            console.log('WebSocket reconnected, reloading saved connections...');
+                            this.loadSavedConnections();
+                        })
+                        .catch(error => {
+                            console.error('WebSocket reconnection failed:', error);
+                        });
+                }, 5000);
+            };
+
+            this.ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+                    console.log('WebSocket received:', data);
+                    
+                    switch (data.type) {
+                        case 'chat':
+                            this.onMessageReceived?.(data);
+                            break;
+                            
+                        case 'status':
+                            this.handleStatusMessage(data);
+                            break;
+                            
+                        case 'error':
+                            console.error('WebSocket error message:', data);
+                            this.showToast?.(data.error, 'error');
+                            break;
+
+                        default:
+                            console.log('Unknown message type:', data.type);
+                    }
+                } catch (error) {
+                    console.error('Error processing WebSocket message:', error);
+                }
+            };
+        });
+    }
+
+    handleStatusMessage(data) {
+        console.log('Status message:', data);
+        
+        if (data.status === 'subscribed') {
+            const connection = this.activeConnections.find(c => c.id === data.liveId);
+            if (!connection) {
+                // Add new connection
+                const [platform, identifierType, identifier] = data.liveId.split('-');
+                const newConnection = {
+                    id: data.liveId,
+                    platform,
+                    identifier,
+                    identifierType: identifierType || 'username'
+                };
+                this.activeConnections.push(newConnection);
+                this.onConnectionsChange?.(this.activeConnections);
+                this.showToast?.(`Successfully connected to ${platform} chat: ${identifier}`, 'success');
+            }
+        } else if (data.status === 'unsubscribed') {
+            // Remove connection
+            const connection = this.activeConnections.find(c => c.id === data.liveId);
+            if (connection) {
+                this.showToast?.(`Disconnected from ${connection.platform} chat: ${connection.identifier}`, 'info');
+            }
+            this.activeConnections = this.activeConnections.filter(c => c.id !== data.liveId);
+            this.onConnectionsChange?.(this.activeConnections);
+        }
+    }
+
     generateConnectionId(platform, identifier, identifierType = 'username') {
         return `${platform}-${identifierType}-${identifier}`.toLowerCase();
     }
 
     async connectNewChat(connectionDetails, existingId = null) {
-        const generatedId = this.generateConnectionId(
-            connectionDetails.platform,
-            connectionDetails.identifier,
-            connectionDetails.identifierType
-        );
-        const connId = existingId || generatedId;
+        if (this.isConnecting) return;
+        this.isConnecting = true;
 
-        if (!existingId && this.activeConnections.some(conn => conn.id === connId)) {
-            this.showToast?.('This connection already exists', 'error');
-            return;
-        }
-
-        const ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
-        let subscriptionConfirmed = false;
-
-        ws.onopen = () => {
-            const subscribeMessage = {
-                type: 'subscribe',
-                identifier: connectionDetails.identifier,
-                platform: connectionDetails.platform,
-                ...(connectionDetails.platform === 'youtube' && { 
-                    identifierType: connectionDetails.identifierType 
-                })
-            };
-
-            console.log('WebSocket connected, sending subscribe message:', {
-                connectionId: connId,
-                message: subscribeMessage
-            });
-
-            ws.send(JSON.stringify(subscribeMessage));
-
-            setTimeout(() => {
-                if (!subscriptionConfirmed) {
-                    console.error('Subscription confirmation timeout for:', {
-                        connectionId: connId,
-                        platform: connectionDetails.platform,
-                        identifier: connectionDetails.identifier,
-                        identifierType: connectionDetails.identifierType
-                    });
-                    this.showToast?.('Connection failed: No response from server', 'error');
-                    ws.close();
-                }
-            }, 5000);
-        };
-
-        ws.onmessage = async (event) => {
-            const data = JSON.parse(event.data);
-            
-            if (data.type !== 'chat') {
-                console.log('WebSocket received message:', {
-                    connectionId: connId,
-                    type: data.type,
-                    data: data
-                });
+        try {
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                console.log('WebSocket not connected, attempting to connect...');
+                await this.initWebSocket();
             }
-            
-            if (data.type === 'status' && data.status === 'subscribed') {
-                subscriptionConfirmed = true;
-                console.log('Subscription confirmed for:', {
-                    connectionId: connId,
-                    platform: connectionDetails.platform,
-                    identifier: connectionDetails.identifier,
-                    identifierType: connectionDetails.identifierType,
-                    response: data
-                });
 
-                const connection = {
-                    id: connId,
-                    ws,
-                    platform: connectionDetails.platform,
-                    identifier: connectionDetails.identifier,
-                    identifierType: connectionDetails.identifierType
-                };
+            const connId = existingId || this.generateConnectionId(
+                connectionDetails.platform,
+                connectionDetails.identifier,
+                connectionDetails.identifierType
+            );
 
-                this.activeConnections.push(connection);
-                this.onConnectionsChange?.(this.activeConnections);
-
-                try {
-                    await this.saveConnectionsToDb();
-                } catch (error) {
-                    console.error('Error saving connections:', error);
-                }
-
-                if (!existingId) {
-                    this.showToast?.('New connection added');
-                }
+            if (this.activeConnections.some(conn => conn.id === connId)) {
+                console.log('Already connected to:', connId);
+                this.showToast?.('Already connected to this chat', 'info');
+                this.isConnecting = false;
                 return;
             }
 
-            if (data.type === 'chat' && subscriptionConfirmed) {
-                const messageWithConn = {
-                    ...data,
-                    connectionId: connId
-                };
-                this.onMessageReceived?.(messageWithConn);
-            }
-        };
-
-        ws.onerror = (error) => {
-            console.error('WebSocket error for connection:', {
-                connectionId: connId,
-                error: error
+            console.log('Subscribing to chat:', {
+                platform: connectionDetails.platform,
+                identifier: connectionDetails.identifier,
+                identifierType: connectionDetails.identifierType
             });
-            this.showToast?.('Connection error', 'error');
-            this.disconnectChat(connId);
-        };
 
-        ws.onclose = () => {
-            console.log('WebSocket closed for connection:', {
-                connectionId: connId,
-                wasConfirmed: subscriptionConfirmed
-            });
-            if (subscriptionConfirmed) {
-                this.disconnectChat(connId);
+            this.showToast?.(`Connecting to ${connectionDetails.platform} chat: ${connectionDetails.identifier}...`, 'info');
+
+            this.ws.send(JSON.stringify({
+                type: 'subscribe',
+                platform: connectionDetails.platform,
+                identifier: connectionDetails.identifier,
+                identifierType: connectionDetails.identifierType
+            }));
+
+            if (this.isDBReady && !existingId) {
+                const transaction = db.transaction(['connections'], 'readwrite');
+                const store = transaction.objectStore('connections');
+                await new Promise((resolve, reject) => {
+                    const request = store.put({
+                        id: connId,
+                        ...connectionDetails
+                    });
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
             }
-        };
-    }
-
-    async refreshChat(connId) {
-        const conn = this.activeConnections.find(c => c.id === connId);
-        if (conn) {
-            const details = {
-                platform: conn.platform,
-                identifier: conn.identifier,
-                identifierType: conn.identifierType
-            };
-            
-            await this.disconnectChat(connId);
-            await this.connectNewChat(details, connId);
-        }
-    }
-
-    async disconnectChat(connId) {
-        const connIndex = this.activeConnections.findIndex(conn => conn.id === connId);
-        if (connIndex !== -1) {
-            const conn = this.activeConnections[connIndex];
-            try {
-                conn.ws.send(JSON.stringify({ type: 'unsubscribe' }));
-            } catch (e) {
-                console.warn('Could not send unsubscribe message:', e);
-            }
-            conn.ws.close();
-            this.activeConnections.splice(connIndex, 1);
-            this.onConnectionsChange?.(this.activeConnections);
-
-            if (this.isDBReady) {
-                await this.saveConnectionsToDb();
-            }
-
-            this.showToast?.('Connection removed');
-        }
-    }
-
-    async saveConnectionsToDb() {
-        if (!db) return;
-        
-        const transaction = db.transaction(['connections'], 'readwrite');
-        const store = transaction.objectStore('connections');
-
-        await store.clear();
-
-        for (const conn of this.activeConnections) {
-            const connData = {
-                id: conn.id,
-                platform: conn.platform,
-                identifier: conn.identifier,
-                identifierType: conn.identifierType
-            };
-            await store.add(connData);
+        } catch (error) {
+            console.error('Failed to connect to chat:', error);
+            this.showToast?.('Failed to connect to chat', 'error');
+        } finally {
+            this.isConnecting = false;
         }
     }
 
     async loadSavedConnections() {
-        if (!db) return;
+        if (!this.isDBReady) return;
+
+        const transaction = db.transaction(['connections'], 'readonly');
+        const store = transaction.objectStore('connections');
         
         return new Promise((resolve, reject) => {
-            const transaction = db.transaction(['connections'], 'readonly');
-            const store = transaction.objectStore('connections');
-            
             const request = store.getAll();
             
             request.onsuccess = async () => {
                 const connections = request.result;
-                if (connections.length > 0) {
-                    for (const conn of connections) {
-                        await this.connectNewChat({
-                            platform: conn.platform,
-                            identifier: conn.identifier,
-                            identifierType: conn.identifierType
-                        }, conn.id);
-                    }
+                console.log('Loading saved connections:', connections);
+                
+                for (const conn of connections) {
+                    await this.connectNewChat(conn, conn.id);
                 }
-                resolve(connections);
+                resolve();
             };
             
-            request.onerror = () => {
-                reject(request.error);
-            };
+            request.onerror = () => reject(request.error);
         });
+    }
+
+    async disconnectChat(connId) {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+        try {
+            // Unsubscribe from the chat
+            this.ws.send(JSON.stringify({
+                type: 'unsubscribe',
+                liveId: connId
+            }));
+
+            // Remove from database
+            if (this.isDBReady) {
+                const transaction = db.transaction(['connections'], 'readwrite');
+                const store = transaction.objectStore('connections');
+                await new Promise((resolve, reject) => {
+                    const request = store.delete(connId);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                });
+            }
+
+            this.showToast?.('Connection removed');
+        } catch (error) {
+            console.error('Failed to disconnect chat:', error);
+            this.showToast?.('Failed to disconnect chat', 'error');
+        }
+    }
+
+    async refreshChat(connId) {
+        const connection = this.activeConnections.find(c => c.id === connId);
+        if (!connection) return;
+
+        await this.disconnectChat(connId);
+        await this.connectNewChat(connection, connId);
     }
 } 

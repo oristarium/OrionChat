@@ -1,8 +1,6 @@
-// Database setup
-const chatDbName = 'OrionChatDB';
+// Database setup for saved messages only
 const savedChatDbName = 'OrionSavedChatDB';
 const dbVersion = 2;
-let chatDb;
 let savedChatDb;
 
 export class ChatManager {
@@ -26,137 +24,40 @@ export class ChatManager {
     }
 
     async initDB() {
-        return Promise.all([
-            // Initialize main chat database
-            new Promise((resolve, reject) => {
-                console.log('Initializing Chat IndexedDB...');
-                const request = indexedDB.open(chatDbName, dbVersion);
-
-                request.onerror = (event) => {
-                    console.error('Chat IndexedDB error:', event.target.error);
-                    reject(event.target.error);
-                };
-
-                request.onsuccess = (event) => {
-                    console.log('Chat IndexedDB initialized successfully');
-                    chatDb = event.target.result;
-                    resolve(chatDb);
-                };
-
-                request.onupgradeneeded = (event) => {
-                    console.log('Creating/upgrading Chat IndexedDB structure...');
-                    const db = event.target.result;
-                    
-                    if (!db.objectStoreNames.contains('messages')) {
-                        const store = db.createObjectStore('messages', { keyPath: 'message_id' });
-                        store.createIndex('connectionId', 'connectionId', { unique: false });
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                        console.log('Message store created');
-                    }
-                };
-            }),
-            // Initialize saved messages database
-            new Promise((resolve, reject) => {
-                console.log('Initializing Saved Chat IndexedDB...');
-                const request = indexedDB.open(savedChatDbName, dbVersion);
-
-                request.onerror = (event) => {
-                    console.error('Saved Chat IndexedDB error:', event.target.error);
-                    reject(event.target.error);
-                };
-
-                request.onsuccess = (event) => {
-                    console.log('Saved Chat IndexedDB initialized successfully');
-                    savedChatDb = event.target.result;
-                    resolve(savedChatDb);
-                };
-
-                request.onupgradeneeded = (event) => {
-                    console.log('Creating/upgrading Saved Chat IndexedDB structure...');
-                    const db = event.target.result;
-                    
-                    if (!db.objectStoreNames.contains('savedMessages')) {
-                        const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
-                        store.createIndex('timestamp', 'timestamp', { unique: false });
-                        console.log('Saved messages store created');
-                    }
-                };
-            })
-        ]);
-    }
-
-    addMessageUnique(message) {
-        const exists = this.messages.some(m => m.message_id === message.message_id);
-        if (!exists) {
-            this.messages.push(message);
-            if (this.messages.length > 200) {
-                this.messages = this.messages.slice(-200);
-            }
-            this.onMessagesChange?.(this.messages);
-        }
-    }
-
-    async saveMessage(message, connectionId) {
-        if (!chatDb) return;
-        
-        const transaction = chatDb.transaction(['messages'], 'readwrite');
-        const store = transaction.objectStore('messages');
-        
-        const messageToStore = {
-            ...message,
-            connectionId
-        };
-        
-        try {
-            await store.add(messageToStore);
-            console.log('Message saved to IndexedDB');
-        } catch (error) {
-            if (error.name === 'ConstraintError') {
-                console.log('Message already exists in IndexedDB');
-                return;
-            }
-            console.error('Error saving message:', error);
-        }
-    }
-
-    async loadMessages(connectionId) {
-        if (!chatDb) return [];
-        
         return new Promise((resolve, reject) => {
-            console.log('Loading messages for connection:', connectionId);
-            const transaction = chatDb.transaction(['messages'], 'readonly');
-            const store = transaction.objectStore('messages');
-            const index = store.index('connectionId');
-            
-            const request = index.getAll(connectionId);
-            
-            request.onsuccess = () => {
-                console.log(`Loaded ${request.result.length} messages from IndexedDB`);
-                resolve(request.result);
+            console.log('Initializing Saved Chat IndexedDB...');
+            const request = indexedDB.open(savedChatDbName, dbVersion);
+
+            request.onerror = (event) => {
+                console.error('Saved Chat IndexedDB error:', event.target.error);
+                reject(event.target.error);
             };
-            
-            request.onerror = () => {
-                console.error('Error loading messages:', request.error);
-                reject(request.error);
+
+            request.onsuccess = (event) => {
+                console.log('Saved Chat IndexedDB initialized successfully');
+                savedChatDb = event.target.result;
+                resolve(savedChatDb);
+            };
+
+            request.onupgradeneeded = (event) => {
+                console.log('Creating/upgrading Saved Chat IndexedDB structure...');
+                const db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('savedMessages')) {
+                    const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
+                    store.createIndex('timestamp', 'timestamp', { unique: false });
+                    console.log('Saved messages store created');
+                }
             };
         });
     }
 
-    async clearMessages(connectionId) {
-        if (!chatDb) return;
+    addMessageUnique(message) {
+        // Simply add new messages to the end of the array
+        this.messages.push(message);
         
-        const transaction = chatDb.transaction(['messages'], 'readwrite');
-        const store = transaction.objectStore('messages');
-        const index = store.index('connectionId');
-        
-        const request = index.getAllKeys(connectionId);
-        
-        request.onsuccess = () => {
-            const keys = request.result;
-            keys.forEach(key => {
-                store.delete(key);
-            });
-        };
+        // Ensure Vue updates the view by creating a new array reference
+        this.onMessagesChange?.([...this.messages]);
     }
 
     async clearAllMessages() {
@@ -165,51 +66,23 @@ export class ChatManager {
         this.showToast?.('Chat messages cleared');
     }
 
+    // Saved messages functionality
     async saveMessageToFavorites(message) {
         if (!savedChatDb) return;
         
         const transaction = savedChatDb.transaction(['savedMessages'], 'readwrite');
         const store = transaction.objectStore('savedMessages');
         
-        const cleanMessage = {
-            message_id: message.message_id,
-            platform: message.platform,
-            timestamp: message.timestamp,
-            data: {
-                author: {
-                    id: message.data.author.id,
-                    username: message.data.author.username,
-                    display_name: message.data.author.display_name,
-                    avatar_url: message.data.author.avatar_url,
-                    roles: { ...message.data.author.roles },
-                    badges: message.data.author.badges.map(badge => ({
-                        type: badge.type,
-                        label: badge.label,
-                        image_url: badge.image_url
-                    }))
-                },
-                content: {
-                    raw: message.data.content.raw,
-                    formatted: message.data.content.formatted,
-                    sanitized: message.data.content.sanitized,
-                    rawHtml: message.data.content.rawHtml,
-                    elements: message.data.content.elements?.map(el => ({
-                        type: el.type,
-                        value: el.value,
-                        position: [...el.position],
-                        metadata: el.metadata ? { ...el.metadata } : undefined
-                    }))
-                },
-                metadata: message.data.metadata ? {
-                    type: message.data.metadata.type,
-                    monetary_data: message.data.metadata.monetary_data ? { ...message.data.metadata.monetary_data } : undefined,
-                    sticker: message.data.metadata.sticker ? { ...message.data.metadata.sticker } : undefined
-                } : undefined
-            }
-        };
-        
         try {
-            await store.add(cleanMessage);
+            await new Promise((resolve, reject) => {
+                const request = store.add(message);
+                request.onsuccess = () => {
+                    console.log('Message saved to favorites:', message.message_id);
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+            
             this.showToast?.('Message saved to favorites');
             await this.loadSavedMessages();
         } catch (error) {
@@ -248,7 +121,11 @@ export class ChatManager {
         
         const transaction = savedChatDb.transaction(['savedMessages'], 'readwrite');
         const store = transaction.objectStore('savedMessages');
-        await store.delete(messageId);
+        await new Promise((resolve, reject) => {
+            const deleteRequest = store.delete(messageId);
+            deleteRequest.onsuccess = () => resolve();
+            deleteRequest.onerror = () => reject(deleteRequest.error);
+        });
         
         this.savedMessages = this.savedMessages.filter(msg => msg.message_id !== messageId);
         this.onSavedMessagesChange?.(this.savedMessages);
@@ -293,22 +170,21 @@ export class ChatManager {
             });
             this.showToast?.('Message displayed');
         } catch (error) {
-            console.error('Error sending display:', error);
+            console.error('Error displaying message:', error);
             this.showToast?.('Failed to display message', 'error');
         }
     }
 
-    async sendCustomTTS(message) {
-        if (!message.trim()) {
-            this.showToast?.('Please enter a message', 'error');
-            return;
-        }
+    async sendCustomTTS(text) {
+        if (!text) return false;
 
         const ttsData = {
             type: 'tts',
             data: {
                 content: {
-                    sanitized: message.trim()
+                    raw: text,
+                    formatted: text,
+                    sanitized: text
                 }
             }
         };
@@ -330,17 +206,16 @@ export class ChatManager {
         }
     }
 
-    async sendCustomDisplay(message) {
-        if (!message.trim()) {
-            this.showToast?.('Please enter a message', 'error');
-            return;
-        }
+    async sendCustomDisplay(text) {
+        if (!text) return false;
 
         const displayData = {
             type: 'display',
             data: {
                 content: {
-                    sanitized: message.trim()
+                    raw: text,
+                    formatted: text,
+                    sanitized: text
                 }
             }
         };
@@ -356,41 +231,35 @@ export class ChatManager {
             this.showToast?.('Custom message displayed');
             return true;
         } catch (error) {
-            console.error('Error sending custom display:', error);
+            console.error('Error displaying custom message:', error);
             this.showToast?.('Failed to display custom message', 'error');
             return false;
         }
     }
 
-    async clearDisplay() {
-        try {
-            await fetch('/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ type: 'clear_display' })
-            });
-            this.showToast?.('Display cleared');
-        } catch (error) {
+    clearDisplay() {
+        fetch('/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ type: 'clear_display' })
+        }).catch(error => {
             console.error('Error clearing display:', error);
             this.showToast?.('Failed to clear display', 'error');
-        }
+        });
     }
 
-    async clearTTS() {
-        try {
-            await fetch('/update', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ type: 'clear_tts' })
-            });
-            this.showToast?.('TTS cleared');
-        } catch (error) {
+    clearTTS() {
+        fetch('/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ type: 'clear_tts' })
+        }).catch(error => {
             console.error('Error clearing TTS:', error);
             this.showToast?.('Failed to clear TTS', 'error');
-        }
+        });
     }
 } 
