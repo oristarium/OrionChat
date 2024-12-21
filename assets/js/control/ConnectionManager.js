@@ -5,13 +5,17 @@ let db;
 export class ConnectionManager {
     constructor() {
         this.ws = null;
-        this.activeConnections = [];
+        this.savedConnections = [];
         this.isDBReady = false;
         this.onConnectionsChange = null;
         this.onMessageReceived = null;
         this.showToast = null;
         this.chatManager = null;
         this.isConnecting = false;
+    }
+
+    get activeConnections() {
+        return this.savedConnections.filter(conn => conn.status === 'connected');
     }
 
     async init(chatManager) {
@@ -99,7 +103,6 @@ export class ConnectionManager {
             this.ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('WebSocket received:', data);
                     
                     switch (data.type) {
                         case 'chat':
@@ -111,8 +114,27 @@ export class ConnectionManager {
                             break;
                             
                         case 'error':
-                            console.error('WebSocket error message:', data);
-                            this.showToast?.(data.error, 'error');
+                            if (data.code === 'ALREADY_SUBSCRIBED') {
+                                this.showToast?.(data.error, 'info');
+                            } else {
+                                console.error('WebSocket error message:', data);
+                                this.showToast?.(data.error, 'error');
+                                
+                                // Update connection status on error
+                                const connection = this.savedConnections.find(c => {
+                                    const connId = this.generateConnectionId(
+                                        c.platform,
+                                        c.identifier,
+                                        c.identifierType
+                                    );
+                                    return c.status === 'connecting';
+                                });
+                                
+                                if (connection) {
+                                    connection.status = data.error || 'error';
+                                    this.onConnectionsChange?.(this.savedConnections);
+                                }
+                            }
                             break;
 
                         default:
@@ -129,7 +151,7 @@ export class ConnectionManager {
         console.log('Status message:', data);
         
         if (data.status === 'subscribed') {
-            const connection = this.activeConnections.find(c => c.id === data.liveId);
+            const connection = this.savedConnections.find(c => c.id === data.liveId);
             if (!connection) {
                 // Add new connection
                 const [platform, identifierType, identifier] = data.liveId.split('-');
@@ -137,20 +159,26 @@ export class ConnectionManager {
                     id: data.liveId,
                     platform,
                     identifier,
-                    identifierType: identifierType || 'username'
+                    identifierType: identifierType || 'username',
+                    status: 'connected'
                 };
-                this.activeConnections.push(newConnection);
-                this.onConnectionsChange?.(this.activeConnections);
+                this.savedConnections.push(newConnection);
+                this.onConnectionsChange?.(this.savedConnections);
                 this.showToast?.(`Successfully connected to ${platform} chat: ${identifier}`, 'success');
+            } else {
+                // Update existing connection status
+                connection.status = 'connected';
+                this.onConnectionsChange?.(this.savedConnections);
+                this.showToast?.(`Successfully connected to ${connection.platform} chat: ${connection.identifier}`, 'success');
             }
         } else if (data.status === 'unsubscribed') {
-            // Remove connection
-            const connection = this.activeConnections.find(c => c.id === data.liveId);
+            // Update connection status
+            const connection = this.savedConnections.find(c => c.id === data.liveId);
             if (connection) {
+                connection.status = 'disconnected';
+                this.onConnectionsChange?.(this.savedConnections);
                 this.showToast?.(`Disconnected from ${connection.platform} chat: ${connection.identifier}`, 'info');
             }
-            this.activeConnections = this.activeConnections.filter(c => c.id !== data.liveId);
-            this.onConnectionsChange?.(this.activeConnections);
         }
     }
 
@@ -174,11 +202,26 @@ export class ConnectionManager {
                 connectionDetails.identifierType
             );
 
-            if (this.activeConnections.some(conn => conn.id === connId)) {
-                console.log('Already connected to:', connId);
-                this.showToast?.('Already connected to this chat', 'info');
-                this.isConnecting = false;
-                return;
+            // Check if connection exists but update its status
+            const existingConnection = this.savedConnections.find(conn => conn.id === connId);
+            if (existingConnection) {
+                if (existingConnection.status === 'connected') {
+                    console.log('Already connected to:', connId);
+                    this.showToast?.('Already connected to this chat', 'info');
+                    this.isConnecting = false;
+                    return;
+                }
+                existingConnection.status = 'connecting';
+                this.onConnectionsChange?.(this.savedConnections);
+            } else {
+                // Add new connection with connecting status
+                const newConnection = {
+                    id: connId,
+                    ...connectionDetails,
+                    status: 'connecting'
+                };
+                this.savedConnections.push(newConnection);
+                this.onConnectionsChange?.(this.savedConnections);
             }
 
             console.log('Subscribing to chat:', {
@@ -202,13 +245,20 @@ export class ConnectionManager {
                 await new Promise((resolve, reject) => {
                     const request = store.put({
                         id: connId,
-                        ...connectionDetails
+                        ...connectionDetails,
+                        status: 'connecting'
                     });
                     request.onsuccess = () => resolve();
                     request.onerror = () => reject(request.error);
                 });
             }
         } catch (error) {
+            // Update status to error if connection exists
+            const connection = this.savedConnections.find(conn => conn.id === connId);
+            if (connection) {
+                connection.status = 'error';
+                this.onConnectionsChange?.(this.savedConnections);
+            }
             console.error('Failed to connect to chat:', error);
             this.showToast?.('Failed to connect to chat', 'error');
         } finally {
@@ -229,6 +279,14 @@ export class ConnectionManager {
                 const connections = request.result;
                 console.log('Loading saved connections:', connections);
                 
+                // Initialize all loaded connections as disconnected
+                this.savedConnections = connections.map(conn => ({
+                    ...conn,
+                    status: 'disconnected'
+                }));
+                this.onConnectionsChange?.(this.savedConnections);
+                
+                // Try to connect to each saved connection
                 for (const conn of connections) {
                     await this.connectNewChat(conn, conn.id);
                 }
@@ -249,6 +307,10 @@ export class ConnectionManager {
                 liveId: connId
             }));
 
+            // Remove from savedConnections
+            this.savedConnections = this.savedConnections.filter(c => c.id !== connId);
+            this.onConnectionsChange?.(this.savedConnections);
+
             // Remove from database
             if (this.isDBReady) {
                 const transaction = db.transaction(['connections'], 'readwrite');
@@ -268,10 +330,32 @@ export class ConnectionManager {
     }
 
     async refreshChat(connId) {
-        const connection = this.activeConnections.find(c => c.id === connId);
+        const connection = this.savedConnections.find(c => c.id === connId);
         if (!connection) return;
 
-        await this.disconnectChat(connId);
-        await this.connectNewChat(connection, connId);
+        try {
+            if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+                console.log('WebSocket not connected, attempting to connect...');
+                await this.initWebSocket();
+            }
+
+            // Update connection status to connecting
+            connection.status = 'connecting';
+            this.onConnectionsChange?.(this.savedConnections);
+
+            this.ws.send(JSON.stringify({
+                type: 'subscribe',
+                platform: connection.platform,
+                identifier: connection.identifier,
+                identifierType: connection.identifierType
+            }));
+
+            this.showToast?.(`Refreshing ${connection.platform} chat: ${connection.identifier}...`, 'info');
+        } catch (error) {
+            console.error('Failed to refresh chat:', error);
+            this.showToast?.('Failed to refresh chat', 'error');
+            connection.status = 'error';
+            this.onConnectionsChange?.(this.savedConnections);
+        }
     }
 } 

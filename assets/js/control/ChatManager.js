@@ -17,7 +17,6 @@ export class ChatManager {
         try {
             await this.initDB();
             this.isDBReady = true;
-            await this.loadSavedMessages();
         } catch (error) {
             console.error('Failed to initialize ChatManager:', error);
         }
@@ -53,83 +52,52 @@ export class ChatManager {
     }
 
     addMessageUnique(message) {
-        // Simply add new messages to the end of the array
         this.messages.push(message);
-        
-        // Ensure Vue updates the view by creating a new array reference
-        this.onMessagesChange?.([...this.messages]);
-    }
-
-    async clearAllMessages() {
-        this.messages = [];
         this.onMessagesChange?.(this.messages);
-        this.showToast?.('Chat messages cleared');
     }
 
-    // Saved messages functionality
     async saveMessageToFavorites(message) {
-        if (!savedChatDb) return;
-        
-        const transaction = savedChatDb.transaction(['savedMessages'], 'readwrite');
-        const store = transaction.objectStore('savedMessages');
-        
+        if (!this.isDBReady) return;
+
         try {
+            const transaction = db.transaction(['savedMessages'], 'readwrite');
+            const store = transaction.objectStore('savedMessages');
+            
             await new Promise((resolve, reject) => {
-                const request = store.add(message);
-                request.onsuccess = () => {
-                    console.log('Message saved to favorites:', message.message_id);
-                    resolve();
-                };
+                const request = store.put(message);
+                request.onsuccess = () => resolve();
                 request.onerror = () => reject(request.error);
             });
-            
-            this.showToast?.('Message saved to favorites');
-            await this.loadSavedMessages();
+
+            this.savedMessages.push(message);
+            this.onSavedMessagesChange?.(this.savedMessages);
+            this.showToast?.('Message saved');
         } catch (error) {
-            if (error.name === 'ConstraintError') {
-                this.showToast?.('Message already saved', 'info');
-                return;
-            }
-            this.showToast?.('Error saving message', 'error');
-            console.error('Error saving to favorites:', error);
+            console.error('Failed to save message:', error);
+            this.showToast?.('Failed to save message', 'error');
         }
     }
 
-    async loadSavedMessages() {
-        if (!savedChatDb) return [];
-        
-        return new Promise((resolve, reject) => {
-            const transaction = savedChatDb.transaction(['savedMessages'], 'readonly');
+    async removeSavedMessage(messageId) {
+        if (!this.isDBReady) return;
+
+        try {
+            const transaction = db.transaction(['savedMessages'], 'readwrite');
             const store = transaction.objectStore('savedMessages');
             
-            const request = store.getAll();
-            
-            request.onsuccess = () => {
-                this.savedMessages = request.result;
-                this.onSavedMessagesChange?.(this.savedMessages);
-                resolve(request.result);
-            };
-            
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+            await new Promise((resolve, reject) => {
+                const request = store.delete(messageId);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
 
-    async removeSavedMessage(messageId) {
-        if (!savedChatDb) return;
-        
-        const transaction = savedChatDb.transaction(['savedMessages'], 'readwrite');
-        const store = transaction.objectStore('savedMessages');
-        await new Promise((resolve, reject) => {
-            const deleteRequest = store.delete(messageId);
-            deleteRequest.onsuccess = () => resolve();
-            deleteRequest.onerror = () => reject(deleteRequest.error);
-        });
-        
-        this.savedMessages = this.savedMessages.filter(msg => msg.message_id !== messageId);
-        this.onSavedMessagesChange?.(this.savedMessages);
-        this.showToast?.('Saved message removed');
+            this.savedMessages = this.savedMessages.filter(m => m.message_id !== messageId);
+            this.onSavedMessagesChange?.(this.savedMessages);
+            this.showToast?.('Message removed');
+        } catch (error) {
+            console.error('Failed to remove message:', error);
+            this.showToast?.('Failed to remove message', 'error');
+        }
     }
 
     // API interaction methods
