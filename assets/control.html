@@ -132,56 +132,54 @@
             id="livechat-box" 
             class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0"
           >
-            <div class="flex flex-col">
-              <div v-for="message in messages" :key="message.message_id" class="p-2">
+            <div v-for="message in messages" :key="message.message_id" class="p-2">
                 <div class="flex items-start gap-2">
-                  <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <i class="text-xs"
+                        <i class="text-xs"
                         :class="{
-                          'fab fa-youtube text-red-400': message.platform === 'youtube',
-                          'fab fa-twitch text-purple-400': message.platform === 'twitch',
-                          'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                            'fab fa-youtube text-red-400': message.platform === 'youtube',
+                            'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                            'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
                         }"
-                      ></i>
-                      <span class="text-xs font-bold truncate"
+                        ></i>
+                        <span class="text-xs font-bold truncate"
                         :class="{
-                          'text-red-500': message.data.author.roles.broadcaster,
-                          'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                          'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                          'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                            'text-red-500': message.data.author.roles.broadcaster,
+                            'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
                         }"
-                      >
+                        >
                         {{ message.data.author.display_name }}
-                      </span>
+                        </span>
                     </div>
                     <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
-                  </div>
-                  <div class="chat-actions flex items-center gap-1">
+                    </div>
+                    <div class="chat-actions flex items-center gap-1">
                     <button 
-                      @click="sendDisplay(message)"
-                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                      title="Display message"
+                        @click="sendDisplay(message)"
+                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                        title="Display message"
                     >
-                      <i class="fas fa-tv text-xs"></i>
+                        <i class="fas fa-tv text-xs"></i>
                     </button>
                     <button 
-                      @click="sendTTS(message)"
-                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                      title="Text to Speech"
+                        @click="sendTTS(message)"
+                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                        title="Text to Speech"
                     >
-                      <i class="fas fa-volume-up text-xs"></i>
+                        <i class="fas fa-volume-up text-xs"></i>
                     </button>
                     <button 
-                      @click="saveChat(message)"
-                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                      title="Save message"
+                        @click="saveChat(message)"
+                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                        title="Save message"
                     >
-                      <i class="fas fa-save text-xs"></i>
+                        <i class="fas fa-save text-xs"></i>
                     </button>
-                  </div>
+                    </div>
                 </div>
-              </div>
             </div>
           </div>
         </div>
@@ -223,58 +221,55 @@
           </div>
 
           <!-- Saved Messages List -->
-          <div id="savedchat-box" class="flex-1 rounded-lg border p-1 overflow-y-auto space-y-1 min-h-0">
-            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2 rounded border">
-              <div class="flex items-start gap-2">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <i class="text-xs"
-                      :class="{
-                        'fab fa-youtube text-red-400': message.platform === 'youtube',
-                        'fab fa-twitch text-purple-400': message.platform === 'twitch',
-                        'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
-                      }"
-                    ></i>
-                    <span class="text-xs font-bold truncate"
-                      :class="{
-                        'text-red-300': message.data.author.roles.broadcaster,
-                        'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
-                      }"
-                    >
-                      {{ message.data.author.display_name }}
-                    </span>
-                    <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
-                      <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
+          <div id="savedchat-box" class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0">
+            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2">
+                <div class="flex items-start gap-2">
+                    <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                        <i class="text-xs"
+                        :class="{
+                            'fab fa-youtube text-red-400': message.platform === 'youtube',
+                            'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                            'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                        }"
+                        ></i>
+                        <span class="text-xs font-bold truncate"
+                        :class="{
+                            'text-red-500': message.data.author.roles.broadcaster,
+                            'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                        }"
+                        >
+                        {{ message.data.author.display_name }}
+                        </span>
                     </div>
-                  </div>
-                  <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
+                    <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
+                    </div>
+                    <div class="chat-actions flex items-center gap-1">
+                    <button 
+                        @click="sendDisplay(message)"
+                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                        title="Display message"
+                    >
+                        <i class="fas fa-tv text-xs"></i>
+                    </button>
+                    <button 
+                        @click="sendTTS(message)"
+                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                        title="Text to Speech"
+                    >
+                        <i class="fas fa-volume-up text-xs"></i>
+                    </button>
+                    <button 
+                        @click="removeSaved(message.message_id)"
+                        class="text-red-400 hover:text-red-300 p-0.5 self-center"
+                        title="Remove from saved"
+                    >
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                    </div>
                 </div>
-                <div class="chat-actions flex items-center gap-1">
-                    <button 
-                      @click="sendDisplay(message)"
-                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                      title="Display message"
-                    >
-                      <i class="fas fa-tv text-xs"></i>
-                    </button>
-                    <button 
-                      @click="sendTTS(message)"
-                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                      title="Text to Speech"
-                    >
-                      <i class="fas fa-volume-up text-xs"></i>
-                    </button>
-                    <button 
-                      @click="removeSaved(message.message_id)"
-                      class="text-red-400 hover:text-red-300 p-0.5 self-center"
-                      title="Remove from saved"
-                    >
-                      <i class="fas fa-times text-xs"></i>
-                    </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -430,6 +425,14 @@
           const savedMessages = ref([]);
           const savedConnections = ref([]);
 
+          // Initialize on mount
+          onMounted(async () => {
+            await Promise.all([
+              chatManager.init(),
+              connectionManager.init(chatManager)
+            ]);
+          });
+
           // Set up callbacks
           connectionManager.showToast = showToast;
           chatManager.showToast = showToast;
@@ -441,6 +444,12 @@
 
           chatManager.onMessagesChange = (newMessages) => {
             messages.value = newMessages;
+            // Scroll to bottom after messages update
+            nextTick(() => {
+              if (chatBox.value) {
+                chatBox.value.scrollTop = chatBox.value.scrollHeight;
+              }
+            });
           };
 
           chatManager.onSavedMessagesChange = (newMessages) => {
@@ -450,11 +459,6 @@
           connectionManager.onMessageReceived = (message) => {
             chatManager.addMessageUnique(message);
           };
-
-          // Initialize on mount
-          onMounted(async () => {
-            await connectionManager.init(chatManager);
-          });
 
           const newConnection = ref({
             platform: 'youtube',
