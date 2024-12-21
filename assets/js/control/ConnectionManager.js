@@ -86,12 +86,18 @@ export class ConnectionManager {
 
             this.ws.onclose = () => {
                 console.log('WebSocket disconnected, attempting to reconnect in 5 seconds...');
+                // Mark all connections as disconnected
+                this.savedConnections.forEach(conn => {
+                    conn.status = 'disconnected';
+                });
+                this.onConnectionsChange?.(this.savedConnections);
+                
                 this.ws = null;
                 setTimeout(() => {
                     console.log('Attempting WebSocket reconnection...');
                     this.initWebSocket()
                         .then(() => {
-                            console.log('WebSocket reconnected, reloading saved connections...');
+                            console.log('WebSocket reconnected, resubscribing to saved connections...');
                             this.loadSavedConnections();
                         })
                         .catch(error => {
@@ -103,6 +109,7 @@ export class ConnectionManager {
             this.ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    console.log('WebSocket received:', data);
                     
                     switch (data.type) {
                         case 'chat':
@@ -120,16 +127,8 @@ export class ConnectionManager {
                                 console.error('WebSocket error message:', data);
                                 this.showToast?.(data.error, 'error');
                                 
-                                // Update connection status on error
-                                const connection = this.savedConnections.find(c => {
-                                    const connId = this.generateConnectionId(
-                                        c.platform,
-                                        c.identifier,
-                                        c.identifierType
-                                    );
-                                    return c.status === 'connecting';
-                                });
-                                
+                                // Find any connecting connections and mark them as error
+                                const connection = this.savedConnections.find(c => c.status === 'connecting');
                                 if (connection) {
                                     connection.status = data.error || 'error';
                                     this.onConnectionsChange?.(this.savedConnections);
@@ -152,27 +151,12 @@ export class ConnectionManager {
         
         if (data.status === 'subscribed') {
             const connection = this.savedConnections.find(c => c.id === data.liveId);
-            if (!connection) {
-                // Add new connection
-                const [platform, identifierType, identifier] = data.liveId.split('-');
-                const newConnection = {
-                    id: data.liveId,
-                    platform,
-                    identifier,
-                    identifierType: identifierType || 'username',
-                    status: 'connected'
-                };
-                this.savedConnections.push(newConnection);
-                this.onConnectionsChange?.(this.savedConnections);
-                this.showToast?.(`Successfully connected to ${platform} chat: ${identifier}`, 'success');
-            } else {
-                // Update existing connection status
+            if (connection) {
                 connection.status = 'connected';
                 this.onConnectionsChange?.(this.savedConnections);
                 this.showToast?.(`Successfully connected to ${connection.platform} chat: ${connection.identifier}`, 'success');
             }
         } else if (data.status === 'unsubscribed') {
-            // Update connection status
             const connection = this.savedConnections.find(c => c.id === data.liveId);
             if (connection) {
                 connection.status = 'disconnected';
@@ -186,7 +170,7 @@ export class ConnectionManager {
         return `${platform}-${identifierType}-${identifier}`.toLowerCase();
     }
 
-    async connectNewChat(connectionDetails, existingId = null) {
+    async connectNewChat(connectionDetails) {
         if (this.isConnecting) return;
         this.isConnecting = true;
 
@@ -196,13 +180,13 @@ export class ConnectionManager {
                 await this.initWebSocket();
             }
 
-            const connId = existingId || this.generateConnectionId(
+            const connId = this.generateConnectionId(
                 connectionDetails.platform,
                 connectionDetails.identifier,
                 connectionDetails.identifierType
             );
 
-            // Check if connection exists but update its status
+            // Check if connection exists
             const existingConnection = this.savedConnections.find(conn => conn.id === connId);
             if (existingConnection) {
                 if (existingConnection.status === 'connected') {
@@ -224,14 +208,7 @@ export class ConnectionManager {
                 this.onConnectionsChange?.(this.savedConnections);
             }
 
-            console.log('Subscribing to chat:', {
-                platform: connectionDetails.platform,
-                identifier: connectionDetails.identifier,
-                identifierType: connectionDetails.identifierType
-            });
-
-            this.showToast?.(`Connecting to ${connectionDetails.platform} chat: ${connectionDetails.identifier}...`, 'info');
-
+            // Send subscription request
             this.ws.send(JSON.stringify({
                 type: 'subscribe',
                 platform: connectionDetails.platform,
@@ -239,7 +216,8 @@ export class ConnectionManager {
                 identifierType: connectionDetails.identifierType
             }));
 
-            if (this.isDBReady && !existingId) {
+            // Save to database
+            if (this.isDBReady) {
                 const transaction = db.transaction(['connections'], 'readwrite');
                 const store = transaction.objectStore('connections');
                 await new Promise((resolve, reject) => {
@@ -253,12 +231,6 @@ export class ConnectionManager {
                 });
             }
         } catch (error) {
-            // Update status to error if connection exists
-            const connection = this.savedConnections.find(conn => conn.id === connId);
-            if (connection) {
-                connection.status = 'error';
-                this.onConnectionsChange?.(this.savedConnections);
-            }
             console.error('Failed to connect to chat:', error);
             this.showToast?.('Failed to connect to chat', 'error');
         } finally {
@@ -288,7 +260,7 @@ export class ConnectionManager {
                 
                 // Try to connect to each saved connection
                 for (const conn of connections) {
-                    await this.connectNewChat(conn, conn.id);
+                    await this.connectNewChat(conn);
                 }
                 resolve();
             };
@@ -301,7 +273,7 @@ export class ConnectionManager {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
 
         try {
-            // Unsubscribe from the chat
+            // Send unsubscribe request
             this.ws.send(JSON.stringify({
                 type: 'unsubscribe',
                 liveId: connId
@@ -321,8 +293,6 @@ export class ConnectionManager {
                     request.onerror = () => reject(request.error);
                 });
             }
-
-            this.showToast?.('Connection removed');
         } catch (error) {
             console.error('Failed to disconnect chat:', error);
             this.showToast?.('Failed to disconnect chat', 'error');
@@ -343,6 +313,7 @@ export class ConnectionManager {
             connection.status = 'connecting';
             this.onConnectionsChange?.(this.savedConnections);
 
+            // Send subscription request
             this.ws.send(JSON.stringify({
                 type: 'subscribe',
                 platform: connection.platform,
