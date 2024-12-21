@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en">
   <head>
     <title>OrionChat Control</title>
     <link rel="icon" href="icon.ico" />
@@ -11,11 +11,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://unpkg.com/primevue/resources/primevue.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet">
   </head>
-  <body class="bg-gray-900 text-gray-100">
-    <main id="app" class="min-h-screen p-4 fixed inset-0 overflow-hidden">
+  <body class="h-screen overflow-hidden max-w-[400px] mx-auto">
       <!-- Main Container -->
-      <div class="max-w-[400px] mx-auto h-full flex flex-col">
+    <main id="app" class="h-full flex flex-col">
         <!-- Tabs -->
         <div class="flex border-b border-gray-700 mb-4">
           <button 
@@ -54,8 +55,13 @@
           </div>
 
           <!-- Chat Messages -->
-          <div class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-3 overflow-y-auto space-y-2 min-h-0">
-            <div v-for="message in sortedMessages" :key="message.message_id" class="p-2 bg-gray-800/50 rounded border border-gray-700/50">
+          <div 
+            ref="chatBox"
+            @scroll="handleScroll"
+            id="livechat-box" 
+            class="flex-1 rounded-lg border border-gray-700 p-0 overflow-y-auto space-y-1 min-h-0 relative"
+          >
+            <div v-for="message in sortedMessages" :key="message.message_id" class="livechat-message p-2">
               <div class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
@@ -82,21 +88,52 @@
                   </div>
                   <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
                 </div>
-                <button 
-                  @click="saveChat(message)"
-                  class="text-gray-400 hover:text-gray-300 p-1 self-center"
-                >
-                  <i class="fas fa-save"></i>
-                </button>
+                <div class="chat-actions flex items-center gap-1">
+                    <button 
+                      @click="sendDisplay(message)"
+                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      title="Display message"
+                    >
+                      <i class="fas fa-tv"></i>
+                    </button>
+                    <button 
+                      @click="sendTTS(message)"
+                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      title="Text to Speech"
+                    >
+                      <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button 
+                      @click="saveChat(message)"
+                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      title="Save message"
+                    >
+                      <i class="fas fa-save"></i>
+                    </button>
+                </div>
               </div>
+            </div>
+            
+            <!-- Scroll to bottom button -->
+            <div 
+              v-show="!shouldAutoScroll"
+              class="sticky w-full z-50 bottom-0 pb-2 pt-20 pointer-events-none"
+              style="background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.5) 50%)"
+            >
+              <button 
+                @click="scrollToBottom"
+                class="absolute left-1/2 -translate-x-1/2 bottom-2 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white shadow-lg border border-gray-600 pointer-events-auto"
+              >
+                <i class="fas fa-arrow-down"></i>
+              </button>
             </div>
           </div>
         </div>
 
         <!-- Saved Tab Content -->
         <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
-          <div class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-3 overflow-y-auto space-y-2 min-h-0">
-            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="p-2 bg-gray-800/50 rounded border border-gray-700/50">
+          <div id="savedchat-box" class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-1 overflow-y-auto space-y-1 min-h-0">
+            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2 bg-gray-800/50 rounded border border-gray-700/50">
               <div class="flex items-start gap-2">
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
@@ -123,12 +160,29 @@
                   </div>
                   <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
                 </div>
-                <button 
-                  @click="removeSaved(message.message_id)"
-                  class="text-red-400 hover:text-red-300 p-1 self-center"
-                >
-                  <i class="fas fa-times"></i>
-                </button>
+                <div class="chat-actions flex items-center gap-1">
+                    <button 
+                      @click="sendDisplay(message)"
+                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      title="Display message"
+                    >
+                      <i class="fas fa-tv"></i>
+                    </button>
+                    <button 
+                      @click="sendTTS(message)"
+                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      title="Text to Speech"
+                    >
+                      <i class="fas fa-volume-up"></i>
+                    </button>
+                    <button 
+                      @click="removeSaved(message.message_id)"
+                      class="text-red-400 hover:text-red-300 p-1 self-center"
+                      title="Remove from saved"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                </div>
               </div>
             </div>
           </div>
@@ -218,11 +272,10 @@
             </div>
           </div>
         </div>
-      </div>
     </main>
 
     <script>
-      const { createApp, ref, computed, watch, onMounted } = Vue;
+      const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
       // IndexedDB setup
       const dbName = 'OrionChatDB';
@@ -337,6 +390,24 @@
         };
       };
 
+      const showToast = (message, type = 'success') => {
+        const colors = {
+          success: 'linear-gradient(to right, #00b09b, #96c93d)',
+          error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
+          info: 'linear-gradient(to right, #2193b0, #6dd5ed)'
+        };
+        
+        Toastify({
+          text: message,
+          duration: 3000,
+          gravity: "top",
+          position: "right",
+          style: {
+            background: colors[type]
+          }
+        }).showToast();
+      };
+
       const saveMessageToFavorites = async (message) => {
         if (!db) return;
         
@@ -383,12 +454,13 @@
         
         try {
           await store.add(cleanMessage);
-          console.log('Message saved to favorites');
+          showToast('Message saved to favorites');
         } catch (error) {
           if (error.name === 'ConstraintError') {
-            console.log('Message already saved');
+            showToast('Message already saved', 'info');
             return;
           }
+          showToast('Error saving message', 'error');
           console.error('Error saving to favorites:', error);
         }
       };
@@ -429,6 +501,32 @@
           const activeConnections = ref([]);
           const connectionCounter = ref(0);
           const isDBReady = ref(false);
+          const shouldAutoScroll = ref(true);
+          const chatBox = ref(null);
+
+          // Add scroll handler
+          const handleScroll = () => {
+            if (!chatBox.value) return;
+            
+            const { scrollTop, scrollHeight, clientHeight } = chatBox.value;
+            shouldAutoScroll.value = Math.abs(scrollHeight - scrollTop - clientHeight) < 2;
+          };
+
+          // Scroll to bottom function
+          const scrollToBottom = () => {
+            if (!chatBox.value) return;
+            chatBox.value.scrollTop = chatBox.value.scrollHeight;
+            shouldAutoScroll.value = true;
+          };
+
+          // Watch messages for auto-scroll, but only if we're at bottom
+          watch(() => messages.value.length, () => {
+            nextTick(() => {
+              if (shouldAutoScroll.value && chatBox.value) {
+                scrollToBottom();
+              }
+            });
+          });
 
           const newConnection = ref({
             platform: 'youtube',
@@ -449,13 +547,25 @@
             }
           });
 
+          // Add a helper function to prevent duplicates
+          const addMessageUnique = (message) => {
+            // Check if message already exists
+            const exists = messages.value.some(m => m.message_id === message.message_id);
+            if (!exists) {
+              messages.value.push(message);
+              // Keep only last 200 messages
+              if (messages.value.length > 200) {
+                messages.value = messages.value.slice(-200);
+              }
+            }
+          };
+
           // Load saved connections from localStorage
           const loadSavedConnections = async () => {
             try {
               const saved = localStorage.getItem('orionChatConnections');
               if (saved) {
                 const connections = JSON.parse(saved);
-                // Find the highest connection ID to set the counter
                 const maxId = Math.max(...connections.items.map(conn => conn.id), 0);
                 connectionCounter.value = maxId;
 
@@ -466,14 +576,13 @@
                     identifier: conn.identifier,
                     identifierType: conn.identifierType
                   };
-                  // Use the saved connection ID instead of generating a new one
-                  await connectNewChat(conn.id);
-                  
-                  // Load saved messages for this connection
+                  // Load saved messages first
                   if (isDBReady.value) {
                     const savedMessages = await loadMessages(conn.id);
-                    messages.value.push(...savedMessages);
+                    savedMessages.forEach(msg => addMessageUnique(msg));
                   }
+                  // Then connect to get new messages
+                  await connectNewChat(conn.id);
                 }
               }
             } catch (error) {
@@ -550,25 +659,32 @@
 
               newConnection.value.identifier = '';
               saveConnections();
+              if (!existingId) {
+                showToast('New connection added');
+              }
             };
 
             ws.onmessage = async (event) => {
               const data = JSON.parse(event.data);
               if (data.type === 'chat') {
-                messages.value.push(data);
-                if (messages.value.length > 200) {
-                  messages.value = messages.value.slice(-200);
-                }
+                // Add connection ID to the message
+                const messageWithConn = {
+                  ...data,
+                  connectionId: connId
+                };
+                // Use the unique add function
+                addMessageUnique(messageWithConn);
                 
-                // Save message to IndexedDB
+                // Save to IndexedDB
                 if (isDBReady.value) {
-                  await saveMessage(data, connId);
+                  await saveMessage(messageWithConn, connId);
                 }
               }
             };
 
             ws.onerror = (error) => {
               console.error('WebSocket error:', error);
+              showToast('Connection error', 'error');
               disconnectChat(connId);
             };
 
@@ -611,16 +727,18 @@
               
               // Remove messages from this connection from the current view
               messages.value = messages.value.filter(msg => msg.connectionId !== connId);
+              showToast('Connection removed');
             }
           };
 
-          // Add method to clear all messages
+          // Update the clear messages function
           const clearAllMessages = async () => {
             if (isDBReady.value) {
+              messages.value = []; // Clear visual messages first
               for (const conn of activeConnections.value) {
                 await clearMessages(conn.id);
               }
-              messages.value = [];
+              showToast('Chat messages cleared');
             }
           };
 
@@ -635,7 +753,52 @@
             if (isDBReady.value) {
               await removeSavedMessage(messageId);
               savedMessages.value = savedMessages.value.filter(msg => msg.message_id !== messageId);
+              showToast('Saved message removed');
             }
+          };
+
+          // Add TTS function
+          const sendTTS = (message) => {
+            const ttsData = {
+              ...message,
+              type: 'tts'  // Change type to tts
+            };
+
+            // Send to update endpoint
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(ttsData)
+            }).then(() => {
+              showToast('TTS sent');
+            }).catch(error => {
+              console.error('Error sending TTS:', error);
+              showToast('Failed to send TTS', 'error');
+            });
+          };
+
+          // Add display function
+          const sendDisplay = (message) => {
+            const displayData = {
+              ...message,
+              type: 'display'  // Change type to display
+            };
+
+            // Send to update endpoint
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(displayData)
+            }).then(() => {
+              showToast('Message displayed');
+            }).catch(error => {
+              console.error('Error sending display:', error);
+              showToast('Failed to display message', 'error');
+            });
           };
 
           return {
@@ -653,7 +816,13 @@
             disconnectChat,
             clearAllMessages,
             saveChat,
-            removeSaved
+            removeSaved,
+            chatBox,
+            shouldAutoScroll,
+            handleScroll,
+            scrollToBottom,
+            sendTTS,
+            sendDisplay,
           };
         },
       });
