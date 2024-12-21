@@ -41,16 +41,18 @@
           <div class="flex justify-end items-center gap-2 mb-4">
             <button 
               @click="clearAllMessages"
-              class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center gap-2 border border-gray-700 text-red-400 hover:text-red-300"
+              class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-700 text-red-400 hover:text-red-300"
+              title="Clear messages"
             >
-              <i class="fas fa-trash-alt"></i>
+              <i class="fas fa-trash-alt text-sm"></i>
             </button>
             <button 
               @click="showConnectionsModal = true"
-              class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center gap-2 border border-gray-700"
+              class="w-8 h-8 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center border border-gray-700 relative"
+              title="Manage connections"
             >
-              <span>Connections</span>
-              <span class="bg-gray-700 px-2 py-0.5 rounded-full text-sm">{{ activeConnections.length }}</span>
+              <i class="fas fa-plug text-sm"></i>
+              <span class="absolute -top-1 -right-1 bg-blue-500 w-4 h-4 flex items-center justify-center rounded-full text-[10px]">{{ activeConnections.length }}</span>
             </button>
           </div>
 
@@ -59,70 +61,72 @@
             ref="chatBox"
             @scroll="handleScroll"
             id="livechat-box" 
-            class="flex-1 rounded-lg border border-gray-700 p-0 overflow-y-auto space-y-1 min-h-0 relative"
+            class="flex-1 rounded-lg border border-gray-700 p-1 overflow-y-auto space-y-1 min-h-0 relative"
           >
-            <div v-for="message in sortedMessages" :key="message.message_id" class="livechat-message p-2">
-              <div class="flex items-start gap-2">
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2">
-                    <i class="text-xs"
-                      :class="{
-                        'fab fa-youtube text-red-400': message.platform === 'youtube',
-                        'fab fa-twitch text-purple-400': message.platform === 'twitch',
-                        'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
-                      }"
-                    ></i>
-                    <span class="text-xs font-bold truncate"
-                      :class="{
-                        'text-red-300': message.data.author.roles.broadcaster,
-                        'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
-                      }"
-                    >
-                      {{ message.data.author.display_name }}
-                    </span>
-                    <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
-                      <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
+            <div class="flex flex-col-reverse">
+              <div v-for="message in sortedMessages" :key="message.message_id" class="p-2">
+                <div class="flex items-start gap-2">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <i class="text-xs"
+                        :class="{
+                          'fab fa-youtube text-red-400': message.platform === 'youtube',
+                          'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                          'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                        }"
+                      ></i>
+                      <span class="text-xs font-bold truncate"
+                        :class="{
+                          'text-red-300': message.data.author.roles.broadcaster,
+                          'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                          'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                          'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                        }"
+                      >
+                        {{ message.data.author.display_name }}
+                      </span>
+                      <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
+                        <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
+                      </div>
                     </div>
+                    <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
                   </div>
-                  <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
-                </div>
-                <div class="chat-actions flex items-center gap-1">
+                  <div class="chat-actions flex items-center gap-1">
                     <button 
                       @click="sendDisplay(message)"
-                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Display message"
                     >
-                      <i class="fas fa-tv"></i>
+                      <i class="fas fa-tv text-xs"></i>
                     </button>
                     <button 
                       @click="sendTTS(message)"
-                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Text to Speech"
                     >
-                      <i class="fas fa-volume-up"></i>
+                      <i class="fas fa-volume-up text-xs"></i>
                     </button>
                     <button 
                       @click="saveChat(message)"
-                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Save message"
                     >
-                      <i class="fas fa-save"></i>
+                      <i class="fas fa-save text-xs"></i>
                     </button>
+                  </div>
                 </div>
               </div>
             </div>
-            
+
             <!-- Scroll to bottom button -->
             <div 
               v-show="!shouldAutoScroll"
-              class="sticky w-full z-50 bottom-0 pb-2 pt-20 pointer-events-none"
+              class="sticky bottom-0 w-full pb-2 pt-20 pointer-events-none"
               style="background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.5) 50%)"
             >
               <button 
                 @click="scrollToBottom"
-                class="absolute left-1/2 -translate-x-1/2 bottom-2 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white shadow-lg border border-gray-600 pointer-events-auto"
+                class="absolute left-1/2 -translate-x-1/2 bottom-2 p-2 rounded-full bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white shadow-lg border border-gray-600 pointer-events-auto"
               >
                 <i class="fas fa-arrow-down"></i>
               </button>
@@ -132,6 +136,41 @@
 
         <!-- Saved Tab Content -->
         <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
+          <!-- Custom Message Section -->
+          <div class="mb-4 bg-gray-800 rounded-lg border border-gray-700 p-3">
+            <textarea 
+              v-model="customMessage"
+              placeholder="Type a custom message..."
+              class="w-full bg-gray-700 border border-gray-600 rounded p-2 text-sm mb-2 resize-none h-20"
+            ></textarea>
+            <div class="flex gap-2">
+              <button 
+                @click="sendCustomTTS"
+                class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded border border-gray-600 text-sm"
+              >
+                <i class="fas fa-volume-up mr-2"></i>
+                Send TTS
+              </button>
+              <div class="flex-1 flex gap-1">
+                <button 
+                  @click="sendCustomDisplay"
+                  class="flex-1 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white p-2 rounded border border-gray-600 text-sm"
+                >
+                  <i class="fas fa-tv mr-2"></i>
+                  Display
+                </button>
+                <button 
+                  @click="clearDisplay"
+                  class="bg-gray-700 hover:bg-gray-600 text-red-400 hover:text-red-300 p-2 rounded border border-gray-600 text-sm"
+                  title="Clear display"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Saved Messages List -->
           <div id="savedchat-box" class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-1 overflow-y-auto space-y-1 min-h-0">
             <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2 bg-gray-800/50 rounded border border-gray-700/50">
               <div class="flex items-start gap-2">
@@ -162,25 +201,32 @@
                 </div>
                 <div class="chat-actions flex items-center gap-1">
                     <button 
+                      @click="clearDisplay"
+                      class="text-red-400 hover:text-red-300 p-0.5 self-center"
+                      title="Clear display"
+                    >
+                      <i class="fas fa-times text-xs"></i>
+                    </button>
+                    <button 
                       @click="sendDisplay(message)"
-                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Display message"
                     >
-                      <i class="fas fa-tv"></i>
+                      <i class="fas fa-tv text-xs"></i>
                     </button>
                     <button 
                       @click="sendTTS(message)"
-                      class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                      class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Text to Speech"
                     >
-                      <i class="fas fa-volume-up"></i>
+                      <i class="fas fa-volume-up text-xs"></i>
                     </button>
                     <button 
                       @click="removeSaved(message.message_id)"
-                      class="text-red-400 hover:text-red-300 p-1 self-center"
+                      class="text-red-400 hover:text-red-300 p-0.5 self-center"
                       title="Remove from saved"
                     >
-                      <i class="fas fa-times"></i>
+                      <i class="fas fa-times text-xs"></i>
                     </button>
                 </div>
               </div>
@@ -279,43 +325,136 @@
 
       // IndexedDB setup
       const dbName = 'OrionChatDB';
+      const savedDbName = 'OrionSavedChatDB';
+      const connectionsDbName = 'OrionConnectionsDB';
       const dbVersion = 2;
       let db;
+      let savedDb;
+      let connectionsDb;
 
       const initDB = () => {
+        return Promise.all([
+          // Initialize main chat database
+          new Promise((resolve, reject) => {
+            console.log('Initializing Chat IndexedDB...');
+            const request = indexedDB.open(dbName, dbVersion);
+
+            request.onerror = (event) => {
+              console.error('Chat IndexedDB error:', event.target.error);
+              reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+              console.log('Chat IndexedDB initialized successfully');
+              db = event.target.result;
+              resolve(db);
+            };
+
+            request.onupgradeneeded = (event) => {
+              console.log('Creating/upgrading Chat IndexedDB structure...');
+              const db = event.target.result;
+              
+              if (!db.objectStoreNames.contains('messages')) {
+                const store = db.createObjectStore('messages', { keyPath: 'message_id' });
+                store.createIndex('connectionId', 'connectionId', { unique: false });
+                store.createIndex('timestamp', 'timestamp', { unique: false });
+                console.log('Message store created');
+              }
+            };
+          }),
+          // Initialize saved messages database
+          new Promise((resolve, reject) => {
+            console.log('Initializing Saved Chat IndexedDB...');
+            const request = indexedDB.open(savedDbName, dbVersion);
+
+            request.onerror = (event) => {
+              console.error('Saved Chat IndexedDB error:', event.target.error);
+              reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+              console.log('Saved Chat IndexedDB initialized successfully');
+              savedDb = event.target.result;
+              resolve(savedDb);
+            };
+
+            request.onupgradeneeded = (event) => {
+              console.log('Creating/upgrading Saved Chat IndexedDB structure...');
+              const db = event.target.result;
+              
+              if (!db.objectStoreNames.contains('savedMessages')) {
+                const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
+                store.createIndex('timestamp', 'timestamp', { unique: false });
+                console.log('Saved messages store created');
+              }
+            };
+          }),
+          // Initialize connections database
+          new Promise((resolve, reject) => {
+            console.log('Initializing Connections IndexedDB...');
+            const request = indexedDB.open(connectionsDbName, dbVersion);
+
+            request.onerror = (event) => {
+              console.error('Connections IndexedDB error:', event.target.error);
+              reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+              console.log('Connections IndexedDB initialized successfully');
+              connectionsDb = event.target.result;
+              resolve(connectionsDb);
+            };
+
+            request.onupgradeneeded = (event) => {
+              console.log('Creating/upgrading Connections IndexedDB structure...');
+              const db = event.target.result;
+              
+              if (!db.objectStoreNames.contains('connections')) {
+                const store = db.createObjectStore('connections', { keyPath: 'id' });
+                console.log('Connections store created');
+              }
+            };
+          })
+        ]);
+      };
+
+      // Add connection storage functions
+      const saveConnectionsToDb = async (connections) => {
+        if (!connectionsDb) return;
+        
+        const transaction = connectionsDb.transaction(['connections'], 'readwrite');
+        const store = transaction.objectStore('connections');
+
+        // Clear existing connections
+        await store.clear();
+
+        // Add new connections without WebSocket instances
+        for (const conn of connections) {
+          const connData = {
+            id: conn.id,
+            platform: conn.platform,
+            identifier: conn.identifier,
+            identifierType: conn.identifierType
+          };
+          await store.add(connData);
+        }
+      };
+
+      const loadConnectionsFromDb = async () => {
+        if (!connectionsDb) return [];
+        
         return new Promise((resolve, reject) => {
-          console.log('Initializing IndexedDB...');
-          const request = indexedDB.open(dbName, dbVersion);
-
-          request.onerror = (event) => {
-            console.error('IndexedDB error:', event.target.error);
-            reject(event.target.error);
+          const transaction = connectionsDb.transaction(['connections'], 'readonly');
+          const store = transaction.objectStore('connections');
+          
+          const request = store.getAll();
+          
+          request.onsuccess = () => {
+            resolve(request.result);
           };
-
-          request.onsuccess = (event) => {
-            console.log('IndexedDB initialized successfully');
-            db = event.target.result;
-            resolve(db);
-          };
-
-          request.onupgradeneeded = (event) => {
-            console.log('Creating/upgrading IndexedDB structure...');
-            const db = event.target.result;
-            
-            // Create messages store with connection ID index
-            if (!db.objectStoreNames.contains('messages')) {
-              const store = db.createObjectStore('messages', { keyPath: 'message_id' });
-              store.createIndex('connectionId', 'connectionId', { unique: false });
-              store.createIndex('timestamp', 'timestamp', { unique: false });
-              console.log('Message store created');
-            }
-
-            // Create saved messages store
-            if (!db.objectStoreNames.contains('savedMessages')) {
-              const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
-              store.createIndex('timestamp', 'timestamp', { unique: false });
-              console.log('Saved messages store created');
-            }
+          
+          request.onerror = () => {
+            reject(request.error);
           };
         });
       };
@@ -409,9 +548,9 @@
       };
 
       const saveMessageToFavorites = async (message) => {
-        if (!db) return;
+        if (!savedDb) return;
         
-        const transaction = db.transaction(['savedMessages'], 'readwrite');
+        const transaction = savedDb.transaction(['savedMessages'], 'readwrite');
         const store = transaction.objectStore('savedMessages');
         
         // Clean the message object before saving
@@ -466,10 +605,10 @@
       };
 
       const loadSavedMessages = async () => {
-        if (!db) return [];
+        if (!savedDb) return [];
         
         return new Promise((resolve, reject) => {
-          const transaction = db.transaction(['savedMessages'], 'readonly');
+          const transaction = savedDb.transaction(['savedMessages'], 'readonly');
           const store = transaction.objectStore('savedMessages');
           
           const request = store.getAll();
@@ -485,9 +624,9 @@
       };
 
       const removeSavedMessage = async (messageId) => {
-        if (!db) return;
+        if (!savedDb) return;
         
-        const transaction = db.transaction(['savedMessages'], 'readwrite');
+        const transaction = savedDb.transaction(['savedMessages'], 'readwrite');
         const store = transaction.objectStore('savedMessages');
         await store.delete(messageId);
       };
@@ -503,12 +642,14 @@
           const isDBReady = ref(false);
           const shouldAutoScroll = ref(true);
           const chatBox = ref(null);
+          const customMessage = ref('');
 
           // Add scroll handler
           const handleScroll = () => {
             if (!chatBox.value) return;
             
             const { scrollTop, scrollHeight, clientHeight } = chatBox.value;
+            // For flex-col-reverse, we're at bottom when scrollTop is at max
             shouldAutoScroll.value = Math.abs(scrollHeight - scrollTop - clientHeight) < 2;
           };
 
@@ -519,7 +660,7 @@
             shouldAutoScroll.value = true;
           };
 
-          // Watch messages for auto-scroll, but only if we're at bottom
+          // Watch messages for auto-scroll
           watch(() => messages.value.length, () => {
             nextTick(() => {
               if (shouldAutoScroll.value && chatBox.value) {
@@ -560,29 +701,28 @@
             }
           };
 
-          // Load saved connections from localStorage
+          // Load saved connections from IndexedDB
           const loadSavedConnections = async () => {
             try {
-              const saved = localStorage.getItem('orionChatConnections');
-              if (saved) {
-                const connections = JSON.parse(saved);
-                const maxId = Math.max(...connections.items.map(conn => conn.id), 0);
-                connectionCounter.value = maxId;
+              if (isDBReady.value) {
+                const connections = await loadConnectionsFromDb();
+                if (connections.length > 0) {
+                  const maxId = Math.max(...connections.map(conn => conn.id), 0);
+                  connectionCounter.value = maxId;
 
-                // Reconnect to each saved connection
-                for (const conn of connections.items) {
-                  newConnection.value = {
-                    platform: conn.platform,
-                    identifier: conn.identifier,
-                    identifierType: conn.identifierType
-                  };
-                  // Load saved messages first
-                  if (isDBReady.value) {
+                  // Reconnect to each saved connection
+                  for (const conn of connections) {
+                    newConnection.value = {
+                      platform: conn.platform,
+                      identifier: conn.identifier,
+                      identifierType: conn.identifierType
+                    };
+                    // Load saved messages first
                     const savedMessages = await loadMessages(conn.id);
                     savedMessages.forEach(msg => addMessageUnique(msg));
+                    // Then connect to get new messages
+                    await connectNewChat(conn.id);
                   }
-                  // Then connect to get new messages
-                  await connectNewChat(conn.id);
                 }
               }
             } catch (error) {
@@ -590,26 +730,22 @@
             }
           };
 
-          // Save connections to localStorage
-          const saveConnections = () => {
-            try {
-              const connections = {
-                items: activeConnections.value.map(conn => ({
+          // Watch for changes in activeConnections and save to IndexedDB
+          watch(activeConnections, async (newConnections) => {
+            if (isDBReady.value) {
+              try {
+                // Create a clean copy without WebSocket instances
+                const cleanConnections = newConnections.map(conn => ({
                   id: conn.id,
                   platform: conn.platform,
                   identifier: conn.identifier,
                   identifierType: conn.identifierType
-                }))
-              };
-              localStorage.setItem('orionChatConnections', JSON.stringify(connections));
-            } catch (error) {
-              console.error('Error saving connections:', error);
+                }));
+                await saveConnectionsToDb(cleanConnections);
+              } catch (error) {
+                console.error('Error saving connections:', error);
+              }
             }
-          };
-
-          // Watch for changes in activeConnections and save
-          watch(activeConnections, () => {
-            saveConnections();
           }, { deep: true });
 
           const getPlaceholder = computed(() => {
@@ -633,12 +769,31 @@
             );
           });
 
-          const connectNewChat = (existingId = null) => {
+          // Add function to generate connection ID
+          const generateConnectionId = (platform, identifier, identifierType = 'username') => {
+            return `${platform}-${identifierType}-${identifier}`.toLowerCase();
+          };
+
+          const connectNewChat = async (event = null) => {
+            // Generate the connection ID first
+            const generatedId = generateConnectionId(
+              newConnection.value.platform,
+              newConnection.value.identifier,
+              newConnection.value.identifierType
+            );
+            // If we're reconnecting, use the existing ID from the connection object
+            const connId = typeof event === 'string' ? event : generatedId;
+
+            // Check if connection already exists
+            if (!event && activeConnections.value.some(conn => conn.id === connId)) {
+              showToast('This connection already exists', 'error');
+              return;
+            }
+
             const ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
-            const connId = existingId || ++connectionCounter.value;
+            let subscriptionConfirmed = false;
 
             ws.onopen = () => {
-              console.log('WebSocket connected, sending subscribe message for connection:', connId);
               const subscribeMessage = {
                 type: 'subscribe',
                 identifier: newConnection.value.identifier,
@@ -647,26 +802,77 @@
                   identifierType: newConnection.value.identifierType 
                 })
               };
-              ws.send(JSON.stringify(subscribeMessage));
 
-              activeConnections.value.push({
-                id: connId,
-                ws,
-                platform: newConnection.value.platform,
-                identifier: newConnection.value.identifier,
-                identifierType: newConnection.value.identifierType
+              console.log('WebSocket connected, sending subscribe message:', {
+                connectionId: connId,
+                message: subscribeMessage
               });
 
-              newConnection.value.identifier = '';
-              saveConnections();
-              if (!existingId) {
-                showToast('New connection added');
-              }
+              ws.send(JSON.stringify(subscribeMessage));
+
+              // Set a timeout for subscription confirmation
+              setTimeout(() => {
+                if (!subscriptionConfirmed) {
+                  console.error('Subscription confirmation timeout for:', {
+                    connectionId: connId,
+                    platform: newConnection.value.platform,
+                    identifier: newConnection.value.identifier,
+                    identifierType: newConnection.value.identifierType
+                  });
+                  showToast('Connection failed: No response from server', 'error');
+                  ws.close();
+                }
+              }, 5000);
             };
 
             ws.onmessage = async (event) => {
               const data = JSON.parse(event.data);
-              if (data.type === 'chat') {
+              
+              // Only log non-chat messages
+              if (data.type !== 'chat') {
+                console.log('WebSocket received message:', {
+                  connectionId: connId,
+                  type: data.type,
+                  data: data
+                });
+              }
+              
+              if (data.type === 'status' && data.status === 'subscribed') {
+                subscriptionConfirmed = true;
+                console.log('Subscription confirmed for:', {
+                  connectionId: connId,
+                  platform: newConnection.value.platform,
+                  identifier: newConnection.value.identifier,
+                  identifierType: newConnection.value.identifierType,
+                  response: data
+                });
+
+                // Only add to activeConnections after subscription confirmation
+                const connection = {
+                  id: connId,
+                  ws,
+                  platform: newConnection.value.platform,
+                  identifier: newConnection.value.identifier,
+                  identifierType: newConnection.value.identifierType
+                };
+
+                activeConnections.value.push(connection);
+
+                // Save connections to DB
+                try {
+                  await saveConnectionsToDb(activeConnections.value);
+                } catch (error) {
+                  console.error('Error saving connections:', error);
+                }
+
+                newConnection.value.identifier = '';
+                if (!event) {
+                  showToast('New connection added');
+                }
+                return;
+              }
+
+              if (data.type === 'chat' && subscriptionConfirmed) {
                 // Add connection ID to the message
                 const messageWithConn = {
                   ...data,
@@ -683,13 +889,22 @@
             };
 
             ws.onerror = (error) => {
-              console.error('WebSocket error:', error);
+              console.error('WebSocket error for connection:', {
+                connectionId: connId,
+                error: error
+              });
               showToast('Connection error', 'error');
               disconnectChat(connId);
             };
 
             ws.onclose = () => {
-              disconnectChat(connId);
+              console.log('WebSocket closed for connection:', {
+                connectionId: connId,
+                wasConfirmed: subscriptionConfirmed
+              });
+              if (subscriptionConfirmed) {
+                disconnectChat(connId);
+              }
             };
           };
 
@@ -708,7 +923,8 @@
               
               // Reconnect with same details
               newConnection.value = { ...details };
-              connectNewChat();
+              // Pass the ID string directly
+              connectNewChat(connId);
             }
           };
 
@@ -716,7 +932,11 @@
             const connIndex = activeConnections.value.findIndex(conn => conn.id === connId);
             if (connIndex !== -1) {
               const conn = activeConnections.value[connIndex];
-              conn.ws.send(JSON.stringify({ type: 'unsubscribe' }));
+              try {
+                conn.ws.send(JSON.stringify({ type: 'unsubscribe' }));
+              } catch (e) {
+                console.warn('Could not send unsubscribe message:', e);
+              }
               conn.ws.close();
               activeConnections.value.splice(connIndex, 1);
               
@@ -801,6 +1021,98 @@
             });
           };
 
+          // Add custom message functions
+          const sendCustomTTS = () => {
+            if (!customMessage.value.trim()) {
+              showToast('Please enter a message', 'error');
+              return;
+            }
+
+            const ttsData = {
+              type: 'tts',
+              data: {
+                content: {
+                  sanitized: customMessage.value.trim()
+                }
+              }
+            };
+
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(ttsData)
+            }).then(() => {
+              showToast('Custom TTS sent');
+              customMessage.value = ''; // Clear the input
+            }).catch(error => {
+              console.error('Error sending custom TTS:', error);
+              showToast('Failed to send custom TTS', 'error');
+            });
+          };
+
+          const sendCustomDisplay = () => {
+            if (!customMessage.value.trim()) {
+              showToast('Please enter a message', 'error');
+              return;
+            }
+
+            const displayData = {
+              type: 'display',
+              data: {
+                content: {
+                  sanitized: customMessage.value.trim()
+                }
+              }
+            };
+
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(displayData)
+            }).then(() => {
+              showToast('Custom message displayed');
+              customMessage.value = ''; // Clear the input
+            }).catch(error => {
+              console.error('Error sending custom display:', error);
+              showToast('Failed to display custom message', 'error');
+            });
+          };
+
+          // Add clear functions
+          const clearDisplay = () => {
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ type: 'clear_display' })
+            }).then(() => {
+              showToast('Display cleared');
+            }).catch(error => {
+              console.error('Error clearing display:', error);
+              showToast('Failed to clear display', 'error');
+            });
+          };
+
+          const clearTTS = () => {
+            fetch('/update', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ type: 'clear_tts' })
+            }).then(() => {
+              showToast('TTS cleared');
+            }).catch(error => {
+              console.error('Error clearing TTS:', error);
+              showToast('Failed to clear TTS', 'error');
+            });
+          };
+
           return {
             activeTab,
             showConnectionsModal,
@@ -823,6 +1135,12 @@
             scrollToBottom,
             sendTTS,
             sendDisplay,
+            customMessage,
+            sendCustomTTS,
+            sendCustomDisplay,
+            clearDisplay,
+            clearTTS,
+            generateConnectionId,
           };
         },
       });
