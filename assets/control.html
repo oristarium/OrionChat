@@ -1,263 +1,670 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OrionChat Control</title>
     <link rel="icon" href="icon.ico" />
-    <title>TTS Controller</title>
-    <link
-      rel="stylesheet"
-      href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css"
-    />
-    <link rel="stylesheet" href="css/control.css" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.js"
-      integrity="sha512-zlWWyZq71UMApAjih4WkaRpikgY9Bz1oXIW5G0fED4vk14JjGlQ1UmkGM392jEULP8jbNMiwLWdM8Z87Hu88Fw=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    ></script>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/jquery-toast-plugin/1.3.2/jquery.toast.min.css"
-      integrity="sha512-wJgJNTBBkLit7ymC6vvzM1EcSWeM9mmOu+1USHaRBbHkm6W9EgM0HY27+UtUaprntaYQJF75rc8gjxllKs5OIQ=="
-      crossorigin="anonymous"
-      referrerpolicy="no-referrer"
-    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/primevue/umd/primevue.min.js"></script>
+    <script src="https://unpkg.com/@primevue/themes/umd/aura.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/primevue/resources/primevue.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
   </head>
-  <body>
-    <div class="app-container">
-      <!-- Connection Panel -->
-      <section class="connection-panel">
-        <div class="platform-controls">
-          <select id="platform-type" data-platform="youtube">
-            <option value="youtube">YouTube</option>
-            <option value="tiktok">TikTok</option>
-            <option value="twitch">Twitch</option>
-          </select>
-          <input type="text" id="channel-id" placeholder="Enter channel ID" />
-          <select id="identifier-type">
-            <option value="username">Username</option>
-            <option value="channelId">Channel ID</option>
-            <option value="liveId">Live ID</option>
-          </select>
-        </div>
-
-        <div class="connection-controls">
-          <button id="connect-btn" class="btn btn-primary">Connect</button>
-          <button id="disconnect-btn" class="btn btn-danger hidden">
-            Disconnect
-          </button>
-          <div id="connection-status" class="status-indicator disconnected">
-            Disconnected
-          </div>
-        </div>
-      </section>
-
-      <!-- Settings Panel with Tabs -->
-      <section class="settings-panel">
-        <div id="settings-tabs">
-          <ul>
-            <li><a href="#livechat-tab">Livechat</a></li>
-            <li><a href="#tts-tab">TTS Settings</a></li>
-            <li><a href="#manual-tab">Manual Control</a></li>
-            <li><a href="#saved-tab">Saved Messages</a></li>
-          </ul>
-
-          <!-- Livechat Tab -->
-          <div id="livechat-tab">
-            <div class="control-group">
-              
-              <div class="toggle-wrapper">
-                <label for="tts-all-chat" class="toggle-label">
-                  <input
-                    type="checkbox"
-                    id="tts-all-chat"
-                    class="toggle-input"
-                  />
-                  <span class="toggle-display"></span>
-                  TTS All Chat
-                </label>
-              </div>
-              <button id="clear-tts" class="btn btn-secondary">
-                Clear TTS Queue
-              </button>
-              <div class="w-full"></div>
-              <button id="clear-display" class="btn btn-secondary">
-                Clear Display
-              </button>
-            </div>
-            <!-- Move chat panel here -->
-            <div class="chat-panel">
-              <div id="chat-container"></div>
-              <button id="scroll-button" class="scroll-button hidden">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 16 16"
-                  fill="currentColor"
-                >
-                  <path
-                    d="M8 3a.5.5 0 0 1 .5.5v9.793l3.146-3.147a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 .708-.708L7.5 13.293V3.5A.5.5 0 0 1 8 3z"
-                  />
-                </svg>
-                <span>New Messages</span>
-              </button>
-            </div>
-          </div>
-          <!-- Avatar Tab -->
-          <div id="tts-tab">
-            <div class="avatar-management">
-              <div class="tts-table-container">
-                <table class="tts-table">
-                  <thead>
-                    <tr>
-                      <th>Idle State</th>
-                      <th>Talking State</th>
-                      <th>Voices</th>
-                      <th>URL</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="avatar-list">
-                    <!-- Avatars will be populated here -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <!-- Manual Control Tab -->
-          <div id="manual-tab">
-            <div class="manual-control">
-              <textarea
-                id="manual-input"
-                class="manual-input"
-                placeholder="Type your message here..."
-              ></textarea>
-              <div class="manual-actions">
-                <button id="manual-tts" class="btn btn-primary">
-                  <span>🔉</span> Send to TTS
-                </button>
-                <button id="manual-display" class="btn btn-secondary">
-                  <span>📌</span> Send to Display
-                </button>
-              </div>
-            </div>
-          </div>
-          <!-- Saved Messages Tab -->
-          <div id="saved-tab">
-            <div class="saved-messages">
-              <div id="saved-messages-container"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Credit Footer -->
-      <div class="credit-footer">
-        <p>
-          Made with ❤️ by <a href="https://oristarium.com">Oristarium</a>
-        </p>
-      </div>
-    </div>
-
-    <div
-      id="voice-settings-modal"
-      class="voice-settings-modal"
-      title="Manage Avatar Voices"
-    >
-      <div class="voice-settings">
-        <label for="tts-provider">TTS Provider:</label>
-        <select id="tts-provider" class="tts-select">
-          <option value="tiktok">TikTok</option>
-          <option value="google">Google Translate</option>
-        </select>
-
-        <div class="voice-settings">
-          <!-- TikTok specific selects -->
-          <div
-            id="tiktok-voice-selects"
-            class="provider-voice-settings"
-            style="display: none"
+  <body class="bg-gray-900 text-gray-100">
+    <main id="app" class="min-h-screen p-4 fixed inset-0 overflow-hidden">
+      <!-- Main Container -->
+      <div class="max-w-[400px] mx-auto h-full flex flex-col">
+        <!-- Tabs -->
+        <div class="flex border-b border-gray-700 mb-4">
+          <button 
+            @click="activeTab = 'livechats'"
+            class="px-4 py-2 font-medium border-b-2 -mb-[1px] transition-colors"
+            :class="activeTab === 'livechats' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-300'"
           >
-            <div class="voice-filter">
-              <input
-                type="text"
-                id="voice-search"
-                class="tts-input"
-                placeholder="Search voices..."
-              />
-              <select id="language-filter" class="tts-select">
-                <option value="all">All Languages</option>
-                <!-- Languages will be populated dynamically -->
-              </select>
-              <select id="gender-filter" class="tts-select">
-                <option value="all">All Genders</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="neutral">Neutral</option>
-              </select>
-            </div>
-            <div class="voice-counter">
-              <div class="counter-text">
-                Selected Voices: <span id="selected-voice-count">0</span>
-              </div>
-              <button id="clear-voices" class="clear-voices-btn">
-                ✕ Clear Voices
-              </button>
-            </div>
+            Livechats
+          </button>
+          <button 
+            @click="activeTab = 'saved'"
+            class="px-4 py-2 font-medium border-b-2 -mb-[1px] transition-colors"
+            :class="activeTab === 'saved' ? 'text-blue-400 border-blue-400' : 'text-gray-400 border-transparent hover:text-gray-300'"
+          >
+            Saved
+          </button>
+        </div>
 
-            <div class="voice-table-container">
-              <table class="voice-table">
-                <thead>
-                  <tr>
-                    <th><input type="checkbox" id="select-all-voices" /></th>
-                    <th>Language</th>
-                    <th>Voice</th>
-                    <th>Gender</th>
-                    <th>Sample</th>
-                  </tr>
-                </thead>
-                <tbody id="voice-list">
-                  <!-- Voice rows will be populated dynamically -->
-                </tbody>
-              </table>
-            </div>
+        <!-- Livechats Tab Content -->
+        <div v-if="activeTab === 'livechats'" class="flex-1 flex flex-col min-h-0">
+          <!-- Header with Buttons -->
+          <div class="flex justify-end items-center gap-2 mb-4">
+            <button 
+              @click="clearAllMessages"
+              class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center gap-2 border border-gray-700 text-red-400 hover:text-red-300"
+            >
+              <i class="fas fa-trash-alt"></i>
+            </button>
+            <button 
+              @click="showConnectionsModal = true"
+              class="px-3 py-1.5 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center gap-2 border border-gray-700"
+            >
+              <span>Connections</span>
+              <span class="bg-gray-700 px-2 py-0.5 rounded-full text-sm">{{ activeConnections.length }}</span>
+            </button>
           </div>
 
-          <!-- Google specific select -->
-          <div id="google-voice-select" class="provider-voice-settings">
-            <label for="tts-language">Language:</label>
-            <select id="tts-language" class="tts-select">
-              <option value="id">Indonesian</option>
-              <option value="en">English</option>
-              <option value="ko">Korean</option>
-              <option value="ja">Japanese</option>
-            </select>
+          <!-- Chat Messages -->
+          <div class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-3 overflow-y-auto space-y-2 min-h-0">
+            <div v-for="message in sortedMessages" :key="message.message_id" class="p-2 bg-gray-800/50 rounded border border-gray-700/50">
+              <div class="flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <i class="text-xs"
+                      :class="{
+                        'fab fa-youtube text-red-400': message.platform === 'youtube',
+                        'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                        'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                      }"
+                    ></i>
+                    <span class="text-xs font-bold truncate"
+                      :class="{
+                        'text-red-300': message.data.author.roles.broadcaster,
+                        'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                        'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                        'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                      }"
+                    >
+                      {{ message.data.author.display_name }}
+                    </span>
+                    <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
+                      <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
+                    </div>
+                  </div>
+                  <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
+                </div>
+                <button 
+                  @click="saveChat(message)"
+                  class="text-gray-400 hover:text-gray-300 p-1 self-center"
+                >
+                  <i class="fas fa-save"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved Tab Content -->
+        <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
+          <div class="flex-1 bg-gray-800 rounded-lg border border-gray-700 p-3 overflow-y-auto space-y-2 min-h-0">
+            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="p-2 bg-gray-800/50 rounded border border-gray-700/50">
+              <div class="flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <i class="text-xs"
+                      :class="{
+                        'fab fa-youtube text-red-400': message.platform === 'youtube',
+                        'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                        'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                      }"
+                    ></i>
+                    <span class="text-xs font-bold truncate"
+                      :class="{
+                        'text-red-300': message.data.author.roles.broadcaster,
+                        'text-blue-300': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                        'text-green-300': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                        'text-gray-300': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                      }"
+                    >
+                      {{ message.data.author.display_name }}
+                    </span>
+                    <div v-for="badge in message.data.author.badges" :key="badge.type" class="w-3 h-3">
+                      <img :src="badge.image_url" :alt="badge.label" :title="badge.label" />
+                    </div>
+                  </div>
+                  <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
+                </div>
+                <button 
+                  @click="removeSaved(message.message_id)"
+                  class="text-red-400 hover:text-red-300 p-1 self-center"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      <!-- Connections Modal -->
+      <div v-if="showConnectionsModal" class="fixed inset-0 bg-black/80 flex items-center justify-center">
+        <div class="bg-gray-800 rounded-lg p-4 w-full max-w-[400px] border border-gray-700">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-lg font-bold">Manage Connections</h2>
+            <button @click="showConnectionsModal = false" class="text-gray-400 hover:text-gray-200">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+
+          <!-- Active Connections -->
+          <div class="space-y-2 mb-4">
+            <div v-for="conn in activeConnections" :key="conn.id" 
+              class="flex items-center gap-2 p-2 bg-gray-700/50 rounded border border-gray-600"
+            >
+              <i :class="{
+                'fab fa-youtube text-red-400': conn.platform === 'youtube',
+                'fab fa-twitch text-purple-400': conn.platform === 'twitch',
+                'fab fa-tiktok text-pink-400': conn.platform === 'tiktok'
+              }"></i>
+              <span class="flex-1 truncate text-sm">{{ conn.identifier }}</span>
+              <div class="flex gap-1">
+                <button @click="refreshChat(conn.id)" class="text-blue-400 hover:text-blue-300 p-1">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+                <button @click="disconnectChat(conn.id)" class="text-red-400 hover:text-red-300 p-1">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- New Connection Form -->
+          <div class="border-t border-gray-700 pt-4">
+            <div class="flex items-center gap-2">
+              <div class="flex border border-gray-600 rounded-lg overflow-hidden">
+                <button 
+                  v-for="platform in ['youtube', 'twitch', 'tiktok']"
+                  :key="platform"
+                  @click="newConnection.platform = platform"
+                  class="p-2 transition-colors"
+                  :class="{
+                    'bg-gray-700 text-red-400': platform === 'youtube' && newConnection.platform === 'youtube',
+                    'bg-gray-700 text-purple-400': platform === 'twitch' && newConnection.platform === 'twitch',
+                    'bg-gray-700 text-pink-400': platform === 'tiktok' && newConnection.platform === 'tiktok',
+                    'hover:bg-gray-700/50': newConnection.platform !== platform
+                  }"
+                >
+                  <i :class="{
+                    'fab fa-youtube': platform === 'youtube',
+                    'fab fa-twitch': platform === 'twitch',
+                    'fab fa-tiktok': platform === 'tiktok'
+                  }"></i>
+                </button>
+              </div>
+
+              <select v-if="newConnection.platform === 'youtube'" 
+                v-model="newConnection.identifierType" 
+                class="bg-gray-700 border-gray-600 rounded p-2 text-sm"
+              >
+                <option value="username">@user</option>
+                <option value="channelId">ID</option>
+                <option value="liveId">Live</option>
+              </select>
+
+              <div class="flex-1">
+                <input 
+                  v-model="newConnection.identifier" 
+                  :placeholder="getPlaceholder"
+                  class="w-full bg-gray-700 border-gray-600 rounded p-2 text-sm"
+                />
+              </div>
+
+              <button 
+                @click="connectNewChat"
+                class="p-2 text-green-400 hover:text-green-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                :disabled="!newConnection.identifier"
+              >
+                <i class="fas fa-plus"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
 
     <script>
-      // Add this before the type="module" script
-      console.log("Control page loaded");
+      const { createApp, ref, computed, watch, onMounted } = Vue;
 
-      // Add click event listener with logging
-      document.addEventListener("DOMContentLoaded", () => {
-        console.log("DOM fully loaded");
+      // IndexedDB setup
+      const dbName = 'OrionChatDB';
+      const dbVersion = 2;
+      let db;
 
-        const clearBtn = document.getElementById("clear-display");
-        if (clearBtn) {
-          console.log("Clear display button found");
-          clearBtn.addEventListener("click", () => {
-            console.log("Clear display button clicked");
-          });
-        } else {
-          console.error("Clear display button not found");
+      const initDB = () => {
+        return new Promise((resolve, reject) => {
+          console.log('Initializing IndexedDB...');
+          const request = indexedDB.open(dbName, dbVersion);
+
+          request.onerror = (event) => {
+            console.error('IndexedDB error:', event.target.error);
+            reject(event.target.error);
+          };
+
+          request.onsuccess = (event) => {
+            console.log('IndexedDB initialized successfully');
+            db = event.target.result;
+            resolve(db);
+          };
+
+          request.onupgradeneeded = (event) => {
+            console.log('Creating/upgrading IndexedDB structure...');
+            const db = event.target.result;
+            
+            // Create messages store with connection ID index
+            if (!db.objectStoreNames.contains('messages')) {
+              const store = db.createObjectStore('messages', { keyPath: 'message_id' });
+              store.createIndex('connectionId', 'connectionId', { unique: false });
+              store.createIndex('timestamp', 'timestamp', { unique: false });
+              console.log('Message store created');
+            }
+
+            // Create saved messages store
+            if (!db.objectStoreNames.contains('savedMessages')) {
+              const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
+              store.createIndex('timestamp', 'timestamp', { unique: false });
+              console.log('Saved messages store created');
+            }
+          };
+        });
+      };
+
+      const saveMessage = async (message, connectionId) => {
+        if (!db) {
+          console.warn('Database not initialized, cannot save message');
+          return;
         }
+        
+        const transaction = db.transaction(['messages'], 'readwrite');
+        const store = transaction.objectStore('messages');
+        
+        // Add connectionId to message for filtering
+        const messageToStore = {
+          ...message,
+          connectionId
+        };
+        
+        try {
+          await store.add(messageToStore);
+          console.log('Message saved to IndexedDB');
+        } catch (error) {
+          if (error.name === 'ConstraintError') {
+            console.log('Message already exists in IndexedDB');
+            return;
+          }
+          console.error('Error saving message:', error);
+        }
+      };
+
+      const loadMessages = async (connectionId) => {
+        if (!db) {
+          console.warn('Database not initialized, cannot load messages');
+          return [];
+        }
+        
+        return new Promise((resolve, reject) => {
+          console.log('Loading messages for connection:', connectionId);
+          const transaction = db.transaction(['messages'], 'readonly');
+          const store = transaction.objectStore('messages');
+          const index = store.index('connectionId');
+          
+          const request = index.getAll(connectionId);
+          
+          request.onsuccess = () => {
+            console.log(`Loaded ${request.result.length} messages from IndexedDB`);
+            resolve(request.result);
+          };
+          
+          request.onerror = () => {
+            console.error('Error loading messages:', request.error);
+            reject(request.error);
+          };
+        });
+      };
+
+      const clearMessages = async (connectionId) => {
+        if (!db) return;
+        
+        const transaction = db.transaction(['messages'], 'readwrite');
+        const store = transaction.objectStore('messages');
+        const index = store.index('connectionId');
+        
+        const request = index.getAllKeys(connectionId);
+        
+        request.onsuccess = () => {
+          const keys = request.result;
+          keys.forEach(key => {
+            store.delete(key);
+          });
+        };
+      };
+
+      const saveMessageToFavorites = async (message) => {
+        if (!db) return;
+        
+        const transaction = db.transaction(['savedMessages'], 'readwrite');
+        const store = transaction.objectStore('savedMessages');
+        
+        // Clean the message object before saving
+        const cleanMessage = {
+          message_id: message.message_id,
+          platform: message.platform,
+          timestamp: message.timestamp,
+          data: {
+            author: {
+              id: message.data.author.id,
+              username: message.data.author.username,
+              display_name: message.data.author.display_name,
+              avatar_url: message.data.author.avatar_url,
+              roles: { ...message.data.author.roles },
+              badges: message.data.author.badges.map(badge => ({
+                type: badge.type,
+                label: badge.label,
+                image_url: badge.image_url
+              }))
+            },
+            content: {
+              raw: message.data.content.raw,
+              formatted: message.data.content.formatted,
+              sanitized: message.data.content.sanitized,
+              rawHtml: message.data.content.rawHtml,
+              elements: message.data.content.elements?.map(el => ({
+                type: el.type,
+                value: el.value,
+                position: [...el.position],
+                metadata: el.metadata ? { ...el.metadata } : undefined
+              }))
+            },
+            metadata: message.data.metadata ? {
+              type: message.data.metadata.type,
+              monetary_data: message.data.metadata.monetary_data ? { ...message.data.metadata.monetary_data } : undefined,
+              sticker: message.data.metadata.sticker ? { ...message.data.metadata.sticker } : undefined
+            } : undefined
+          }
+        };
+        
+        try {
+          await store.add(cleanMessage);
+          console.log('Message saved to favorites');
+        } catch (error) {
+          if (error.name === 'ConstraintError') {
+            console.log('Message already saved');
+            return;
+          }
+          console.error('Error saving to favorites:', error);
+        }
+      };
+
+      const loadSavedMessages = async () => {
+        if (!db) return [];
+        
+        return new Promise((resolve, reject) => {
+          const transaction = db.transaction(['savedMessages'], 'readonly');
+          const store = transaction.objectStore('savedMessages');
+          
+          const request = store.getAll();
+          
+          request.onsuccess = () => {
+            resolve(request.result);
+          };
+          
+          request.onerror = () => {
+            reject(request.error);
+          };
+        });
+      };
+
+      const removeSavedMessage = async (messageId) => {
+        if (!db) return;
+        
+        const transaction = db.transaction(['savedMessages'], 'readwrite');
+        const store = transaction.objectStore('savedMessages');
+        await store.delete(messageId);
+      };
+
+      const app = createApp({
+        setup() {
+          const activeTab = ref('livechats');
+          const showConnectionsModal = ref(false);
+          const messages = ref([]);
+          const savedMessages = ref([]);
+          const activeConnections = ref([]);
+          const connectionCounter = ref(0);
+          const isDBReady = ref(false);
+
+          const newConnection = ref({
+            platform: 'youtube',
+            identifierType: 'username',
+            identifier: ''
+          });
+
+          // Initialize IndexedDB and load data
+          onMounted(async () => {
+            try {
+              await initDB();
+              isDBReady.value = true;
+              loadSavedConnections();
+              // Load saved messages
+              savedMessages.value = await loadSavedMessages();
+            } catch (error) {
+              console.error('Failed to initialize IndexedDB:', error);
+            }
+          });
+
+          // Load saved connections from localStorage
+          const loadSavedConnections = async () => {
+            try {
+              const saved = localStorage.getItem('orionChatConnections');
+              if (saved) {
+                const connections = JSON.parse(saved);
+                // Find the highest connection ID to set the counter
+                const maxId = Math.max(...connections.items.map(conn => conn.id), 0);
+                connectionCounter.value = maxId;
+
+                // Reconnect to each saved connection
+                for (const conn of connections.items) {
+                  newConnection.value = {
+                    platform: conn.platform,
+                    identifier: conn.identifier,
+                    identifierType: conn.identifierType
+                  };
+                  // Use the saved connection ID instead of generating a new one
+                  await connectNewChat(conn.id);
+                  
+                  // Load saved messages for this connection
+                  if (isDBReady.value) {
+                    const savedMessages = await loadMessages(conn.id);
+                    messages.value.push(...savedMessages);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error('Error loading saved connections:', error);
+            }
+          };
+
+          // Save connections to localStorage
+          const saveConnections = () => {
+            try {
+              const connections = {
+                items: activeConnections.value.map(conn => ({
+                  id: conn.id,
+                  platform: conn.platform,
+                  identifier: conn.identifier,
+                  identifierType: conn.identifierType
+                }))
+              };
+              localStorage.setItem('orionChatConnections', JSON.stringify(connections));
+            } catch (error) {
+              console.error('Error saving connections:', error);
+            }
+          };
+
+          // Watch for changes in activeConnections and save
+          watch(activeConnections, () => {
+            saveConnections();
+          }, { deep: true });
+
+          const getPlaceholder = computed(() => {
+            if (newConnection.value.platform === 'youtube') {
+              return newConnection.value.identifierType === 'username' ? '@username' :
+                     newConnection.value.identifierType === 'channelId' ? 'Channel ID' :
+                     'Live ID';
+            }
+            return '@username';
+          });
+
+          const sortedMessages = computed(() => {
+            return [...messages.value].sort((a, b) => 
+              new Date(b.timestamp) - new Date(a.timestamp)
+            );
+          });
+
+          const sortedSavedMessages = computed(() => {
+            return [...savedMessages.value].sort((a, b) => 
+              new Date(b.timestamp) - new Date(a.timestamp)
+            );
+          });
+
+          const connectNewChat = (existingId = null) => {
+            const ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
+            const connId = existingId || ++connectionCounter.value;
+
+            ws.onopen = () => {
+              console.log('WebSocket connected, sending subscribe message for connection:', connId);
+              const subscribeMessage = {
+                type: 'subscribe',
+                identifier: newConnection.value.identifier,
+                platform: newConnection.value.platform,
+                ...(newConnection.value.platform === 'youtube' && { 
+                  identifierType: newConnection.value.identifierType 
+                })
+              };
+              ws.send(JSON.stringify(subscribeMessage));
+
+              activeConnections.value.push({
+                id: connId,
+                ws,
+                platform: newConnection.value.platform,
+                identifier: newConnection.value.identifier,
+                identifierType: newConnection.value.identifierType
+              });
+
+              newConnection.value.identifier = '';
+              saveConnections();
+            };
+
+            ws.onmessage = async (event) => {
+              const data = JSON.parse(event.data);
+              if (data.type === 'chat') {
+                messages.value.push(data);
+                if (messages.value.length > 200) {
+                  messages.value = messages.value.slice(-200);
+                }
+                
+                // Save message to IndexedDB
+                if (isDBReady.value) {
+                  await saveMessage(data, connId);
+                }
+              }
+            };
+
+            ws.onerror = (error) => {
+              console.error('WebSocket error:', error);
+              disconnectChat(connId);
+            };
+
+            ws.onclose = () => {
+              disconnectChat(connId);
+            };
+          };
+
+          const refreshChat = (connId) => {
+            const conn = activeConnections.value.find(c => c.id === connId);
+            if (conn) {
+              // Store connection details
+              const details = {
+                platform: conn.platform,
+                identifier: conn.identifier,
+                identifierType: conn.identifierType
+              };
+              
+              // Disconnect
+              disconnectChat(connId);
+              
+              // Reconnect with same details
+              newConnection.value = { ...details };
+              connectNewChat();
+            }
+          };
+
+          const disconnectChat = async (connId) => {
+            const connIndex = activeConnections.value.findIndex(conn => conn.id === connId);
+            if (connIndex !== -1) {
+              const conn = activeConnections.value[connIndex];
+              conn.ws.send(JSON.stringify({ type: 'unsubscribe' }));
+              conn.ws.close();
+              activeConnections.value.splice(connIndex, 1);
+              
+              // Clear messages for this connection from IndexedDB
+              if (isDBReady.value) {
+                await clearMessages(connId);
+              }
+              
+              // Remove messages from this connection from the current view
+              messages.value = messages.value.filter(msg => msg.connectionId !== connId);
+            }
+          };
+
+          // Add method to clear all messages
+          const clearAllMessages = async () => {
+            if (isDBReady.value) {
+              for (const conn of activeConnections.value) {
+                await clearMessages(conn.id);
+              }
+              messages.value = [];
+            }
+          };
+
+          const saveChat = async (message) => {
+            if (isDBReady.value) {
+              await saveMessageToFavorites(message);
+              savedMessages.value = await loadSavedMessages();
+            }
+          };
+
+          const removeSaved = async (messageId) => {
+            if (isDBReady.value) {
+              await removeSavedMessage(messageId);
+              savedMessages.value = savedMessages.value.filter(msg => msg.message_id !== messageId);
+            }
+          };
+
+          return {
+            activeTab,
+            showConnectionsModal,
+            messages,
+            savedMessages,
+            activeConnections,
+            newConnection,
+            getPlaceholder,
+            sortedMessages,
+            sortedSavedMessages,
+            connectNewChat,
+            refreshChat,
+            disconnectChat,
+            clearAllMessages,
+            saveChat,
+            removeSaved
+          };
+        },
       });
+
+      app.use(PrimeVue.Config, {
+        theme: {
+          preset: PrimeVue.Themes.Aura,
+        },
+      });
+
+      app.mount("#app");
     </script>
-    <script type="module" src="js/control/main.js"></script>
   </body>
 </html>
