@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <title>OrionChat Control</title>
     <link rel="icon" href="icon.ico" />
@@ -13,9 +13,11 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet">
+    <script type="module" src="js/control/ConnectionManager.js"></script>
+    <script type="module" src="js/control/ChatManager.js"></script>
   </head>
   <body class="h-screen overflow-hidden max-w-[400px] mx-auto">
-      <!-- Main Container -->
+    <!-- Main Container -->
     <main id="app" class="h-full flex flex-col">
         <!-- Tabs -->
         <div class="flex border-b border-gray-700 mb-4">
@@ -201,13 +203,6 @@
                 </div>
                 <div class="chat-actions flex items-center gap-1">
                     <button 
-                      @click="clearDisplay"
-                      class="text-red-400 hover:text-red-300 p-0.5 self-center"
-                      title="Clear display"
-                    >
-                      <i class="fas fa-times text-xs"></i>
-                    </button>
-                    <button 
                       @click="sendDisplay(message)"
                       class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
                       title="Display message"
@@ -320,214 +315,11 @@
         </div>
     </main>
 
-    <script>
+    <script type="module">
+      import { ConnectionManager } from './js/control/ConnectionManager.js';
+      import { ChatManager } from './js/control/ChatManager.js';
+      
       const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
-
-      // IndexedDB setup
-      const dbName = 'OrionChatDB';
-      const savedDbName = 'OrionSavedChatDB';
-      const connectionsDbName = 'OrionConnectionsDB';
-      const dbVersion = 2;
-      let db;
-      let savedDb;
-      let connectionsDb;
-
-      const initDB = () => {
-        return Promise.all([
-          // Initialize main chat database
-          new Promise((resolve, reject) => {
-            console.log('Initializing Chat IndexedDB...');
-            const request = indexedDB.open(dbName, dbVersion);
-
-            request.onerror = (event) => {
-              console.error('Chat IndexedDB error:', event.target.error);
-              reject(event.target.error);
-            };
-
-            request.onsuccess = (event) => {
-              console.log('Chat IndexedDB initialized successfully');
-              db = event.target.result;
-              resolve(db);
-            };
-
-            request.onupgradeneeded = (event) => {
-              console.log('Creating/upgrading Chat IndexedDB structure...');
-              const db = event.target.result;
-              
-              if (!db.objectStoreNames.contains('messages')) {
-                const store = db.createObjectStore('messages', { keyPath: 'message_id' });
-                store.createIndex('connectionId', 'connectionId', { unique: false });
-                store.createIndex('timestamp', 'timestamp', { unique: false });
-                console.log('Message store created');
-              }
-            };
-          }),
-          // Initialize saved messages database
-          new Promise((resolve, reject) => {
-            console.log('Initializing Saved Chat IndexedDB...');
-            const request = indexedDB.open(savedDbName, dbVersion);
-
-            request.onerror = (event) => {
-              console.error('Saved Chat IndexedDB error:', event.target.error);
-              reject(event.target.error);
-            };
-
-            request.onsuccess = (event) => {
-              console.log('Saved Chat IndexedDB initialized successfully');
-              savedDb = event.target.result;
-              resolve(savedDb);
-            };
-
-            request.onupgradeneeded = (event) => {
-              console.log('Creating/upgrading Saved Chat IndexedDB structure...');
-              const db = event.target.result;
-              
-              if (!db.objectStoreNames.contains('savedMessages')) {
-                const store = db.createObjectStore('savedMessages', { keyPath: 'message_id' });
-                store.createIndex('timestamp', 'timestamp', { unique: false });
-                console.log('Saved messages store created');
-              }
-            };
-          }),
-          // Initialize connections database
-          new Promise((resolve, reject) => {
-            console.log('Initializing Connections IndexedDB...');
-            const request = indexedDB.open(connectionsDbName, dbVersion);
-
-            request.onerror = (event) => {
-              console.error('Connections IndexedDB error:', event.target.error);
-              reject(event.target.error);
-            };
-
-            request.onsuccess = (event) => {
-              console.log('Connections IndexedDB initialized successfully');
-              connectionsDb = event.target.result;
-              resolve(connectionsDb);
-            };
-
-            request.onupgradeneeded = (event) => {
-              console.log('Creating/upgrading Connections IndexedDB structure...');
-              const db = event.target.result;
-              
-              if (!db.objectStoreNames.contains('connections')) {
-                const store = db.createObjectStore('connections', { keyPath: 'id' });
-                console.log('Connections store created');
-              }
-            };
-          })
-        ]);
-      };
-
-      // Add connection storage functions
-      const saveConnectionsToDb = async (connections) => {
-        if (!connectionsDb) return;
-        
-        const transaction = connectionsDb.transaction(['connections'], 'readwrite');
-        const store = transaction.objectStore('connections');
-
-        // Clear existing connections
-        await store.clear();
-
-        // Add new connections without WebSocket instances
-        for (const conn of connections) {
-          const connData = {
-            id: conn.id,
-            platform: conn.platform,
-            identifier: conn.identifier,
-            identifierType: conn.identifierType
-          };
-          await store.add(connData);
-        }
-      };
-
-      const loadConnectionsFromDb = async () => {
-        if (!connectionsDb) return [];
-        
-        return new Promise((resolve, reject) => {
-          const transaction = connectionsDb.transaction(['connections'], 'readonly');
-          const store = transaction.objectStore('connections');
-          
-          const request = store.getAll();
-          
-          request.onsuccess = () => {
-            resolve(request.result);
-          };
-          
-          request.onerror = () => {
-            reject(request.error);
-          };
-        });
-      };
-
-      const saveMessage = async (message, connectionId) => {
-        if (!db) {
-          console.warn('Database not initialized, cannot save message');
-          return;
-        }
-        
-        const transaction = db.transaction(['messages'], 'readwrite');
-        const store = transaction.objectStore('messages');
-        
-        // Add connectionId to message for filtering
-        const messageToStore = {
-          ...message,
-          connectionId
-        };
-        
-        try {
-          await store.add(messageToStore);
-          console.log('Message saved to IndexedDB');
-        } catch (error) {
-          if (error.name === 'ConstraintError') {
-            console.log('Message already exists in IndexedDB');
-            return;
-          }
-          console.error('Error saving message:', error);
-        }
-      };
-
-      const loadMessages = async (connectionId) => {
-        if (!db) {
-          console.warn('Database not initialized, cannot load messages');
-          return [];
-        }
-        
-        return new Promise((resolve, reject) => {
-          console.log('Loading messages for connection:', connectionId);
-          const transaction = db.transaction(['messages'], 'readonly');
-          const store = transaction.objectStore('messages');
-          const index = store.index('connectionId');
-          
-          const request = index.getAll(connectionId);
-          
-          request.onsuccess = () => {
-            console.log(`Loaded ${request.result.length} messages from IndexedDB`);
-            resolve(request.result);
-          };
-          
-          request.onerror = () => {
-            console.error('Error loading messages:', request.error);
-            reject(request.error);
-          };
-        });
-      };
-
-      const clearMessages = async (connectionId) => {
-        if (!db) return;
-        
-        const transaction = db.transaction(['messages'], 'readwrite');
-        const store = transaction.objectStore('messages');
-        const index = store.index('connectionId');
-        
-        const request = index.getAllKeys(connectionId);
-        
-        request.onsuccess = () => {
-          const keys = request.result;
-          keys.forEach(key => {
-            store.delete(key);
-          });
-        };
-      };
 
       const showToast = (message, type = 'success') => {
         const colors = {
@@ -547,109 +339,49 @@
         }).showToast();
       };
 
-      const saveMessageToFavorites = async (message) => {
-        if (!savedDb) return;
-        
-        const transaction = savedDb.transaction(['savedMessages'], 'readwrite');
-        const store = transaction.objectStore('savedMessages');
-        
-        // Clean the message object before saving
-        const cleanMessage = {
-          message_id: message.message_id,
-          platform: message.platform,
-          timestamp: message.timestamp,
-          data: {
-            author: {
-              id: message.data.author.id,
-              username: message.data.author.username,
-              display_name: message.data.author.display_name,
-              avatar_url: message.data.author.avatar_url,
-              roles: { ...message.data.author.roles },
-              badges: message.data.author.badges.map(badge => ({
-                type: badge.type,
-                label: badge.label,
-                image_url: badge.image_url
-              }))
-            },
-            content: {
-              raw: message.data.content.raw,
-              formatted: message.data.content.formatted,
-              sanitized: message.data.content.sanitized,
-              rawHtml: message.data.content.rawHtml,
-              elements: message.data.content.elements?.map(el => ({
-                type: el.type,
-                value: el.value,
-                position: [...el.position],
-                metadata: el.metadata ? { ...el.metadata } : undefined
-              }))
-            },
-            metadata: message.data.metadata ? {
-              type: message.data.metadata.type,
-              monetary_data: message.data.metadata.monetary_data ? { ...message.data.metadata.monetary_data } : undefined,
-              sticker: message.data.metadata.sticker ? { ...message.data.metadata.sticker } : undefined
-            } : undefined
-          }
-        };
-        
-        try {
-          await store.add(cleanMessage);
-          showToast('Message saved to favorites');
-        } catch (error) {
-          if (error.name === 'ConstraintError') {
-            showToast('Message already saved', 'info');
-            return;
-          }
-          showToast('Error saving message', 'error');
-          console.error('Error saving to favorites:', error);
-        }
-      };
-
-      const loadSavedMessages = async () => {
-        if (!savedDb) return [];
-        
-        return new Promise((resolve, reject) => {
-          const transaction = savedDb.transaction(['savedMessages'], 'readonly');
-          const store = transaction.objectStore('savedMessages');
-          
-          const request = store.getAll();
-          
-          request.onsuccess = () => {
-            resolve(request.result);
-          };
-          
-          request.onerror = () => {
-            reject(request.error);
-          };
-        });
-      };
-
-      const removeSavedMessage = async (messageId) => {
-        if (!savedDb) return;
-        
-        const transaction = savedDb.transaction(['savedMessages'], 'readwrite');
-        const store = transaction.objectStore('savedMessages');
-        await store.delete(messageId);
-      };
-
       const app = createApp({
         setup() {
           const activeTab = ref('livechats');
           const showConnectionsModal = ref(false);
-          const messages = ref([]);
-          const savedMessages = ref([]);
-          const activeConnections = ref([]);
-          const connectionCounter = ref(0);
-          const isDBReady = ref(false);
+          const customMessage = ref('');
           const shouldAutoScroll = ref(true);
           const chatBox = ref(null);
-          const customMessage = ref('');
+
+          // Initialize managers
+          const connectionManager = new ConnectionManager();
+          const chatManager = new ChatManager();
+
+          // Set up callbacks
+          connectionManager.showToast = showToast;
+          chatManager.showToast = showToast;
+
+          connectionManager.onConnectionsChange = (connections) => {
+            activeConnections.value = connections;
+          };
+
+          chatManager.onMessagesChange = (messages) => {
+            allMessages.value = messages;
+          };
+
+          chatManager.onSavedMessagesChange = (messages) => {
+            savedMessages.value = messages;
+          };
+
+          connectionManager.onMessageReceived = async (message) => {
+            await chatManager.saveMessage(message, message.connectionId);
+            chatManager.addMessageUnique(message);
+          };
+
+          // Initialize reactive refs
+          const activeConnections = ref([]);
+          const allMessages = ref([]);
+          const savedMessages = ref([]);
 
           // Add scroll handler
           const handleScroll = () => {
             if (!chatBox.value) return;
             
             const { scrollTop, scrollHeight, clientHeight } = chatBox.value;
-            // For flex-col-reverse, we're at bottom when scrollTop is at max
             shouldAutoScroll.value = Math.abs(scrollHeight - scrollTop - clientHeight) < 2;
           };
 
@@ -661,7 +393,7 @@
           };
 
           // Watch messages for auto-scroll
-          watch(() => messages.value.length, () => {
+          watch(() => allMessages.value.length, () => {
             nextTick(() => {
               if (shouldAutoScroll.value && chatBox.value) {
                 scrollToBottom();
@@ -669,84 +401,19 @@
             });
           });
 
+          // Initialize on mount
+          onMounted(async () => {
+            await Promise.all([
+              connectionManager.init(),
+              chatManager.init()
+            ]);
+          });
+
           const newConnection = ref({
             platform: 'youtube',
             identifierType: 'username',
             identifier: ''
           });
-
-          // Initialize IndexedDB and load data
-          onMounted(async () => {
-            try {
-              await initDB();
-              isDBReady.value = true;
-              loadSavedConnections();
-              // Load saved messages
-              savedMessages.value = await loadSavedMessages();
-            } catch (error) {
-              console.error('Failed to initialize IndexedDB:', error);
-            }
-          });
-
-          // Add a helper function to prevent duplicates
-          const addMessageUnique = (message) => {
-            // Check if message already exists
-            const exists = messages.value.some(m => m.message_id === message.message_id);
-            if (!exists) {
-              messages.value.push(message);
-              // Keep only last 200 messages
-              if (messages.value.length > 200) {
-                messages.value = messages.value.slice(-200);
-              }
-            }
-          };
-
-          // Load saved connections from IndexedDB
-          const loadSavedConnections = async () => {
-            try {
-              if (isDBReady.value) {
-                const connections = await loadConnectionsFromDb();
-                if (connections.length > 0) {
-                  const maxId = Math.max(...connections.map(conn => conn.id), 0);
-                  connectionCounter.value = maxId;
-
-                  // Reconnect to each saved connection
-                  for (const conn of connections) {
-                    newConnection.value = {
-                      platform: conn.platform,
-                      identifier: conn.identifier,
-                      identifierType: conn.identifierType
-                    };
-                    // Load saved messages first
-                    const savedMessages = await loadMessages(conn.id);
-                    savedMessages.forEach(msg => addMessageUnique(msg));
-                    // Then connect to get new messages
-                    await connectNewChat(conn.id);
-                  }
-                }
-              }
-            } catch (error) {
-              console.error('Error loading saved connections:', error);
-            }
-          };
-
-          // Watch for changes in activeConnections and save to IndexedDB
-          watch(activeConnections, async (newConnections) => {
-            if (isDBReady.value) {
-              try {
-                // Create a clean copy without WebSocket instances
-                const cleanConnections = newConnections.map(conn => ({
-                  id: conn.id,
-                  platform: conn.platform,
-                  identifier: conn.identifier,
-                  identifierType: conn.identifierType
-                }));
-                await saveConnectionsToDb(cleanConnections);
-              } catch (error) {
-                console.error('Error saving connections:', error);
-              }
-            }
-          }, { deep: true });
 
           const getPlaceholder = computed(() => {
             if (newConnection.value.platform === 'youtube') {
@@ -758,7 +425,7 @@
           });
 
           const sortedMessages = computed(() => {
-            return [...messages.value].sort((a, b) => 
+            return [...allMessages.value].sort((a, b) => 
               new Date(b.timestamp) - new Date(a.timestamp)
             );
           });
@@ -769,355 +436,74 @@
             );
           });
 
-          // Add function to generate connection ID
-          const generateConnectionId = (platform, identifier, identifierType = 'username') => {
-            return `${platform}-${identifierType}-${identifier}`.toLowerCase();
+          // Connect new chat
+          const connectNewChat = () => {
+            connectionManager.connectNewChat(newConnection.value);
           };
 
-          const connectNewChat = async (event = null) => {
-            // Generate the connection ID first
-            const generatedId = generateConnectionId(
-              newConnection.value.platform,
-              newConnection.value.identifier,
-              newConnection.value.identifierType
-            );
-            // If we're reconnecting, use the existing ID from the connection object
-            const connId = typeof event === 'string' ? event : generatedId;
-
-            // Check if connection already exists
-            if (!event && activeConnections.value.some(conn => conn.id === connId)) {
-              showToast('This connection already exists', 'error');
-              return;
-            }
-
-            const ws = new WebSocket('wss://chatsocket.oristarium.com/ws');
-            let subscriptionConfirmed = false;
-
-            ws.onopen = () => {
-              const subscribeMessage = {
-                type: 'subscribe',
-                identifier: newConnection.value.identifier,
-                platform: newConnection.value.platform,
-                ...(newConnection.value.platform === 'youtube' && { 
-                  identifierType: newConnection.value.identifierType 
-                })
-              };
-
-              console.log('WebSocket connected, sending subscribe message:', {
-                connectionId: connId,
-                message: subscribeMessage
-              });
-
-              ws.send(JSON.stringify(subscribeMessage));
-
-              // Set a timeout for subscription confirmation
-              setTimeout(() => {
-                if (!subscriptionConfirmed) {
-                  console.error('Subscription confirmation timeout for:', {
-                    connectionId: connId,
-                    platform: newConnection.value.platform,
-                    identifier: newConnection.value.identifier,
-                    identifierType: newConnection.value.identifierType
-                  });
-                  showToast('Connection failed: No response from server', 'error');
-                  ws.close();
-                }
-              }, 5000);
-            };
-
-            ws.onmessage = async (event) => {
-              const data = JSON.parse(event.data);
-              
-              // Only log non-chat messages
-              if (data.type !== 'chat') {
-                console.log('WebSocket received message:', {
-                  connectionId: connId,
-                  type: data.type,
-                  data: data
-                });
-              }
-              
-              if (data.type === 'status' && data.status === 'subscribed') {
-                subscriptionConfirmed = true;
-                console.log('Subscription confirmed for:', {
-                  connectionId: connId,
-                  platform: newConnection.value.platform,
-                  identifier: newConnection.value.identifier,
-                  identifierType: newConnection.value.identifierType,
-                  response: data
-                });
-
-                // Only add to activeConnections after subscription confirmation
-                const connection = {
-                  id: connId,
-                  ws,
-                  platform: newConnection.value.platform,
-                  identifier: newConnection.value.identifier,
-                  identifierType: newConnection.value.identifierType
-                };
-
-                activeConnections.value.push(connection);
-
-                // Save connections to DB
-                try {
-                  await saveConnectionsToDb(activeConnections.value);
-                } catch (error) {
-                  console.error('Error saving connections:', error);
-                }
-
-                newConnection.value.identifier = '';
-                if (!event) {
-                  showToast('New connection added');
-                }
-                return;
-              }
-
-              if (data.type === 'chat' && subscriptionConfirmed) {
-                // Add connection ID to the message
-                const messageWithConn = {
-                  ...data,
-                  connectionId: connId
-                };
-                // Use the unique add function
-                addMessageUnique(messageWithConn);
-                
-                // Save to IndexedDB
-                if (isDBReady.value) {
-                  await saveMessage(messageWithConn, connId);
-                }
-              }
-            };
-
-            ws.onerror = (error) => {
-              console.error('WebSocket error for connection:', {
-                connectionId: connId,
-                error: error
-              });
-              showToast('Connection error', 'error');
-              disconnectChat(connId);
-            };
-
-            ws.onclose = () => {
-              console.log('WebSocket closed for connection:', {
-                connectionId: connId,
-                wasConfirmed: subscriptionConfirmed
-              });
-              if (subscriptionConfirmed) {
-                disconnectChat(connId);
-              }
-            };
-          };
-
+          // Refresh chat
           const refreshChat = (connId) => {
-            const conn = activeConnections.value.find(c => c.id === connId);
-            if (conn) {
-              // Store connection details
-              const details = {
-                platform: conn.platform,
-                identifier: conn.identifier,
-                identifierType: conn.identifierType
-              };
-              
-              // Disconnect
-              disconnectChat(connId);
-              
-              // Reconnect with same details
-              newConnection.value = { ...details };
-              // Pass the ID string directly
-              connectNewChat(connId);
-            }
+            connectionManager.refreshChat(connId);
           };
 
-          const disconnectChat = async (connId) => {
-            const connIndex = activeConnections.value.findIndex(conn => conn.id === connId);
-            if (connIndex !== -1) {
-              const conn = activeConnections.value[connIndex];
-              try {
-                conn.ws.send(JSON.stringify({ type: 'unsubscribe' }));
-              } catch (e) {
-                console.warn('Could not send unsubscribe message:', e);
-              }
-              conn.ws.close();
-              activeConnections.value.splice(connIndex, 1);
-              
-              // Clear messages for this connection from IndexedDB
-              if (isDBReady.value) {
-                await clearMessages(connId);
-              }
-              
-              // Remove messages from this connection from the current view
-              messages.value = messages.value.filter(msg => msg.connectionId !== connId);
-              showToast('Connection removed');
-            }
+          // Disconnect chat
+          const disconnectChat = (connId) => {
+            connectionManager.disconnectChat(connId);
           };
 
-          // Update the clear messages function
+          // Clear all messages
           const clearAllMessages = async () => {
-            if (isDBReady.value) {
-              messages.value = []; // Clear visual messages first
-              for (const conn of activeConnections.value) {
-                await clearMessages(conn.id);
-              }
-              showToast('Chat messages cleared');
-            }
+            await chatManager.clearAllMessages();
           };
 
+          // Save chat to favorites
           const saveChat = async (message) => {
-            if (isDBReady.value) {
-              await saveMessageToFavorites(message);
-              savedMessages.value = await loadSavedMessages();
-            }
+            await chatManager.saveMessageToFavorites(message);
           };
 
+          // Remove saved message
           const removeSaved = async (messageId) => {
-            if (isDBReady.value) {
-              await removeSavedMessage(messageId);
-              savedMessages.value = savedMessages.value.filter(msg => msg.message_id !== messageId);
-              showToast('Saved message removed');
+            await chatManager.removeSavedMessage(messageId);
+          };
+
+          // Send TTS
+          const sendTTS = async (message) => {
+            await chatManager.sendTTS(message);
+          };
+
+          // Send Display
+          const sendDisplay = async (message) => {
+            await chatManager.sendDisplay(message);
+          };
+
+          // Send Custom TTS
+          const sendCustomTTS = async () => {
+            if (await chatManager.sendCustomTTS(customMessage.value)) {
+              customMessage.value = '';
             }
           };
 
-          // Add TTS function
-          const sendTTS = (message) => {
-            const ttsData = {
-              ...message,
-              type: 'tts'  // Change type to tts
-            };
-
-            // Send to update endpoint
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(ttsData)
-            }).then(() => {
-              showToast('TTS sent');
-            }).catch(error => {
-              console.error('Error sending TTS:', error);
-              showToast('Failed to send TTS', 'error');
-            });
-          };
-
-          // Add display function
-          const sendDisplay = (message) => {
-            const displayData = {
-              ...message,
-              type: 'display'  // Change type to display
-            };
-
-            // Send to update endpoint
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(displayData)
-            }).then(() => {
-              showToast('Message displayed');
-            }).catch(error => {
-              console.error('Error sending display:', error);
-              showToast('Failed to display message', 'error');
-            });
-          };
-
-          // Add custom message functions
-          const sendCustomTTS = () => {
-            if (!customMessage.value.trim()) {
-              showToast('Please enter a message', 'error');
-              return;
+          // Send Custom Display
+          const sendCustomDisplay = async () => {
+            if (await chatManager.sendCustomDisplay(customMessage.value)) {
+              customMessage.value = '';
             }
-
-            const ttsData = {
-              type: 'tts',
-              data: {
-                content: {
-                  sanitized: customMessage.value.trim()
-                }
-              }
-            };
-
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(ttsData)
-            }).then(() => {
-              showToast('Custom TTS sent');
-              customMessage.value = ''; // Clear the input
-            }).catch(error => {
-              console.error('Error sending custom TTS:', error);
-              showToast('Failed to send custom TTS', 'error');
-            });
           };
 
-          const sendCustomDisplay = () => {
-            if (!customMessage.value.trim()) {
-              showToast('Please enter a message', 'error');
-              return;
-            }
-
-            const displayData = {
-              type: 'display',
-              data: {
-                content: {
-                  sanitized: customMessage.value.trim()
-                }
-              }
-            };
-
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(displayData)
-            }).then(() => {
-              showToast('Custom message displayed');
-              customMessage.value = ''; // Clear the input
-            }).catch(error => {
-              console.error('Error sending custom display:', error);
-              showToast('Failed to display custom message', 'error');
-            });
-          };
-
-          // Add clear functions
+          // Clear Display
           const clearDisplay = () => {
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ type: 'clear_display' })
-            }).then(() => {
-              showToast('Display cleared');
-            }).catch(error => {
-              console.error('Error clearing display:', error);
-              showToast('Failed to clear display', 'error');
-            });
+            chatManager.clearDisplay();
           };
 
+          // Clear TTS
           const clearTTS = () => {
-            fetch('/update', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ type: 'clear_tts' })
-            }).then(() => {
-              showToast('TTS cleared');
-            }).catch(error => {
-              console.error('Error clearing TTS:', error);
-              showToast('Failed to clear TTS', 'error');
-            });
+            chatManager.clearTTS();
           };
 
           return {
             activeTab,
             showConnectionsModal,
-            messages,
-            savedMessages,
+            customMessage,
             activeConnections,
             newConnection,
             getPlaceholder,
@@ -1135,12 +521,10 @@
             scrollToBottom,
             sendTTS,
             sendDisplay,
-            customMessage,
             sendCustomTTS,
             sendCustomDisplay,
             clearDisplay,
-            clearTTS,
-            generateConnectionId,
+            clearTTS
           };
         },
       });
