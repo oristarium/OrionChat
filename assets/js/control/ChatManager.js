@@ -1,3 +1,5 @@
+import { ChatterManager } from './ChatterManager.js';
+
 /**
  * @typedef {Object} ChatBadge
  * @property {('subscriber'|'moderator'|'verified'|'custom')} type - The type of badge
@@ -88,24 +90,19 @@ export class ChatManager {
         this.messages = [];
         /** @type {ChatMessage[]} */
         this.savedMessages = [];
-        /** @type {Map<string, ChatAuthor>} */
-        this.uniqueChatters = new Map();
-        /** @type {Set<string>} */
-        this.activeLiveIds = new Set();
         /** @type {boolean} */
         this.isDBReady = false;
         /** @type {function(ChatMessage[]): void} */
         this.onMessagesChange = null;
         /** @type {function(ChatMessage[]): void} */
         this.onSavedMessagesChange = null;
-        /** @type {function(ChatAuthor[]): void} */
-        this.onChattersChange = null;
         /** @type {function(string, string=): void} */
         this.showToast = null;
         /** @type {boolean} */
         this.isTTSAll = false;
-        /** @type {boolean} */
-        this.shouldShowChatterToasts = false;
+
+        // Initialize ChatterManager
+        this.chatterManager = new ChatterManager();
     }
 
     /**
@@ -117,11 +114,11 @@ export class ChatManager {
             this.isDBReady = true;
             await this.loadSavedMessages();
             
-            // Enable chatter toasts after 3 seconds
-            setTimeout(() => {
-                console.log('Enabling new chatter toasts');
-                this.shouldShowChatterToasts = true;
-            }, 3000);
+            // Initialize ChatterManager
+            this.chatterManager.init();
+            
+            // Pass the showToast function to ChatterManager
+            this.chatterManager.showToast = this.showToast;
         } catch (error) {
             console.error('Failed to initialize ChatManager:', error);
         }
@@ -161,48 +158,11 @@ export class ChatManager {
     }
 
     /**
-     * Adds a new live ID to track
-     * @param {string} liveId - The live ID to add
+     * Sets the callback for chatter changes
+     * @param {function(ChatAuthor[]): void} callback
      */
-    addLiveId(liveId) {
-        if (!this.activeLiveIds.has(liveId)) {
-            this.activeLiveIds.add(liveId);
-            console.log('Added new liveId:', liveId, 'Active:', Array.from(this.activeLiveIds));
-        }
-    }
-
-    /**
-     * Removes a live ID and prunes associated chatters
-     * @param {string} liveId - The live ID to remove
-     */
-    removeLiveId(liveId) {
-        if (!this.activeLiveIds.has(liveId)) return;
-
-        console.log('Removing liveId:', liveId);
-        this.activeLiveIds.delete(liveId);
-
-        // Get current chatters count for logging
-        const beforeCount = this.uniqueChatters.size;
-
-        // Filter out chatters from the disconnected live ID
-        for (const [chatterId, chatter] of this.uniqueChatters.entries()) {
-            if (chatter.liveId === liveId) {
-                this.uniqueChatters.delete(chatterId);
-            }
-        }
-
-        // Log the pruning results
-        const afterCount = this.uniqueChatters.size;
-        console.log(`Pruned chatters for liveId ${liveId}:`, {
-            before: beforeCount,
-            after: afterCount,
-            removed: beforeCount - afterCount
-        });
-
-        // Notify of chatters change if any were removed
-        if (beforeCount !== afterCount && this.onChattersChange) {
-            this.onChattersChange(Array.from(this.uniqueChatters.values()));
-        }
+    set onChattersChange(callback) {
+        this.chatterManager.onChattersChange = callback;
     }
 
     /**
@@ -216,35 +176,36 @@ export class ChatManager {
             this.onMessagesChange(this.messages);
         }
 
-        // Update unique chatters
-        const author = message.data.author;
-        if (!this.uniqueChatters.has(author.id)) {
-            this.uniqueChatters.set(author.id, author);
+        // Update unique chatters through ChatterManager
+        this.chatterManager.addChatter(message.data.author);
+    }
 
-            // Only show toast if enabled and after initialization delay
-            if (this.shouldShowChatterToasts) {
-                const platformIcon = {
-                    'youtube': '🔴',
-                    'twitch': '💜',
-                    'tiktok': '🎵'
-                }[author.platform] || '👤';
+    /**
+     * Removes a live ID and prunes associated chatters
+     * @param {string} liveId - The live ID to remove
+     */
+    removeLiveId(liveId) {
+        this.chatterManager.removeLiveId(liveId);
+    }
 
-                let roleIcon = '';
-                if (author.roles.broadcaster) roleIcon = '👑';
-                else if (author.roles.moderator) roleIcon = '🛡️';
-                else if (author.roles.subscriber) roleIcon = '⭐';
-                else if (author.roles.verified) roleIcon = '✓';
+    /**
+     * Gets all unique chatters
+     * @returns {ChatAuthor[]}
+     */
+    getChatters() {
+        return this.chatterManager.getChatters();
+    }
 
-                this.showToast?.(
-                    `${platformIcon} New chatter: ${roleIcon}${author.display_name}`,
-                    'info'
-                );
-            }
-
-            if (this.onChattersChange) {
-                this.onChattersChange(Array.from(this.uniqueChatters.values()));
-            }
-        }
+    /**
+     * Filters chatters based on criteria
+     * @param {Object} filters
+     * @param {string} [filters.search] - Search term for username/display name
+     * @param {string} [filters.platform] - Platform filter
+     * @param {Object} [filters.roles] - Role filters
+     * @returns {ChatAuthor[]}
+     */
+    filterChatters(filters) {
+        return this.chatterManager.filterChatters(filters);
     }
 
     /**
@@ -528,46 +489,6 @@ export class ChatManager {
         }).catch(error => {
             console.error('Error clearing TTS:', error);
             this.showToast?.('Failed to clear TTS', 'error');
-        });
-    }
-
-    /**
-     * Gets all unique chatters
-     * @returns {ChatAuthor[]}
-     */
-    getChatters() {
-        return Array.from(this.uniqueChatters.values());
-    }
-
-    /**
-     * Filters chatters based on criteria
-     * @param {Object} filters
-     * @param {string} [filters.search] - Search term for username/display name
-     * @param {string} [filters.platform] - Platform filter
-     * @param {Object} [filters.roles] - Role filters
-     * @returns {ChatAuthor[]}
-     */
-    filterChatters({ search = '', platform = '', roles = {} } = {}) {
-        return this.getChatters().filter(chatter => {
-            // Platform filter
-            if (platform && chatter.platform !== platform) return false;
-
-            // Role filters
-            if (roles.broadcaster && !chatter.roles.broadcaster) return false;
-            if (roles.moderator && !chatter.roles.moderator) return false;
-            if (roles.subscriber && !chatter.roles.subscriber) return false;
-            if (roles.verified && !chatter.roles.verified) return false;
-
-            // Search filter
-            if (search) {
-                const searchLower = search.toLowerCase();
-                return (
-                    chatter.username.toLowerCase().includes(searchLower) ||
-                    chatter.display_name.toLowerCase().includes(searchLower)
-                );
-            }
-
-            return true;
         });
     }
 } 

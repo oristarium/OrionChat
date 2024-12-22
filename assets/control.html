@@ -18,6 +18,7 @@
     />
     <script type="module" src="js/control/ConnectionManager.js"></script>
     <script type="module" src="js/control/ChatManager.js"></script>
+    <script type="module" src="js/control/ChatterManager.js"></script>
     <script type="module" src="js/control/AvatarManager.js"></script>
     <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
     <!-- Add MicroModal styles -->
@@ -234,7 +235,7 @@
                         }"
                     ></i>
                     <span
-                      class="text-xs font-bold truncate"
+                      class="text-xs font-bold truncate flex items-center gap-1"
                       :class="{
                             'text-red-500': message.data.author.roles.broadcaster,
                             'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
@@ -243,6 +244,10 @@
                         }"
                     >
                       {{ message.data.author.display_name }}
+                      <span v-if="message.data.author.roles.broadcaster" title="Broadcaster">👑</span>
+                      <span v-else-if="message.data.author.roles.moderator" title="Moderator">🛡️</span>
+                      <span v-else-if="message.data.author.roles.subscriber" title="Twitch Subscriber/YT Member">⭐</span>
+                      <span v-else-if="message.data.author.roles.verified" title="Verified">✓</span>
                     </span>
                   </div>
                   <div
@@ -354,7 +359,7 @@
                         }"
                   ></i>
                   <span
-                    class="text-xs font-bold truncate"
+                    class="text-xs font-bold truncate flex items-center gap-1"
                     :class="{
                             'text-red-500': message.data.author.roles.broadcaster,
                             'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
@@ -363,6 +368,10 @@
                         }"
                   >
                     {{ message.data.author.display_name }}
+                    <span v-if="message.data.author.roles.broadcaster" title="Broadcaster">👑</span>
+                    <span v-else-if="message.data.author.roles.moderator" title="Moderator">🛡️</span>
+                    <span v-else-if="message.data.author.roles.subscriber" title="Subscriber">⭐</span>
+                    <span v-else-if="message.data.author.roles.verified" title="Verified">✓</span>
                   </span>
                 </div>
                 <div
