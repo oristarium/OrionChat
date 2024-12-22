@@ -149,7 +149,7 @@
           :class="activeTab === 'chatters' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
         >
           <i class="fas fa-users text-xs"></i>
-          Users
+          Chatters
         </button>
         <button
           @click="activeTab = 'avatars'"
@@ -1370,15 +1370,29 @@
 
           connectionManager.onMessageReceived = (message) => {
             chatManager.addMessageUnique(message);
-            if (isTTSAll.value) {
-              sendTTS(message);
-            }
+            
+            // Auto scroll to bottom
             if (autoScrollEnabled.value) {
               nextTick(() => {
                 scrollChatboxToBottom();
               });
             } else if (!isAtBottom()) {
               showScrollToBottom.value = true;
+            }
+
+            // Auto send TTS if TTS All is enabled
+            if (isTTSAll.value) {
+                // Get hidden chatters through chatManager instance
+                const hiddenChatters = chatManager.getHiddenChatters();
+
+                // Check if author is hidden
+                if (hiddenChatters.some(chatter => chatter.id === message.data.author.id)) {
+                    showToast('Message not sent - author is hidden', 'info');
+                    console.log('Author is hidden, not sending message');
+                    return;
+                }
+
+                sendTTS(message);
             }
           };
 

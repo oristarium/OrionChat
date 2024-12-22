@@ -517,4 +517,12 @@ export class ChatManager {
     async removeSavedChatter(chatterId) {
         return this.chatterManager.removeSavedChatter(chatterId);
     }
+
+    /**
+     * Gets hidden chatters
+     * @returns {ChatAuthor[]}
+     */
+    getHiddenChatters() {
+        return this.chatterManager.getHiddenChatters();
+    }
 } 
