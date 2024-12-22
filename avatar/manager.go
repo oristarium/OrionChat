@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/oristarium/orionchat/types"
@@ -90,8 +91,21 @@ func (m *Manager) initializeDefaultAvatar() error {
 		}
 	}
 
+	// Get all existing avatars to find highest ID
+	existingAvatars, err := m.Storage.ListAvatars()
+	if err != nil {
+		return fmt.Errorf("failed to list avatars: %w", err)
+	}
+
+	maxID := 0
+	for _, a := range existingAvatars {
+		if id, err := strconv.Atoi(a.ID); err == nil && id > maxID {
+			maxID = id
+		}
+	}
+
 	defaultAvatar := types.Avatar{
-		ID:          fmt.Sprintf("avatar_%d", time.Now().UnixNano()),
+		ID:          fmt.Sprintf("%d", maxID+1),
 		Name:        "Default",
 		Description: "Default avatar",
 		States: map[types.AvatarState]string{

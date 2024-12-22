@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
-	"time"
+	"strconv"
 
 	"github.com/oristarium/orionchat/types"
 	"go.etcd.io/bbolt"
@@ -29,10 +29,21 @@ func (s *Storage) SaveAvatar(avatar types.Avatar) error {
 			return fmt.Errorf("create bucket: %w", err)
 		}
 
-		// If new avatar, generate ID and set creation time
+		// Get all existing avatars to find highest ID
+		existingAvatars, err := s.ListAvatars()
+		if err != nil {
+			return fmt.Errorf("failed to list avatars: %w", err)
+		}
+
+		maxID := 0
+		for _, a := range existingAvatars {
+			if id, err := strconv.Atoi(a.ID); err == nil && id > maxID {
+				maxID = id
+			}
+		}
+
 		if avatar.ID == "" {
-			avatar.ID = fmt.Sprintf("avatar_%d", time.Now().UnixNano())
-			avatar.CreatedAt = time.Now().Unix()
+			avatar.ID = fmt.Sprintf("%d", maxID+1)
 		}
 
 		// Serialize avatar

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -213,14 +214,19 @@ func (h *AvatarHandler) HandleCreateAvatar(w http.ResponseWriter, r *http.Reques
 
 	// Find the highest sort order
 	maxSortOrder := 0
+	maxID := 0
 	for _, a := range existingAvatars {
 		if a.SortOrder > maxSortOrder {
 			maxSortOrder = a.SortOrder
 		}
+		// Extract ID number
+		if id, err := strconv.Atoi(a.ID); err == nil && id > maxID {
+			maxID = id
+		}
 	}
 
-	// Generate ID first
-	id := fmt.Sprintf("avatar_%d", time.Now().UnixNano())
+	// Generate ID sequentially
+	id := fmt.Sprintf("%d", maxID+1)
 	
 	newAvatar := types.Avatar{
 		ID:          id,  // Set the ID explicitly
