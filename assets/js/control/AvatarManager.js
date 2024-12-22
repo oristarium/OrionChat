@@ -3,13 +3,16 @@ export class AvatarManager {
         this.avatars = [];
         this.showToast = null;
         this.avatarImages = [];
+        this.voices = [];
+        this.currentAudio = null;
     }
 
     async init() {
         try {
             await Promise.all([
                 this.fetchAvatars(),
-                this.fetchAvatarImages()
+                this.fetchAvatarImages(),
+                this.loadVoices()
             ]);
         } catch (error) {
             console.error('Failed to initialize AvatarManager:', error);
@@ -176,6 +179,112 @@ export class AvatarManager {
                 this.showToast(error.message, 'error');
             }
             throw error;
+        }
+    }
+
+    async loadVoices() {
+        try {
+            const response = await fetch('/data/voices.csv');
+            const csvText = await response.text();
+            
+            // Parse CSV
+            const lines = csvText.split('\n').filter(line => line.trim());
+            const headers = lines[0].split(',').map(h => h.trim());
+            
+            this.voices = lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim());
+                const voice = headers.reduce((obj, header, index) => {
+                    // Don't include empty values
+                    if (values[index] && values[index] !== '') {
+                        obj[header] = values[index];
+                    }
+                    return obj;
+                }, {});
+                
+                // Only include if it has required fields
+                if (voice.provider && voice.voice_id) {
+                    return voice;
+                }
+                return null;
+            }).filter(Boolean); // Remove null entries
+
+            if (this.onVoicesChange) {
+                this.onVoicesChange(this.voices);
+            }
+        } catch (error) {
+            console.error('Error loading voices:', error);
+            if (this.showToast) {
+                this.showToast('Failed to load voices', 'error');
+            }
+        }
+    }
+
+    async getAvatarVoices(avatarId) {
+        try {
+            const response = await fetch(`/api/avatars/${avatarId}/voices`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch avatar voices');
+            }
+            const data = await response.json();
+            return data.voices;
+        } catch (error) {
+            console.error('Error fetching avatar voices:', error);
+            if (this.showToast) {
+                this.showToast('Failed to fetch avatar voices', 'error');
+            }
+            throw error;
+        }
+    }
+
+    async updateAvatarVoices(avatarId, voices) {
+        try {
+            const response = await fetch(`/api/avatars/${avatarId}/voices`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ voices })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update avatar voices');
+            }
+
+            await this.fetchAvatars(); // Refresh the list
+            
+            if (this.showToast) {
+                this.showToast('Voices updated successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Error updating avatar voices:', error);
+            if (this.showToast) {
+                this.showToast('Failed to update voices', 'error');
+            }
+            throw error;
+        }
+    }
+
+    playVoiceSample(voice) {
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
+        }
+
+        if (voice.sample_voice) {
+            this.currentAudio = new Audio(voice.sample_voice);
+            this.currentAudio.play().catch(error => {
+                console.error('Error playing voice sample:', error);
+                if (this.showToast) {
+                    this.showToast('Failed to play voice sample', 'error');
+                }
+            });
+        }
+    }
+
+    stopVoiceSample() {
+        if (this.currentAudio) {
+            this.currentAudio.pause();
+            this.currentAudio = null;
         }
     }
 } 

@@ -1,0 +1,98 @@
+provider,lang_label,voice_name,voice_gender,voice_id,sample_sentence,sample_voice
+tiktok,Indonesian,Darma,male,id_male_darma,Ini adalah kalimat contoh dalam bahasa Indonesia.,/audio/id_male_darma.mp3
+tiktok,Indonesian,Putra,male,id_male_putra,Ini adalah kalimat contoh dalam bahasa Indonesia.,/audio/id_male_putra.mp3
+tiktok,Indonesian,Icha,female,id_female_icha,Ini adalah kalimat contoh dalam bahasa Indonesia.,/audio/id_female_icha.mp3
+tiktok,Indonesian,Noor,female,id_female_noor,Ini adalah kalimat contoh dalam bahasa Indonesia.,/audio/id_female_noor.mp3
+tiktok,English,Narrator (Chris),male,en_uk_001,This is an example sentence in English.,/audio/en_uk_001.mp3
+tiktok,English,UK Male 2,male,en_uk_003,This is an example sentence in English.,/audio/en_uk_003.mp3
+tiktok,English,Peaceful,female,en_female_emotional,This is an example sentence in English.,/audio/en_female_emotional.mp3
+tiktok,English,Metro (Eddie),male,en_au_001,This is an example sentence in English.,/audio/en_au_001.mp3
+tiktok,English,Smooth (Alex),male,en_au_002,This is an example sentence in English.,/audio/en_au_002.mp3
+tiktok,English,Jessie,female,en_us_002,This is an example sentence in English.,/audio/en_us_002.mp3
+tiktok,English,Joey,male,en_us_006,This is an example sentence in English.,/audio/en_us_006.mp3
+tiktok,English,Professor,male,en_us_007,This is an example sentence in English.,/audio/en_us_007.mp3
+tiktok,English,Scientist,male,en_us_009,This is an example sentence in English.,/audio/en_us_009.mp3
+tiktok,English,Confidence,male,en_us_010,This is an example sentence in English.,/audio/en_us_010.mp3
+tiktok,English,Empathetic,female,en_female_samc,This is an example sentence in English.,/audio/en_female_samc.mp3
+tiktok,English,Serious,male,en_male_cody,This is an example sentence in English.,/audio/en_male_cody.mp3
+tiktok,English,Story Teller,male,en_male_narration,This is an example sentence in English.,/audio/en_male_narration.mp3
+tiktok,English,Wacky,male,en_male_funny,This is an example sentence in English.,/audio/en_male_funny.mp3
+tiktok,English,Alfred,male,en_male_jarvis,This is an example sentence in English.,/audio/en_male_jarvis.mp3
+tiktok,English,Author,male,en_male_santa_narration,This is an example sentence in English.,/audio/en_male_santa_narration.mp3
+tiktok,English,Bae,female,en_female_betty,This is an example sentence in English.,/audio/en_female_betty.mp3
+tiktok,English,Beauty Guru,female,en_female_makeup,This is an example sentence in English.,/audio/en_female_makeup.mp3
+tiktok,English,Bestie,female,en_female_richgirl,This is an example sentence in English.,/audio/en_female_richgirl.mp3
+tiktok,English,Cupid,male,en_male_cupid,This is an example sentence in English.,/audio/en_male_cupid.mp3
+tiktok,English,Debutante,female,en_female_shenna,This is an example sentence in English.,/audio/en_female_shenna.mp3
+tiktok,English,Ghost Host,male,en_male_ghosthost,This is an example sentence in English.,/audio/en_male_ghosthost.mp3
+tiktok,English,Grandma,female,en_female_grandma,This is an example sentence in English.,/audio/en_female_grandma.mp3
+tiktok,English,Lord Cringe,male,en_male_ukneighbor,This is an example sentence in English.,/audio/en_male_ukneighbor.mp3
+tiktok,English,Magician,male,en_male_wizard,This is an example sentence in English.,/audio/en_male_wizard.mp3
+tiktok,English,Marty,male,en_male_trevor,This is an example sentence in English.,/audio/en_male_trevor.mp3
+tiktok,English,Mr. GoodGuy (Deadpool),male,en_male_deadpool,This is an example sentence in English.,/audio/en_male_deadpool.mp3
+tiktok,English,Mr. Meticulous,male,en_male_ukbutler,This is an example sentence in English.,/audio/en_male_ukbutler.mp3
+tiktok,English,Pirate,male,en_male_pirate,This is an example sentence in English.,/audio/en_male_pirate.mp3
+tiktok,English,Santa,male,en_male_santa,This is an example sentence in English.,/audio/en_male_santa.mp3
+tiktok,English,Santa (w/ effect),male,en_male_santa_effect,This is an example sentence in English.,/audio/en_male_santa_effect.mp3
+tiktok,English,Varsity,female,en_female_pansino,This is an example sentence in English.,/audio/en_female_pansino.mp3
+tiktok,English,Trickster (Grinch),male,en_male_grinch,This is an example sentence in English.,/audio/en_male_grinch.mp3
+tiktok,English,Ghostface (Scream),male,en_us_ghostface,This is an example sentence in English.,/audio/en_us_ghostface.mp3
+tiktok,English,Chewbacca (Star Wars),male,en_us_chewbacca,This is an example sentence in English.,/audio/en_us_chewbacca.mp3
+tiktok,English,C-3PO (Star Wars),male,en_us_c3po,This is an example sentence in English.,/audio/en_us_c3po.mp3
+tiktok,English,Stormtrooper (Star Wars),male,en_us_stormtrooper,This is an example sentence in English.,/audio/en_us_stormtrooper.mp3
+tiktok,English,Stitch (Lilo & Stitch),male,en_us_stitch,This is an example sentence in English.,/audio/en_us_stitch.mp3
+tiktok,English,Rocket (Guardians of the Galaxy),male,en_us_rocket,This is an example sentence in English.,/audio/en_us_rocket.mp3
+tiktok,English,Madame Leota (Haunted Mansion),female,en_female_madam_leota,This is an example sentence in English.,/audio/en_female_madam_leota.mp3
+tiktok,Song,Song: Caroler,male,en_male_sing_deep_jingle,This is an example sentence in English.,/audio/en_male_sing_deep_jingle.mp3
+tiktok,Song,Song: Classic Electric,male,en_male_m03_classical,This is an example sentence in English.,/audio/en_male_m03_classical.mp3
+tiktok,Song,Song: Cottagecore (Salut d'Amour),female,en_female_f08_salut_damour,This is an example sentence in English.,/audio/en_female_f08_salut_damour.mp3
+tiktok,Song,Song: Cozy,male,en_male_m2_xhxs_m03_christmas,This is an example sentence in English.,/audio/en_male_m2_xhxs_m03_christmas.mp3
+tiktok,Song,Song: Open Mic (Warmy Breeze),female,en_female_f08_warmy_breeze,This is an example sentence in English.,/audio/en_female_f08_warmy_breeze.mp3
+tiktok,Song,Song: Opera (Halloween),female,en_female_ht_f08_halloween,This is an example sentence in English.,/audio/en_female_ht_f08_halloween.mp3
+tiktok,Song,Song: Euphoric (Glorious),female,en_female_ht_f08_glorious,This is an example sentence in English.,/audio/en_female_ht_f08_glorious.mp3
+tiktok,Song,Song: Hypetrain (It Goes Up),male,en_male_sing_funny_it_goes_up,This is an example sentence in English.,/audio/en_male_sing_funny_it_goes_up.mp3
+tiktok,Song,Song: Jingle (Lobby),male,en_male_m03_lobby,This is an example sentence in English.,/audio/en_male_m03_lobby.mp3
+tiktok,Song,Song: Melodrama (Wonderful World),female,en_female_ht_f08_wonderful_world,This is an example sentence in English.,/audio/en_female_ht_f08_wonderful_world.mp3
+tiktok,Song,Song: NYE 2023,female,en_female_ht_f08_newyear,This is an example sentence in English.,/audio/en_female_ht_f08_newyear.mp3
+tiktok,Song,Song: Thanksgiving,male,en_male_sing_funny_thanksgiving,This is an example sentence in English.,/audio/en_male_sing_funny_thanksgiving.mp3
+tiktok,Song,Song: Toon Beat (Sunshine Soon),male,en_male_m03_sunshine_soon,This is an example sentence in English.,/audio/en_male_m03_sunshine_soon.mp3
+tiktok,Song,Song: Pop Lullaby,female,en_female_f08_twinkle,This is an example sentence in English.,/audio/en_female_f08_twinkle.mp3
+tiktok,Song,Song: Quirky Time,male,en_male_m2_xhxs_m03_silly,This is an example sentence in English.,/audio/en_male_m2_xhxs_m03_silly.mp3
+tiktok,French,French Male 1,male,fr_001,Ceci est une phrase exemple en français.,/audio/fr_001.mp3
+tiktok,French,French Male 2,male,fr_002,Ceci est une phrase exemple en français.,/audio/fr_002.mp3
+tiktok,German,German Female,female,de_001,Dies ist ein Beispielsatz auf Deutsch.,/audio/de_001.mp3
+tiktok,German,German Male,male,de_002,Dies ist ein Beispielsatz auf Deutsch.,/audio/de_002.mp3
+tiktok,Italian,Italian Male,male,it_male_m18,Questa è una frase di esempio in italiano.,/audio/it_male_m18.mp3
+tiktok,Japanese,Miho,female,jp_001,これは日本語の例文です。,/audio/jp_001.mp3
+tiktok,Japanese,Keiko,female,jp_003,これは日本語の例文です。,/audio/jp_003.mp3
+tiktok,Japanese,Sakura,female,jp_005,これは日本語の例文です。,/audio/jp_005.mp3
+tiktok,Japanese,Naoki,male,jp_006,これは日本語の例文です。,/audio/jp_006.mp3
+tiktok,Japanese,Morisuke,male,jp_male_osada,これは日本語の例文です。,/audio/jp_male_osada.mp3
+tiktok,Japanese,Matsuo,male,jp_male_matsuo,これは日本語の例文です。,/audio/jp_male_matsuo.mp3
+tiktok,Japanese,Machikoriiita,female,jp_female_machikoriiita,これは日本語の例文です。,/audio/jp_female_machikoriiita.mp3
+tiktok,Japanese,Matsudake,male,jp_male_matsudake,これは日本語の例文です。,/audio/jp_male_matsudake.mp3
+tiktok,Japanese,Shuichiro,male,jp_male_shuichiro,これは日本語の例文です。,/audio/jp_male_shuichiro.mp3
+tiktok,Japanese,Maruyama Rei,female,jp_female_rei,これは日本語の例文です。,/audio/jp_female_rei.mp3
+tiktok,Japanese,Hikakin,male,jp_male_hikakin,これは日本語の例文です。,/audio/jp_male_hikakin.mp3
+tiktok,Japanese,Yagi Saki,female,jp_female_yagishaki,これは日本語の例文です。,/audio/jp_female_yagishaki.mp3
+tiktok,Korean,Korean Male 1,male,kr_002,이것은 한국어 예문입니다.,/audio/kr_002.mp3
+tiktok,Korean,Korean Male 2,male,kr_004,이것은 한국어 예문입니다.,/audio/kr_004.mp3
+tiktok,Korean,Korean Female,female,kr_003,이것은 한국어 예문입니다.,/audio/kr_003.mp3
+tiktok,Portuguese,Julia,female,br_003,Esta é uma frase de exemplo em português.,/audio/br_003.mp3
+tiktok,Portuguese,Ana,female,br_004,Esta é uma frase de exemplo em português.,/audio/br_004.mp3
+tiktok,Portuguese,Lucas,male,br_005,Esta é uma frase de exemplo em português.,/audio/br_005.mp3
+tiktok,Portuguese,Lhays Macedo,female,pt_female_lhays,Esta é uma frase de exemplo em português.,/audio/pt_female_lhays.mp3
+tiktok,Portuguese,Laizza,female,pt_female_laizza,Esta é uma frase de exemplo em português.,/audio/pt_female_laizza.mp3
+tiktok,Portuguese,Optimus Prime (Portuguese),male,pt_male_transformer,Esta é uma frase de exemplo em português.,/audio/pt_male_transformer.mp3
+tiktok,Spanish,Spanish Male,male,es_002,Esta es una oración de ejemplo en español.,/audio/es_002.mp3
+tiktok,Spanish,Julio,male,es_male_m3,Esta es una oración de ejemplo en español.,/audio/es_male_m3.mp3
+tiktok,Spanish,Alejandra,female,es_female_f6,Esta es una oración de ejemplo en español.,/audio/es_female_f6.mp3
+tiktok,Spanish,Mariana,female,es_female_fp1,Esta es una oración de ejemplo en español.,/audio/es_female_fp1.mp3
+tiktok,Spanish,Álex (Warm),male,es_mx_002,Esta es una oración de ejemplo en español.,/audio/es_mx_002.mp3
+tiktok,Spanish,Optimus Prime (Mexican),male,es_mx_male_transformer,Esta es una oración de ejemplo en español.,/audio/es_mx_male_transformer.mp3
+tiktok,Spanish,Super Mamá,female,es_mx_female_supermom,Esta es una oración de ejemplo en español.,/audio/es_mx_female_supermom.mp3
+google,English,Google English,female,en,,
+google,Indonesia,Google Indonesia,male,id,,
+google,Korean,Google Korean,female,kr,,
+google,French,Google French,male,fr,,
+google,Japanese,Google Japanese,male,jp,,

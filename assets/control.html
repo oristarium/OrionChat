@@ -428,7 +428,10 @@
                   />
                 </td>
                 <td class="px-4 py-2">
-                  <span class="text-sm">{{ avatar.tts_voices.length }}</span>
+                  <span 
+                    class="text-sm cursor-pointer hover:text-blue-500"
+                    @click="openVoiceModal(avatar)"
+                  >{{ avatar.tts_voices.length }}</span>
                 </td>
                 <td class="px-4 py-2">
                   <button
@@ -651,6 +654,194 @@
                     <i class="fas fa-plus"></i>
                   </button>
                 </div>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+
+      <!-- Voice Selection Modal -->
+      <div class="modal micromodal-slide" id="modal-voice-selection" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+          <div
+            class="modal__container rounded-lg p-4 w-full max-w-[400px] border bg-white"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-voice-selection-title"
+          >
+            <header class="flex justify-between items-center mb-4">
+              <div>
+                <h2 id="modal-voice-selection-title" class="text-lg font-bold">
+                  Select Voices
+                </h2>
+              </div>
+              <button
+                class="text-gray-500 hover:text-gray-700"
+                aria-label="Close modal"
+                data-micromodal-close
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </header>
+
+            <main id="modal-voice-selection-content" class="space-y-3">
+              <!-- Selected Voices -->
+              <div v-show="selectedVoices.length > 0" class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-xs font-medium text-gray-700">Selected ({{ selectedVoices.length }})</h3>
+                  <button
+                    @click="clearVoiceSelection"
+                    class="text-xs text-gray-500 hover:text-gray-700"
+                    title="Clear all"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  <div
+                    v-for="voice in selectedVoiceDetails"
+                    :key="voice.voice_id + voice.provider"
+                    class="group flex items-center gap-1 bg-blue-50 text-blue-700 text-xs rounded px-2 py-1"
+                  >
+                    <i :class="{
+                      'fab fa-google text-red-400': voice.provider === 'google',
+                      'fab fa-tiktok text-black': voice.provider === 'tiktok'
+                    }"></i>
+                    <span class="truncate max-w-[150px]" :title="voice.voice_name">{{ voice.voice_name }}</span>
+                    <span class="text-blue-400">({{ voice.lang_label }})</span>
+                    <button
+                      @click="removeVoice(voice)"
+                      class="text-blue-400 hover:text-blue-600"
+                      title="Remove voice"
+                    >
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Available Voices Section -->
+              <div class="space-y-3">
+                <h3 class="text-xs font-medium text-gray-700">Available Voices</h3>
+                
+                <!-- Filters -->
+                <div class="space-y-2">
+                  <div class="relative">
+                    <input
+                      v-model="voiceFilters.search"
+                      type="text"
+                      placeholder="Search voices..."
+                      class="w-full border rounded pl-8 pr-2 py-1.5 text-sm"
+                    />
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                  </div>
+                  <div class="flex gap-1">
+                    <select
+                      v-model="voiceFilters.provider"
+                      class="border rounded py-1 pl-1 pr-5 text-xs"
+                    >
+                      <option value="">All</option>
+                      <option v-for="provider in uniqueProviders" :key="provider" :value="provider">
+                        <template v-if="provider === 'google'">Google</template>
+                        <template v-else-if="provider === 'tiktok'">TikTok</template>
+                      </option>
+                    </select>
+                    <select
+                      v-model="voiceFilters.language"
+                      class="border rounded py-1 pl-1 pr-5 text-xs"
+                    >
+                      <option value="">Lang</option>
+                      <option v-for="lang in uniqueLanguages" :key="lang" :value="lang">
+                        {{ lang }}
+                      </option>
+                    </select>
+                    <select
+                      v-model="voiceFilters.gender"
+                      class="border rounded py-1 pl-1 pr-5 text-xs"
+                    >
+                      <option value="">Gender</option>
+                      <option v-for="gender in uniqueGenders" :key="gender" :value="gender">
+                        {{ gender }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Available Voices Table -->
+                <div class="border rounded overflow-auto max-h-[180px]">
+                  <table class="w-full table-fixed">
+                    <thead class="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 w-[60%]">Name</th>
+                        <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 w-[20%]">Lang</th>
+                        <th class="w-[20%]"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                      <tr
+                        v-for="voice in availableVoices"
+                        :key="voice.voice_id + voice.provider"
+                        class="hover:bg-gray-50"
+                      >
+                        <td class="px-2 py-1">
+                          <div class="flex items-start gap-1 min-w-0">
+                            <i :class="{
+                              'fab fa-google text-red-400': voice.provider === 'google',
+                              'fab fa-tiktok text-black': voice.provider === 'tiktok'
+                            }" class="text-xs opacity-50 shrink-0 mt-0.5"></i>
+                            <div class="text-xs min-w-0">
+                              <div class="break-words flex items-center gap-1">
+                                <span>{{ voice.voice_name }}</span>
+                                <i v-if="voice.voice_gender !== 'neutral'" :class="{
+                                  'fas fa-mars text-blue-400': voice.voice_gender === 'male',
+                                  'fas fa-venus text-pink-400': voice.voice_gender === 'female'
+                                }" class="text-xs opacity-50"></i>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td class="px-2 py-1 text-xs">{{ voice.lang_label }}</td>
+                        <td class="px-2 py-1">
+                          <div class="flex items-center justify-end gap-3">
+                            <button
+                              v-if="voice.sample_voice"
+                              @click="playVoiceSample(voice)"
+                              class="text-gray-400 hover:text-gray-600 px-1"
+                              title="Play sample"
+                            >
+                              <i class="fas text-xs" :class="isPlayingVoice(voice) ? 'fa-pause' : 'fa-play'"></i>
+                            </button>
+                            <button
+                              @click="addVoice(voice)"
+                              class="text-green-500 hover:text-green-600"
+                              title="Add voice"
+                            >
+                              <i class="fas fa-circle-plus text-sm"></i>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="flex justify-end gap-2 pt-3 border-t">
+                <button
+                  type="button"
+                  class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 border rounded"
+                  data-micromodal-close
+                  @click="stopVoiceSample"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="applyVoiceSelection"
+                  class="px-3 py-1.5 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Apply
+                </button>
               </div>
             </main>
           </div>
@@ -970,6 +1161,170 @@
             }
           };
 
+          // Voice selection
+          const voices = ref([]);
+          const selectedVoices = ref([]);
+          const voiceFilters = ref({
+            search: '',
+            provider: '',
+            language: '',
+            gender: ''
+          });
+
+          // Handle voices change
+          avatarManager.onVoicesChange = (newVoices) => {
+            voices.value = newVoices;
+          };
+
+          // Computed properties for filters
+          const uniqueProviders = computed(() => 
+            [...new Set(voices.value.map(v => v.provider))]
+          );
+
+          const uniqueLanguages = computed(() => 
+            [...new Set(voices.value.map(v => v.lang_label))]
+          );
+
+          const uniqueGenders = computed(() => 
+            [...new Set(voices.value.map(v => v.voice_gender))]
+          );
+
+          const filteredVoices = computed(() => {
+            return voices.value.filter(voice => {
+              const matchesSearch = !voiceFilters.value.search || 
+                voice.voice_name.toLowerCase().includes(voiceFilters.value.search.toLowerCase());
+              const matchesProvider = !voiceFilters.value.provider || 
+                voice.provider === voiceFilters.value.provider;
+              const matchesLanguage = !voiceFilters.value.language || 
+                voice.lang_label === voiceFilters.value.language;
+              const matchesGender = !voiceFilters.value.gender || 
+                voice.voice_gender === voiceFilters.value.gender;
+              
+              return matchesSearch && matchesProvider && matchesLanguage && matchesGender;
+            });
+          });
+
+          const isAllSelected = computed(() => {
+            if (!selectedVoices.value || !filteredVoices.value.length) return false;
+            
+            return filteredVoices.value.every(voice => 
+              selectedVoices.value.some(sv => 
+                sv.voice_id === voice.voice_id && sv.provider === voice.provider
+              )
+            );
+          });
+
+          const toggleAllVoices = () => {
+            if (isAllSelected.value) {
+              selectedVoices.value = [];
+            } else {
+              selectedVoices.value = filteredVoices.value.map(voice => ({
+                voice_id: voice.voice_id,
+                provider: voice.provider
+              }));
+            }
+          };
+
+          const openVoiceModal = async (avatar) => {
+            selectedAvatar.value = avatar;
+            try {
+              const currentVoices = await avatarManager.getAvatarVoices(avatar.id);
+              selectedVoices.value = currentVoices || avatar.tts_voices || [];
+            } catch (error) {
+              selectedVoices.value = avatar.tts_voices || [];
+            }
+            modal.show('modal-voice-selection');
+          };
+
+          const applyVoiceSelection = async () => {
+            if (selectedAvatar.value) {
+              try {
+                await avatarManager.updateAvatarVoices(selectedAvatar.value.id, selectedVoices.value);
+                modal.close('modal-voice-selection');
+              } catch (error) {
+                console.error('Failed to update voices:', error);
+              }
+            }
+          };
+
+          const isVoiceSelected = (voice) => {
+            if (!selectedVoices.value) return false;
+            
+            return selectedVoices.value.some(sv => 
+              sv.voice_id === voice.voice_id && sv.provider === voice.provider
+            );
+          };
+
+          const clearVoiceSelection = () => {
+            selectedVoices.value = [];
+          };
+
+          // Computed property for selected voice details
+          const selectedVoiceDetails = computed(() => {
+            return selectedVoices.value.map(sv => {
+              const voice = voices.value.find(v => 
+                v.voice_id === sv.voice_id && v.provider === sv.provider
+              );
+              return voice;
+            }).filter(Boolean);
+          });
+
+          // Computed property for available voices (excluding selected ones)
+          const availableVoices = computed(() => {
+            return filteredVoices.value.filter(voice => 
+              !selectedVoices.value.some(sv => 
+                sv.voice_id === voice.voice_id && sv.provider === voice.provider
+              )
+            );
+          });
+
+          const addVoice = (voice) => {
+            // Stop any playing audio
+            stopVoiceSample();
+            
+            selectedVoices.value.push({
+              voice_id: voice.voice_id,
+              provider: voice.provider
+            });
+          };
+
+          const removeVoice = (voice) => {
+            // Stop any playing audio
+            stopVoiceSample();
+            
+            selectedVoices.value = selectedVoices.value.filter(sv => 
+              !(sv.voice_id === voice.voice_id && sv.provider === voice.provider)
+            );
+          };
+
+          const currentPlayingVoice = ref(null);
+
+          const playVoiceSample = (voice) => {
+            if (currentPlayingVoice.value === voice) {
+              avatarManager.stopVoiceSample();
+              currentPlayingVoice.value = null;
+            } else {
+              avatarManager.playVoiceSample(voice);
+              currentPlayingVoice.value = voice;
+              
+              // Auto-stop when audio ends
+              if (avatarManager.currentAudio) {
+                avatarManager.currentAudio.onended = () => {
+                  currentPlayingVoice.value = null;
+                };
+              }
+            }
+          };
+
+          const stopVoiceSample = () => {
+            avatarManager.stopVoiceSample();
+            currentPlayingVoice.value = null;
+          };
+
+          const isPlayingVoice = (voice) => {
+            return currentPlayingVoice.value === voice;
+          };
+
           return {
             activeTab,
             customMessage,
@@ -1009,6 +1364,26 @@
             selectImage,
             isSelectedImage,
             applySelectedImage,
+            voices,
+            selectedVoices,
+            voiceFilters,
+            uniqueProviders,
+            uniqueLanguages,
+            uniqueGenders,
+            filteredVoices,
+            isAllSelected,
+            toggleAllVoices,
+            openVoiceModal,
+            applyVoiceSelection,
+            isVoiceSelected,
+            clearVoiceSelection,
+            selectedVoiceDetails,
+            availableVoices,
+            addVoice,
+            removeVoice,
+            playVoiceSample,
+            stopVoiceSample,
+            isPlayingVoice,
           };
         },
       });
