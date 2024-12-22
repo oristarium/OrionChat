@@ -125,7 +125,10 @@ export class ConnectionManager {
                                 this.showToast?.(data.error, 'info');
                             } else {
                                 console.error('WebSocket error message:', data);
-                                this.showToast?.(data.error, 'error');
+                                // only show error if code is provided
+                                if (data.code) {
+                                    this.showToast?.(data.error, 'error');
+                                }
                                 
                                 // Find any connecting connections and mark them as error
                                 const connection = this.savedConnections.find(c => c.status === 'connecting');
@@ -150,14 +153,14 @@ export class ConnectionManager {
         console.log('Status message:', data);
         
         if (data.status === 'subscribed') {
-            const connection = this.savedConnections.find(c => c.id === data.liveId);
+            const connection = this.savedConnections.find(c => c.id.toLowerCase() === data.liveId.toLowerCase());
             if (connection) {
                 connection.status = 'connected';
                 this.onConnectionsChange?.(this.savedConnections);
                 this.showToast?.(`Successfully connected to ${connection.platform} chat: ${connection.identifier}`, 'success');
             }
         } else if (data.status === 'unsubscribed') {
-            const connection = this.savedConnections.find(c => c.id === data.liveId);
+            const connection = this.savedConnections.find(c => c.id.toLowerCase() === data.liveId.toLowerCase());
             if (connection) {
                 connection.status = 'disconnected';
                 this.onConnectionsChange?.(this.savedConnections);
@@ -167,7 +170,7 @@ export class ConnectionManager {
     }
 
     generateConnectionId(platform, identifier, identifierType = 'username') {
-        return `${platform}-${identifierType}-${identifier}`.toLowerCase();
+        return `${platform}-${identifierType}-${identifier}`;
     }
 
     async connectNewChat(connectionDetails) {
@@ -274,10 +277,12 @@ export class ConnectionManager {
 
         try {
             // Send unsubscribe request
-            this.ws.send(JSON.stringify({
+            const unsubMessage = {
                 type: 'unsubscribe',
                 liveId: connId
-            }));
+            };
+            console.log('Sending unsubscribe message:', unsubMessage);
+            this.ws.send(JSON.stringify(unsubMessage));
 
             // Remove from savedConnections
             this.savedConnections = this.savedConnections.filter(c => c.id !== connId);

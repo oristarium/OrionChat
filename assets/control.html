@@ -190,81 +190,87 @@
           </button>
         </div>
 
-        <!-- Chat Messages -->
-        <div
-          ref="chatBox"
-          id="livechat-box"
-          class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0"
-          @mouseenter="isAutoScrolling = true; console.log('mouse enter')"
-        >
+        <section class="flex-1 relative min-h-0">
+          <!-- Chat Messages -->
           <div
-            v-for="message in messages"
-            :key="message.message_id"
-            class="p-2"
+            ref="chatBox"
+            id="livechat-box"
+            class="h-full rounded-lg border p-0 overflow-y-auto min-h-0"
+            @mouseenter="isPauseAutoScroll = true; console.log('mouse enter')"
           >
-            <div class="flex items-start gap-2">
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <i
-                    class="text-xs"
-                    :class="{
-                        'fab fa-youtube text-red-400': message.platform === 'youtube',
-                        'fab fa-twitch text-purple-400': message.platform === 'twitch',
-                        'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
-                    }"
-                  ></i>
-                  <span
-                    class="text-xs font-bold truncate"
-                    :class="{
-                        'text-red-500': message.data.author.roles.broadcaster,
-                        'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
-                        'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
-                    }"
-                  >
-                    {{ message.data.author.display_name }}
-                  </span>
+            <div
+              v-for="message in messages"
+              :key="message.message_id"
+              class="p-2"
+            >
+              <div class="flex items-start gap-2">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <i
+                      class="text-xs"
+                      :class="{
+                            'fab fa-youtube text-red-400': message.platform === 'youtube',
+                            'fab fa-twitch text-purple-400': message.platform === 'twitch',
+                            'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
+                        }"
+                    ></i>
+                    <span
+                      class="text-xs font-bold truncate"
+                      :class="{
+                            'text-red-500': message.data.author.roles.broadcaster,
+                            'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
+                            'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
+                        }"
+                    >
+                      {{ message.data.author.display_name }}
+                    </span>
+                  </div>
+                  <div
+                    v-html="message.data.content.rawHtml"
+                    class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"
+                  ></div>
                 </div>
-                <div
-                  v-html="message.data.content.rawHtml"
-                  class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"
-                ></div>
-              </div>
-              <div class="chat-actions flex items-center gap-1">
-                <button
-                  @click="sendDisplay(message)"
-                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                  title="Display message"
-                >
-                  <i class="fas fa-tv text-xs"></i>
-                </button>
-                <button
-                  @click="sendTTS(message)"
-                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                  title="Text to Speech"
-                >
-                  <i class="fas fa-volume-up text-xs"></i>
-                </button>
-                <button
-                  @click="saveChat(message)"
-                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                  title="Save message"
-                >
-                  <i class="fas fa-save text-xs"></i>
-                </button>
+                <div class="chat-actions flex items-center gap-1">
+                  <button
+                    @click="sendDisplay(message)"
+                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                    title="Display message"
+                  >
+                    <i class="fas fa-tv text-xs"></i>
+                  </button>
+                  <button
+                    @click="sendTTS(message)"
+                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                    title="Text to Speech"
+                  >
+                    <i class="fas fa-volume-up text-xs"></i>
+                  </button>
+                  <button
+                    @click="saveChat(message)"
+                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                    title="Save message"
+                  >
+                    <i class="fas fa-save text-xs"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Scroll to Bottom Button -->
-        <button
-          @click="scrollToBottom"
-          class="w-full mt-2 p-2 text-sm text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50"
-        >
-          <i class="fas fa-arrow-down mr-1"></i>
-          Scroll to Bottom
-        </button>
+          <!-- Scroll to Bottom Button -->
+          <button
+            @click="scrollToBottom"
+            class="text-xs absolute bottom-0 left-1/2 -translate-x-1/2 z-50 flex items-center justify-center text-white w-full h-10 bg-gradient-to-b from-gray-100/0 to-gray-700"
+            :class="{
+              'opacity-100': isPauseAutoScroll,
+              'opacity-0': !isPauseAutoScroll
+            }"
+            >
+            <i class="fas fa-arrow-down mr-1"></i>
+            Scroll to Bottom
+          </button>
+        </section>
       </div>
 
       <!-- Saved Tab Content -->
@@ -542,7 +548,7 @@
           const customMessage = ref("");
           const chatBox = ref(null);
           const lastScrollPosition = ref(0);
-          const isAutoScrolling = ref(false);
+          const isPauseAutoScroll = ref(false);
           const isTTSAll = ref(false);
 
           // Make MicroModal available to the component
@@ -593,7 +599,7 @@
             if (isTTSAll.value) {
               sendTTS(message);
             }
-            if (!isAutoScrolling.value) {
+            if (!isPauseAutoScroll.value) {
               if (chatBox.value) {
                 chatBox.value.scrollTop = chatBox.value.scrollHeight;
               }
@@ -708,7 +714,7 @@
           };
 
           const scrollToBottom = () => {
-            isAutoScrolling.value = false;
+            isPauseAutoScroll.value = false;
             chatBox.value.scrollTop = chatBox.value.scrollHeight;
           };
 
@@ -734,7 +740,7 @@
             clearTTS,
             modal,
             messages,
-            isAutoScrolling,
+            isPauseAutoScroll,
             isTTSAll,
             toggleTTSAll,
             scrollToBottom,
