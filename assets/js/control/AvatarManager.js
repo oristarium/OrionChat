@@ -94,6 +94,35 @@ export class AvatarManager {
         }
     }
 
+    async deleteAvatarImage(path) {
+        try {
+            const response = await fetch('/api/avatar-images/delete', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ path })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error);
+            }
+
+            await this.fetchAvatarImages(); // Refresh the list
+            
+            if (this.showToast) {
+                this.showToast('Image deleted successfully', 'success');
+            }
+        } catch (error) {
+            console.error('Error deleting avatar image:', error);
+            if (this.showToast) {
+                this.showToast(error.message, 'error');
+            }
+            throw error;
+        }
+    }
+
     async updateAvatarState(avatarId, states) {
         try {
             const response = await fetch(`/api/avatars/${avatarId}/set`, {

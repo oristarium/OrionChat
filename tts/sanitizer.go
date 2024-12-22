@@ -182,31 +182,65 @@ func (s *TextSanitizer) ContainsBlockedWords(text, provider string) (bool, strin
 	// Convert text to lowercase for case-insensitive comparison
 	text = strings.ToLower(text)
 
-	// First, check each word after splitting by whitespace and removing punctuation
-	words := strings.Fields(text)
-	for _, word := range words {
-		// Remove common punctuation from word boundaries
-		word = strings.Trim(word, "!@#$%^&*()_+-=[]{}|;:'\",.<>?/~`")
-		if blockedSet[word] {
-			return true, word
-		}
-	}
-
-	// Then check for blocked words that might be part of a larger word or have punctuation
-	// Create a version of text with punctuation removed
+	// First check individual words after removing punctuation
 	cleanText := strings.Map(func(r rune) rune {
 		if strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:'\",.<>?/~`", r) {
 			return ' '
 		}
 		return r
 	}, text)
+
+	words := strings.Fields(cleanText)
 	
-	// Join words without spaces to catch concatenated blocked words
-	noSpaceText := strings.Join(strings.Fields(cleanText), "")
-	
-	for blockedWord := range blockedSet {
-		if strings.Contains(cleanText, blockedWord) || strings.Contains(noSpaceText, blockedWord) {
-			return true, blockedWord
+	// Check each individual word
+	for _, word := range words {
+		if blockedSet[word] {
+			return true, word
+		}
+	}
+
+	// Then check for attempts to bypass using punctuation
+	// We'll only combine words that were originally separated by punctuation
+	originalWords := strings.Fields(text)
+	if len(originalWords) <= 1 {
+		return false, ""
+	}
+
+	// Build a map of word positions that had punctuation between them
+	punctuationBetween := make(map[int]bool)
+	currentPos := 0
+	for i := 0; i < len(originalWords)-1; i++ {
+		currentPos += len(originalWords[i])
+		// Skip spaces until we find a non-space
+		for currentPos < len(text) && text[currentPos] == ' ' {
+			currentPos++
+		}
+		// Check if there's punctuation before the next word
+		if currentPos < len(text) {
+			nextChar := text[currentPos]
+			if strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:'\",.<>?/~`", rune(nextChar)) {
+				punctuationBetween[i] = true
+			}
+		}
+		// Move to start of next word
+		for currentPos < len(text) && (text[currentPos] == ' ' || strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:'\",.<>?/~`", rune(text[currentPos]))) {
+			currentPos++
+		}
+	}
+
+	// Only check combinations where there was punctuation between words
+	for i := 0; i < len(originalWords)-1; i++ {
+		if punctuationBetween[i] {
+			combined := strings.Map(func(r rune) rune {
+				if strings.ContainsRune("!@#$%^&*()_+-=[]{}|;:'\",.<>?/~`", r) {
+					return -1
+				}
+				return r
+			}, originalWords[i] + originalWords[i+1])
+			
+			if blockedSet[combined] {
+				return true, combined
+			}
 		}
 	}
 

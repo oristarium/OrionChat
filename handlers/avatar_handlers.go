@@ -380,26 +380,71 @@ func (h *AvatarHandler) HandleAvatarImageUpload(w http.ResponseWriter, r *http.R
 	})
 }
 
-// HandleAvatarImageDelete handles DELETE /api/avatars/images/delete/{path}
+// HandleAvatarImageDelete handles DELETE /api/avatar-images/delete
 func (h *AvatarHandler) HandleAvatarImageDelete(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	
 	if r.Method != http.MethodDelete {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Method not allowed",
+		})
 		return
 	}
 
-	path := strings.TrimPrefix(r.URL.Path, "/api/avatar-images/delete/")
-	if path == "" {
-		http.Error(w, "Path is required", http.StatusBadRequest)
+	var request struct {
+		Path string `json:"path"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Invalid request body",
+		})
 		return
 	}
 
-	if err := h.avatarManager.DeleteAvatarImage(path); err != nil {
+	if request.Path == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "Path is required",
+		})
+		return
+	}
+
+	if err := h.avatarManager.DeleteAvatarImage(request.Path); err != nil {
 		log.Printf("Error deleting avatar image: %v", err)
-		http.Error(w, "Failed to delete avatar image", http.StatusInternalServerError)
+		
+		var statusCode int
+		var errorMessage string
+		
+		switch {
+		case strings.Contains(err.Error(), "not found"):
+			statusCode = http.StatusNotFound
+			errorMessage = fmt.Sprintf("Image not found: %s", request.Path)
+		case strings.Contains(err.Error(), "in use"):
+			statusCode = http.StatusBadRequest
+			avatarID := "unknown"
+			if parts := strings.Split(err.Error(), "avatar "); len(parts) > 1 {
+				avatarID = parts[1]
+			}
+			errorMessage = fmt.Sprintf("Image is in use by avatar %s", avatarID)
+		default:
+			statusCode = http.StatusInternalServerError
+			errorMessage = fmt.Sprintf("Failed to delete avatar image: %v", err)
+		}
+		
+		w.WriteHeader(statusCode)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": errorMessage,
+		})
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Image deleted successfully",
+	})
 }
 
 // handleGetAvatarVoices handles GET /api/avatars/{id}/voices

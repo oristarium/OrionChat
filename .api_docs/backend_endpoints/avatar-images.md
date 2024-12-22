@@ -29,7 +29,12 @@ Response: {
 
 3. **Delete Avatar Image**
 ```http
-DELETE /api/avatar-images/delete/{path}
+DELETE /api/avatar-images/delete
+Request: application/json
+{
+    "path": "/avatars/1734429234567890.png"
+}
+
 Response: 200 OK
 Error Cases:
 - 400: Path is required

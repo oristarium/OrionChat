@@ -132,7 +132,7 @@ func (s *Server) setupRoutes() {
 	http.HandleFunc("/api/avatars/create", s.avatarHandler.HandleCreateAvatar)
 	http.HandleFunc("/api/avatar-images", s.avatarHandler.HandleAvatarImages)
 	http.HandleFunc("/api/avatar-images/upload", s.avatarHandler.HandleAvatarImageUpload)
-	http.HandleFunc("/api/avatar-images/delete/", s.avatarHandler.HandleAvatarImageDelete)
+	http.HandleFunc("/api/avatar-images/delete", s.avatarHandler.HandleAvatarImageDelete)
 	http.HandleFunc("/api/avatar/upload", s.avatarHandler.HandleAvatarUpload)
 	http.HandleFunc("/tts-service", s.ttsHandler.HandleTTS)
 	http.HandleFunc("/api/kv/", s.handleKeyValue)

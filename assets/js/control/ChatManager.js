@@ -7,7 +7,9 @@
 
 /**
  * @typedef {Object} ChatAuthor
- * @property {string} id - Unique identifier for the author
+ * @property {string} id - Format: {platform}-{provider_author_id}
+ * @property {string} platform - Same as root platform field
+ * @property {string} liveId - Same as root liveId field
  * @property {string} username - Author's username
  * @property {string} display_name - Author's display name
  * @property {string} avatar_url - URL to author's avatar
@@ -61,10 +63,11 @@
 
 /**
  * @typedef {Object} ChatMessage
- * @property {string} message_id - Unique identifier for the message
+ * @property {string} type - Type of message (always 'chat')
  * @property {('youtube'|'twitch'|'tiktok')} platform - Source platform
- * @property {string} liveId - Standardized live ID
+ * @property {string} liveId - Standardized liveId of the stream
  * @property {string} timestamp - Message timestamp
+ * @property {string} message_id - Format: {liveId}-{provider_message_id} to ensure uniqueness
  * @property {Object} data - Message data
  * @property {ChatAuthor} data.author - Message author information
  * @property {ChatContent} data.content - Message content
