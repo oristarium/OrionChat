@@ -109,7 +109,7 @@ export class ConnectionManager {
             this.ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
-                    console.log('WebSocket received:', data);
+                    // console.log('WebSocket received:', data);
                     
                     switch (data.type) {
                         case 'chat':
