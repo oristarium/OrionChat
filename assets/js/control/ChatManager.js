@@ -503,9 +503,11 @@ export class ChatManager {
     /**
      * Saves a chatter to favorites
      * @param {ChatAuthor} chatter - The chatter to save
+     * @param {('pinned'|'hidden')} status - The status to save the chatter with
      */
-    async saveChatter(chatter) {
-        return this.chatterManager.saveChatter(chatter);
+    async saveChatter(chatter, status) {
+        console.log('ChatManager saving chatter with status:', status);
+        return this.chatterManager.saveChatter(chatter, status);
     }
 
     /**

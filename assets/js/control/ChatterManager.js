@@ -67,6 +67,7 @@ export class ChatterManager {
                     const store = db.createObjectStore('savedChatters', { keyPath: 'id' });
                     store.createIndex('platform', 'platform', { unique: false });
                     store.createIndex('username', 'username', { unique: false });
+                    store.createIndex('status', 'status', { unique: false });
                     console.log('Saved chatters store created');
                 }
             };
@@ -99,26 +100,49 @@ export class ChatterManager {
     }
 
     /**
-     * Saves a chatter to favorites in IndexedDB
+     * Saves a chatter to favorites in IndexedDB with a status
      * @param {ChatAuthor} chatter - The chatter to save
+     * @param {('pinned'|'hidden')} status - The status to save the chatter with
      */
-    async saveChatter(chatter) {
-        if (!this.isDBReady) return;
+    async saveChatter(chatter, status) {
+        if (!this.isDBReady) {
+            console.log('DB not ready, cannot save chatter');
+            return;
+        }
 
         try {
+            console.log(`Attempting to save chatter ${chatter.display_name} with status: ${status}`);
             const transaction = this.db.transaction(['savedChatters'], 'readwrite');
             const store = transaction.objectStore('savedChatters');
             
+            const chatterWithStatus = {
+                ...chatter,
+                status: status
+            };
+            
             await new Promise((resolve, reject) => {
-                const request = store.put(chatter);
-                request.onsuccess = () => resolve();
+                const request = store.put(chatterWithStatus);
+                request.onsuccess = () => {
+                    console.log(`Successfully saved chatter to IndexedDB: ${chatter.display_name}`);
+                    resolve();
+                };
                 request.onerror = () => reject(request.error);
             });
 
             // Create a new array to trigger reactivity
-            this.savedChatters = [...this.savedChatters, chatter];
-            this.onSavedChattersChange?.(this.savedChatters);
-            this.showToast?.('Chatter saved');
+            const newSavedChatters = [...this.savedChatters.filter(c => c.id !== chatter.id), chatterWithStatus];
+            console.log(`Previous saved chatters count: ${this.savedChatters.length}`);
+            this.savedChatters = newSavedChatters;
+            console.log(`New saved chatters count: ${this.savedChatters.length}`);
+            
+            // Notify of changes
+            if (this.onSavedChattersChange) {
+                console.log('Notifying of saved chatters change');
+                this.onSavedChattersChange(this.savedChatters);
+            }
+
+            this.showToast?.(`Chatter ${status === 'pinned' ? 'pinned' : 'hidden'}`);
+            console.log(`Successfully processed chatter ${chatter.display_name} with status ${status}`);
         } catch (error) {
             console.error('Failed to save chatter:', error);
             this.showToast?.('Failed to save chatter', 'error');
@@ -130,21 +154,36 @@ export class ChatterManager {
      * @param {string} chatterId - ID of the chatter to remove
      */
     async removeSavedChatter(chatterId) {
-        if (!this.isDBReady) return;
+        if (!this.isDBReady) {
+            console.log('DB not ready, cannot remove chatter');
+            return;
+        }
 
         try {
+            console.log(`Attempting to remove chatter with ID: ${chatterId}`);
             const transaction = this.db.transaction(['savedChatters'], 'readwrite');
             const store = transaction.objectStore('savedChatters');
             
             await new Promise((resolve, reject) => {
                 const request = store.delete(chatterId);
-                request.onsuccess = () => resolve();
+                request.onsuccess = () => {
+                    console.log('Successfully removed chatter from IndexedDB');
+                    resolve();
+                };
                 request.onerror = () => reject(request.error);
             });
 
+            console.log(`Previous saved chatters count: ${this.savedChatters.length}`);
             this.savedChatters = this.savedChatters.filter(c => c.id !== chatterId);
-            this.onSavedChattersChange?.(this.savedChatters);
+            console.log(`New saved chatters count: ${this.savedChatters.length}`);
+
+            if (this.onSavedChattersChange) {
+                console.log('Notifying of saved chatters change');
+                this.onSavedChattersChange(this.savedChatters);
+            }
+
             this.showToast?.('Chatter removed');
+            console.log('Successfully completed chatter removal');
         } catch (error) {
             console.error('Failed to remove chatter:', error);
             this.showToast?.('Failed to remove chatter', 'error');
@@ -181,9 +220,10 @@ export class ChatterManager {
         }
 
         // Notify of chatters change if any were removed
-        if (beforeCount !== this.uniqueChatters.size && this.onChattersChange) {
+        if (beforeCount !== this.uniqueChatters.size) {
             const chatters = Array.from(this.uniqueChatters.values());
-            this.onChattersChange(chatters);
+            console.log('Total unique chatters after removal:', chatters.length);
+            this.onChattersChange?.(chatters);
         }
     }
 
@@ -193,6 +233,7 @@ export class ChatterManager {
      */
     addChatter(author) {
         if (!this.uniqueChatters.has(author.id)) {
+            console.log('New unique chatter:', author.display_name, 'from liveId:', author.liveId);
             this.uniqueChatters.set(author.id, author);
 
             // Only show toast if enabled and after initialization delay
@@ -215,10 +256,10 @@ export class ChatterManager {
                 );
             }
 
-            if (this.onChattersChange) {
-                const chatters = Array.from(this.uniqueChatters.values());
-                this.onChattersChange(chatters);
-            }
+            // Create a new array to trigger reactivity
+            const chatters = Array.from(this.uniqueChatters.values());
+            console.log('Total unique chatters:', chatters.length);
+            this.onChattersChange?.(chatters);
         }
     }
 
@@ -263,5 +304,30 @@ export class ChatterManager {
             return true;
         });
         return filtered;
+    }
+
+    /**
+     * Gets all chatters with a specific status
+     * @param {('pinned'|'hidden')} status - The status to filter by
+     * @returns {ChatAuthor[]}
+     */
+    getChattersWithStatus(status) {
+        return this.savedChatters.filter(chatter => chatter.status === status);
+    }
+
+    /**
+     * Gets pinned chatters
+     * @returns {ChatAuthor[]}
+     */
+    getPinnedChatters() {
+        return this.getChattersWithStatus('pinned');
+    }
+
+    /**
+     * Gets hidden chatters
+     * @returns {ChatAuthor[]}
+     */
+    getHiddenChatters() {
+        return this.getChattersWithStatus('hidden');
     }
 } 

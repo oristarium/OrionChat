@@ -496,11 +496,18 @@
             Active Chatters
           </button>
           <button
-            @click="chatterListType = 'saved'"
+            @click="chatterListType = 'pinned'"
             class="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
-            :class="chatterListType === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+            :class="chatterListType === 'pinned' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
           >
-            Saved Chatters ({{ savedChatters.length }})
+            Pinned ({{ pinnedChatters.length }})
+          </button>
+          <button
+            @click="chatterListType = 'hidden'"
+            class="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            :class="chatterListType === 'hidden' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+          >
+            Hidden ({{ hiddenChatters.length }})
           </button>
         </div>
 
@@ -565,20 +572,29 @@
                   </div>
                 </div>
 
-                <!-- Save Button -->
-                <button
-                  @click="saveChatter(chatter)"
-                  class="text-gray-400 hover:text-gray-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Save chatter"
-                >
-                  <i class="fas fa-bookmark"></i>
-                </button>
+                <!-- Action Buttons -->
+                <div class="flex gap-1">
+                  <button
+                    @click="pinChatter(chatter)"
+                    class="text-gray-400 hover:text-gray-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Pin chatter"
+                  >
+                    <i class="fas fa-thumbtack"></i>
+                  </button>
+                  <button
+                    @click="hideChatter(chatter)"
+                    class="text-gray-400 hover:text-gray-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="Hide chatter"
+                  >
+                    <i class="fas fa-eye-slash"></i>
+                  </button>
+                </div>
               </div>
             </template>
 
-            <template v-else>
+            <template v-else-if="chatterListType === 'pinned'">
               <div
-                v-for="chatter in savedChatters"
+                v-for="chatter in pinnedChatters"
                 :key="chatter.id"
                 class="p-2 hover:bg-gray-50 flex items-center gap-2 group"
               >
@@ -638,7 +654,76 @@
                 <button
                   @click="removeSavedChatter(chatter.id)"
                   class="text-red-400 hover:text-red-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                  title="Remove saved chatter"
+                  title="Remove pin"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </template>
+
+            <template v-else>
+              <div
+                v-for="chatter in hiddenChatters"
+                :key="chatter.id"
+                class="p-2 hover:bg-gray-50 flex items-center gap-2 group"
+              >
+                <!-- Avatar -->
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+                  <img
+                    v-if="chatter.avatar_url"
+                    :src="chatter.avatar_url"
+                    :alt="chatter.display_name"
+                    class="w-full h-full object-cover"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+                    <i class="fas fa-user"></i>
+                  </div>
+                </div>
+
+                <!-- User Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-medium text-sm truncate">{{ chatter.display_name }}</span>
+                    <i
+                      v-if="chatter.platform"
+                      class="text-xs"
+                      :class="{
+                        'fab fa-youtube text-red-400': chatter.platform === 'youtube',
+                        'fab fa-twitch text-purple-400': chatter.platform === 'twitch',
+                        'fab fa-tiktok text-pink-400': chatter.platform === 'tiktok'
+                      }"
+                    ></i>
+                  </div>
+                  <div class="flex items-center gap-1 text-xs text-gray-500">
+                    <i
+                      v-if="chatter.roles.broadcaster"
+                      class="fas fa-crown text-yellow-400"
+                      title="Broadcaster"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.moderator"
+                      class="fas fa-shield text-blue-400"
+                      title="Moderator"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.subscriber"
+                      class="fas fa-star text-green-400"
+                      title="Subscriber"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.verified"
+                      class="fas fa-check-circle text-blue-400"
+                      title="Verified"
+                    ></i>
+                    <span class="truncate">{{ chatter.username }}</span>
+                  </div>
+                </div>
+
+                <!-- Remove Button -->
+                <button
+                  @click="removeSavedChatter(chatter.id)"
+                  class="text-red-400 hover:text-red-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove from hidden"
                 >
                   <i class="fas fa-times"></i>
                 </button>
@@ -1748,6 +1833,7 @@
 
           // Handle chatters change
           chatManager.onChattersChange = (newChatters) => {
+            console.log('Vue component received new chatters:', newChatters.length);
             chatters.value = newChatters;
           };
 
@@ -1756,13 +1842,21 @@
             savedChatters.value = newSavedChatters;
           };
 
-          // Save chatter
-          const saveChatter = async (chatter) => {
-            await chatManager.saveChatter(chatter);
+          // Pin chatter
+          const pinChatter = async (chatter) => {
+            console.log('Attempting to pin chatter:', chatter.display_name);
+            await chatManager.saveChatter(chatter, 'pinned');
+          };
+
+          // Hide chatter
+          const hideChatter = async (chatter) => {
+            console.log('Attempting to hide chatter:', chatter.display_name);
+            await chatManager.saveChatter(chatter, 'hidden');
           };
 
           // Remove saved chatter
           const removeSavedChatter = async (chatterId) => {
+            console.log('Attempting to remove saved chatter:', chatterId);
             await chatManager.removeSavedChatter(chatterId);
           };
 
@@ -1773,7 +1867,21 @@
               platform: chatterFilters.value.platform,
               roles: chatterFilters.value.roles
             });
+            console.log('Filtered chatters:', filtered.length, 'of', chatters.value.length);
             return filtered;
+          });
+
+          // Computed properties for pinned and hidden chatters
+          const pinnedChatters = computed(() => {
+            const pinned = savedChatters.value.filter(chatter => chatter.status === 'pinned');
+            console.log('Pinned chatters:', pinned.length);
+            return pinned;
+          });
+
+          const hiddenChatters = computed(() => {
+            const hidden = savedChatters.value.filter(chatter => chatter.status === 'hidden');
+            console.log('Hidden chatters:', hidden.length);
+            return hidden;
           });
 
           return {
@@ -1847,7 +1955,10 @@
             chatterListType,
             chatterFilters,
             filteredChatters,
-            saveChatter,
+            pinnedChatters,
+            hiddenChatters,
+            pinChatter,
+            hideChatter,
             removeSavedChatter,
           };
         },
