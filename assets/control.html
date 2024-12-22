@@ -205,7 +205,7 @@
         <!-- Saved Tab Content -->
         <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
           <!-- Custom Message Section -->
-          <div class="mb-4 rounded-lg border p-3">
+          <div class="mb-2 rounded-lg border p-3">
             <textarea 
               v-model="customMessage"
               placeholder="Type a custom message..."
@@ -297,7 +297,7 @@
       <div class="modal micromodal-slide" id="modal-connections" aria-hidden="true">
         <div class="modal__overlay" tabindex="-1" data-micromodal-close>
           <div class="modal__container rounded-lg p-4 w-full max-w-[400px] border bg-white" role="dialog" aria-modal="true" aria-labelledby="modal-connections-title">
-            <header class="flex justify-between items-center mb-4">
+            <header class="flex justify-between items-center mb-2">
               <h2 id="modal-connections-title" class="text-lg font-bold">Manage Connections</h2>
               <button class="text-gray-500 hover:text-gray-700" aria-label="Close modal" data-micromodal-close>
                 <i class="fas fa-times"></i>
@@ -306,7 +306,7 @@
 
             <main id="modal-connections-content">
               <!-- Active Connections -->
-              <div class="space-y-2 mb-4">
+              <div class="space-y-2 mb-2">
                 <div v-for="conn in savedConnections" :key="conn.id" 
                   class="flex items-center gap-2 p-2 rounded border"
                   :class="{
