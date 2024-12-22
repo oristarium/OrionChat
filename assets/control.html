@@ -18,6 +18,7 @@
     />
     <script type="module" src="js/control/ConnectionManager.js"></script>
     <script type="module" src="js/control/ChatManager.js"></script>
+    <script type="module" src="js/control/AvatarManager.js"></script>
     <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
     <!-- Add MicroModal styles -->
     <style>
@@ -138,6 +139,13 @@
           :class="activeTab === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
         >
           Saved
+        </button>
+        <button
+          @click="activeTab = 'avatars'"
+          class="px-4 py-2 font-medium rounded-lg transition-colors flex-1"
+          :class="activeTab === 'avatars' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        >
+          Avatars
         </button>
       </div>
 
@@ -377,6 +385,148 @@
         </div>
       </div>
 
+      <!-- Avatars Tab Content -->
+      <div v-if="activeTab === 'avatars'" class="flex-1 flex flex-col min-h-0">
+        <!-- Header with Create Button -->
+        <div class="flex justify-end items-center gap-2 mb-2">
+          <button
+            @click="createNewAvatar"
+            class="text-xs text-gray-500 px-2 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative gap-1"
+          >
+            <i class="fas fa-plus text-sm"></i>
+            New Avatar
+          </button>
+        </div>
+
+        <!-- Avatars Table -->
+        <div class="flex-1 rounded-lg border overflow-auto">
+          <table class="w-full">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Idle</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Talking</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Voices</th>
+                <th class="w-10"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="avatar in avatars" :key="avatar.id" class="hover:bg-gray-50">
+                <td class="px-4 py-2">
+                  <img 
+                    :src="avatar.states.idle" 
+                    class="h-12 w-12 object-contain cursor-pointer hover:opacity-75" 
+                    :alt="avatar.name + ' idle'"
+                    @click="openAvatarImageModal(avatar, 'idle')" 
+                  />
+                </td>
+                <td class="px-4 py-2">
+                  <img 
+                    :src="avatar.states.talking" 
+                    class="h-12 w-12 object-contain cursor-pointer hover:opacity-75" 
+                    :alt="avatar.name + ' talking'"
+                    @click="openAvatarImageModal(avatar, 'talking')" 
+                  />
+                </td>
+                <td class="px-4 py-2">
+                  <span class="text-sm">{{ avatar.tts_voices.length }}</span>
+                </td>
+                <td class="px-4 py-2">
+                  <button
+                    v-if="!avatar.is_default"
+                    @click="deleteAvatar(avatar.id)"
+                    class="text-red-400 hover:text-red-500"
+                    title="Delete avatar"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Avatar Image Selection Modal -->
+      <div class="modal micromodal-slide" id="modal-avatar-image" aria-hidden="true">
+        <div class="modal__overlay" tabindex="-1" data-micromodal-close>
+          <div
+            class="modal__container rounded-lg p-4 w-full max-w-[600px] border bg-white"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-avatar-image-title"
+          >
+            <header class="flex justify-between items-center mb-4">
+              <h2 id="modal-avatar-image-title" class="text-lg font-bold">
+                Select {{ selectedImageType === 'idle' ? 'Idle' : 'Talking' }} Image
+              </h2>
+              <button
+                class="text-gray-500 hover:text-gray-700"
+                aria-label="Close modal"
+                data-micromodal-close
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </header>
+
+            <main id="modal-avatar-image-content" class="space-y-4">
+              <!-- Image Upload -->
+              <div 
+                class="border-2 border-dashed rounded-lg p-4 text-center cursor-pointer hover:bg-gray-50"
+                @click="triggerFileInput"
+                @dragover.prevent
+                @drop.prevent="handleFileDrop"
+              >
+                <input
+                  type="file"
+                  ref="fileInput"
+                  class="hidden"
+                  accept="image/*"
+                  @change="handleFileSelect"
+                />
+                <i class="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
+                <p class="text-sm text-gray-500">
+                  Click or drag image to upload
+                </p>
+              </div>
+
+              <!-- Available Images Grid -->
+              <div class="grid grid-cols-4 gap-4">
+                <div
+                  v-for="image in avatarImages"
+                  :key="image"
+                  class="aspect-square border rounded-lg p-2 cursor-pointer hover:bg-gray-50"
+                  :class="{'border-blue-500 bg-blue-50': isSelectedImage(image)}"
+                  @click="selectImage(image)"
+                >
+                  <img
+                    :src="image"
+                    class="w-full h-full object-contain"
+                    :alt="image"
+                  />
+                </div>
+              </div>
+
+              <!-- Footer -->
+              <div class="flex justify-end gap-2 pt-4 border-t">
+                <button
+                  type="button"
+                  class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border rounded"
+                  data-micromodal-close
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="applySelectedImage"
+                  class="px-4 py-2 text-sm text-white bg-blue-500 hover:bg-blue-600 rounded"
+                >
+                  Apply
+                </button>
+              </div>
+            </main>
+          </div>
+        </div>
+      </div>
+
       <!-- Connections Modal -->
       <div
         class="modal micromodal-slide"
@@ -506,6 +656,7 @@
           </div>
         </div>
       </div>
+
       <div
         class="mt-auto text-center text-xs text-gray-500 w-full grow-0 flex justify-center items-center py-1"
       >
@@ -523,6 +674,7 @@
     <script type="module">
       import { ConnectionManager } from "./js/control/ConnectionManager.js";
       import { ChatManager } from "./js/control/ChatManager.js";
+      import { AvatarManager } from "./js/control/AvatarManager.js";
 
       const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
@@ -562,24 +714,28 @@
           // Initialize managers
           const connectionManager = new ConnectionManager();
           const chatManager = new ChatManager();
+          const avatarManager = new AvatarManager();
 
           // Initialize reactive refs
           const activeConnections = ref([]);
           const messages = ref([]);
           const savedMessages = ref([]);
           const savedConnections = ref([]);
+          const avatars = ref([]);
 
           // Initialize on mount
           onMounted(async () => {
             await Promise.all([
               chatManager.init(),
               connectionManager.init(chatManager),
+              avatarManager.init(),
             ]);
           });
 
           // Set up callbacks
           connectionManager.showToast = showToast;
           chatManager.showToast = showToast;
+          avatarManager.showToast = showToast;
 
           connectionManager.onConnectionsChange = (connections) => {
             savedConnections.value = connections;
@@ -720,6 +876,100 @@
             chatBox.value.scrollTop = chatBox.value.scrollHeight;
           };
 
+          avatarManager.onAvatarsChange = (newAvatars) => {
+            avatars.value = newAvatars;
+          };
+
+          // Create new avatar
+          const createNewAvatar = async () => {
+            try {
+              await avatarManager.createAvatar({});
+            } catch (error) {
+              console.error('Failed to create avatar:', error);
+            }
+          };
+
+          // Delete avatar
+          const deleteAvatar = async (avatarId) => {
+            if (confirm('Are you sure you want to delete this avatar?')) {
+              try {
+                await avatarManager.deleteAvatar(avatarId);
+              } catch (error) {
+                console.error('Failed to delete avatar:', error);
+              }
+            }
+          };
+
+          // Avatar image selection
+          const fileInput = ref(null);
+          const selectedAvatar = ref(null);
+          const selectedImageType = ref('idle');
+          const selectedImage = ref(null);
+          const avatarImages = ref([]);
+
+          // Handle avatar images change
+          avatarManager.onAvatarImagesChange = (newImages) => {
+            avatarImages.value = newImages;
+          };
+
+          const openAvatarImageModal = (avatar, type) => {
+            selectedAvatar.value = avatar;
+            selectedImageType.value = type;
+            selectedImage.value = avatar.states[type];
+            modal.show('modal-avatar-image');
+          };
+
+          const triggerFileInput = () => {
+            fileInput.value.click();
+          };
+
+          const handleFileSelect = async (event) => {
+            const file = event.target.files[0];
+            if (file) {
+              try {
+                const path = await avatarManager.uploadAvatarImage(file, selectedImageType.value);
+                selectImage(path);
+              } catch (error) {
+                console.error('Failed to upload file:', error);
+              }
+            }
+          };
+
+          const handleFileDrop = async (event) => {
+            const file = event.dataTransfer.files[0];
+            if (file) {
+              try {
+                const path = await avatarManager.uploadAvatarImage(file, selectedImageType.value);
+                selectImage(path);
+              } catch (error) {
+                console.error('Failed to upload file:', error);
+              }
+            }
+          };
+
+          const selectImage = (path) => {
+            selectedImage.value = path;
+          };
+
+          const isSelectedImage = (path) => {
+            return selectedImage.value === path;
+          };
+
+          const applySelectedImage = async () => {
+            if (selectedAvatar.value && selectedImage.value) {
+              try {
+                const states = {
+                  ...selectedAvatar.value.states,
+                  [selectedImageType.value]: selectedImage.value
+                };
+                await avatarManager.updateAvatarState(selectedAvatar.value.id, states);
+                modal.close('modal-avatar-image');
+              } catch (error) {
+                console.error('Failed to update avatar:', error);
+              }
+            }
+          };
+
           return {
             activeTab,
             customMessage,
@@ -746,6 +996,19 @@
             isTTSAll,
             toggleTTSAll,
             scrollToBottom,
+            avatars,
+            createNewAvatar,
+            deleteAvatar,
+            fileInput,
+            selectedImageType,
+            avatarImages,
+            openAvatarImageModal,
+            triggerFileInput,
+            handleFileSelect,
+            handleFileDrop,
+            selectImage,
+            isSelectedImage,
+            applySelectedImage,
           };
         },
       });

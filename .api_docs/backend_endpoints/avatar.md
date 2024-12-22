@@ -82,7 +82,7 @@ Error Cases:
 ```http
 POST /api/avatars/create
 Response: {
-    "id": "avatar_1234567890",
+    "id": "2",
     "name": "New Avatar",
     "description": "New avatar",
     "states": {
