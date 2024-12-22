@@ -1217,9 +1217,10 @@
           });
 
           const sortedSavedMessages = computed(() => {
-            return [...savedMessages.value].sort(
+            const sorted = [...savedMessages.value].sort(
               (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
             );
+            return sorted;
           });
 
           // Connect new chat
@@ -1525,21 +1526,23 @@
 
           // Computed property for selected voice details
           const selectedVoiceDetails = computed(() => {
-            return selectedVoices.value.map(sv => {
+            const details = selectedVoices.value.map(sv => {
               const voice = voices.value.find(v => 
                 v.voice_id === sv.voice_id && v.provider === sv.provider
               );
               return voice;
             }).filter(Boolean);
+            return details;
           });
 
-          // Computed property for available voices (excluding selected ones)
+          // Computed property for available voices
           const availableVoices = computed(() => {
-            return filteredVoices.value.filter(voice => 
+            const available = filteredVoices.value.filter(voice => 
               !selectedVoices.value.some(sv => 
                 sv.voice_id === voice.voice_id && sv.provider === voice.provider
               )
             );
+            return available;
           });
 
           const addVoice = (voice) => {
@@ -1650,11 +1653,12 @@
 
           // Computed property for filtered chatters
           const filteredChatters = computed(() => {
-            return chatManager.filterChatters({
+            const filtered = chatManager.filterChatters({
               search: chatterFilters.value.search,
               platform: chatterFilters.value.platform,
               roles: chatterFilters.value.roles
             });
+            return filtered;
           });
 
           return {

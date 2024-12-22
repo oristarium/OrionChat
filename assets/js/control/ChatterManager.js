@@ -21,7 +21,6 @@ export class ChatterManager {
     init() {
         // Enable chatter toasts after 3 seconds
         setTimeout(() => {
-            console.log('Enabling new chatter toasts');
             this.shouldShowChatterToasts = true;
         }, 3000);
     }
@@ -57,7 +56,8 @@ export class ChatterManager {
 
         // Notify of chatters change if any were removed
         if (beforeCount !== this.uniqueChatters.size && this.onChattersChange) {
-            this.onChattersChange(Array.from(this.uniqueChatters.values()));
+            const chatters = Array.from(this.uniqueChatters.values());
+            this.onChattersChange(chatters);
         }
     }
 
@@ -90,7 +90,8 @@ export class ChatterManager {
             }
 
             if (this.onChattersChange) {
-                this.onChattersChange(Array.from(this.uniqueChatters.values()));
+                const chatters = Array.from(this.uniqueChatters.values());
+                this.onChattersChange(chatters);
             }
         }
     }
@@ -100,7 +101,8 @@ export class ChatterManager {
      * @returns {ChatAuthor[]}
      */
     getChatters() {
-        return Array.from(this.uniqueChatters.values());
+        const chatters = Array.from(this.uniqueChatters.values());
+        return chatters;
     }
 
     /**
@@ -112,7 +114,8 @@ export class ChatterManager {
      * @returns {ChatAuthor[]}
      */
     filterChatters({ search = '', platform = '', roles = {} } = {}) {
-        return this.getChatters().filter(chatter => {
+        const allChatters = this.getChatters();
+        const filtered = allChatters.filter(chatter => {
             // Platform filter
             if (platform && chatter.platform !== platform) return false;
 
@@ -133,5 +136,6 @@ export class ChatterManager {
 
             return true;
         });
+        return filtered;
     }
 } 
