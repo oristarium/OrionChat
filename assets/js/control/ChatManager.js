@@ -93,6 +93,8 @@ export class ChatManager {
         this.onSavedMessagesChange = null;
         /** @type {function(string, string=): void} */
         this.showToast = null;
+        /** @type {boolean} */
+        this.isTTSAll = false;
     }
 
     /**
@@ -298,7 +300,7 @@ export class ChatManager {
                 },
                 body: JSON.stringify(ttsData)
             });
-            if (!isTTSAll.value) {
+            if (!this.isTTSAll) {
                 this.showToast?.('TTS sent');
             }
         } catch (error) {

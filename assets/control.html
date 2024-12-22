@@ -894,7 +894,7 @@
           const chatBox = ref(null);
           const lastScrollPosition = ref(0);
           const isPauseAutoScroll = ref(false);
-          const isTTSAll = ref(false);
+          const isTTSAll = ref(localStorage.getItem('isTTSAll') === 'true');
 
           // Make MicroModal available to the component
           const modal = {
@@ -921,6 +921,8 @@
               connectionManager.init(chatManager),
               avatarManager.init(),
             ]);
+            // Sync initial isTTSAll state with ChatManager
+            chatManager.isTTSAll = isTTSAll.value;
           });
 
           // Set up callbacks
@@ -1056,6 +1058,8 @@
 
           const toggleTTSAll = () => {
             isTTSAll.value = !isTTSAll.value;
+            chatManager.isTTSAll = isTTSAll.value;
+            localStorage.setItem('isTTSAll', isTTSAll.value);
             showToast(
               "TTS All is now " + (isTTSAll.value ? "enabled" : "disabled"),
               "info"
