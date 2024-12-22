@@ -4,12 +4,18 @@
     <title>OrionChat Control</title>
     <link rel="icon" href="icon.ico" />
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      rel="stylesheet"
+    />
     <script src="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.js"></script>
-    <link href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css" rel="stylesheet">
+    <link
+      href="https://cdn.jsdelivr.net/npm/toastify-js@1.12.0/src/toastify.min.css"
+      rel="stylesheet"
+    />
     <script type="module" src="js/control/ConnectionManager.js"></script>
     <script type="module" src="js/control/ChatManager.js"></script>
     <script src="https://unpkg.com/micromodal/dist/micromodal.min.js"></script>
@@ -50,19 +56,19 @@
       }
 
       .micromodal-slide[aria-hidden="false"] .modal__overlay {
-        animation: mmfadeIn .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+        animation: mmfadeIn 0.3s cubic-bezier(0, 0, 0.2, 1);
       }
 
       .micromodal-slide[aria-hidden="false"] .modal__container {
-        animation: mmslideIn .3s cubic-bezier(0, 0, .2, 1);
+        animation: mmslideIn 0.3s cubic-bezier(0, 0, 0.2, 1);
       }
 
       .micromodal-slide[aria-hidden="true"] .modal__overlay {
-        animation: mmfadeOut .3s cubic-bezier(0.0, 0.0, 0.2, 1);
+        animation: mmfadeOut 0.3s cubic-bezier(0, 0, 0.2, 1);
       }
 
       .micromodal-slide[aria-hidden="true"] .modal__container {
-        animation: mmslideOut .3s cubic-bezier(0, 0, .2, 1);
+        animation: mmslideOut 0.3s cubic-bezier(0, 0, 0.2, 1);
       }
 
       .micromodal-slide .modal__container,
@@ -71,235 +77,320 @@
       }
 
       @keyframes mmfadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
 
       @keyframes mmfadeOut {
-        from { opacity: 1; }
-        to { opacity: 0; }
+        from {
+          opacity: 1;
+        }
+        to {
+          opacity: 0;
+        }
       }
 
       @keyframes mmslideIn {
-        from { transform: translateY(15%); }
-        to { transform: translateY(0); }
+        from {
+          transform: translateY(15%);
+        }
+        to {
+          transform: translateY(0);
+        }
       }
 
       @keyframes mmslideOut {
-        from { transform: translateY(0); }
-        to { transform: translateY(-10%); }
+        from {
+          transform: translateY(0);
+        }
+        to {
+          transform: translateY(-10%);
+        }
       }
 
       #livechat-box {
-        background-image: url('https://ucarecdn.com/3b48bc49-000f-4254-afc1-da1e6f367bef/-/preview/400x400/');
+        background-image: url("https://ucarecdn.com/3b48bc49-000f-4254-afc1-da1e6f367bef/-/preview/400x400/");
         background-size: contain;
         background-position: center;
         background-repeat: no-repeat;
-        
       }
     </style>
   </head>
   <body class="h-screen overflow-hidden max-w-[400px] mx-auto">
     <!-- Main Container -->
     <main id="app" class="h-full flex flex-col py-1">
-        <!-- Tabs -->
-        <div class="flex gap-2 mb-2">
-          <button 
-            @click="activeTab = 'livechats'"
-            class="px-4 py-2 font-medium rounded-lg transition-colors flex-1"
-            :class="activeTab === 'livechats' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+      <!-- Tabs -->
+      <div class="flex gap-2 mb-2">
+        <button
+          @click="activeTab = 'livechats'"
+          class="px-4 py-2 font-medium rounded-lg transition-colors flex-1"
+          :class="activeTab === 'livechats' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        >
+          Livechats
+        </button>
+        <button
+          @click="activeTab = 'saved'"
+          class="px-4 py-2 font-medium rounded-lg transition-colors flex-1"
+          :class="activeTab === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        >
+          Saved
+        </button>
+      </div>
+
+      <!-- Livechats Tab Content -->
+      <div
+        v-if="activeTab === 'livechats'"
+        class="flex-1 flex flex-col min-h-0"
+      >
+        <!-- Header with Buttons -->
+        <div class="flex justify-end items-center gap-2 mb-2">
+          <button
+            @click="clearDisplay"
+            class="text-xs text-gray-500 px-2 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative gap-1"
+            title="Clear Display"
           >
-            Livechats
+            <i class="fas fa-times text-sm"></i>
+            Clear Display
           </button>
-          <button 
-            @click="activeTab = 'saved'"
-            class="px-4 py-2 font-medium rounded-lg transition-colors flex-1"
-            :class="activeTab === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+          <button
+            @click="clearTTS"
+            class="text-xs text-gray-500 px-2 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative gap-1"
+            title="Clear TTS"
           >
-            Saved
+            <i class="fas fa-times text-sm"></i>
+            Clear TTS
+          </button>
+          <label
+            for="isTTSAll"
+            class="h-8 px-2 text-xs text-gray-500 flex items-center gap-1 hover:bg-gray-100 rounded-lg flex ustify-center border relative"
+          >
+            <input
+              type="checkbox"
+              id="isTTSAll"
+              :checked="isTTSAll"
+              @change="toggleTTSAll"
+              class="w-4 h-4 rounded-sm border border-gray-300 text-blue-500 focus:ring-blue-500"
+            />
+            TTS All</label
+          >
+          <button
+            @click="modal.show('modal-connections')"
+            class="w-8 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative"
+            title="Manage connections"
+          >
+            <i class="fas fa-plug text-sm"></i>
+            <span
+              class="absolute -top-1 -right-1 bg-blue-500 w-4 h-4 flex items-center justify-center rounded-full text-[10px] text-white"
+              >{{ activeConnections.length }}</span
+            >
           </button>
         </div>
 
-        <!-- Livechats Tab Content -->
-        <div v-if="activeTab === 'livechats'" class="flex-1 flex flex-col min-h-0">
-          <!-- Header with Buttons -->
-          <div class="flex justify-end items-center gap-2 mb-2">
-            <button 
-              @click="modal.show('modal-connections')"
-              class="w-8 h-8 hover:bg-gray-100 rounded-lg flex items-center justify-center border relative"
-              title="Manage connections"
-            >
-              <i class="fas fa-plug text-sm"></i>
-              <span class="absolute -top-1 -right-1 bg-blue-500 w-4 h-4 flex items-center justify-center rounded-full text-[10px] text-white">{{ activeConnections.length }}</span>
-            </button>
-          </div>
-
-          <!-- Chat Messages -->
-          <div 
-            ref="chatBox"
-            id="livechat-box" 
-            class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0"
-            @mouseenter="isAutoScrolling = true; console.log('mouse enter')"
+        <!-- Chat Messages -->
+        <div
+          ref="chatBox"
+          id="livechat-box"
+          class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0"
+          @mouseenter="isAutoScrolling = true; console.log('mouse enter')"
+        >
+          <div
+            v-for="message in messages"
+            :key="message.message_id"
+            class="p-2"
           >
-            <div v-for="message in messages" :key="message.message_id" class="p-2">
             <div class="flex items-start gap-2">
-                <div class="flex-1 min-w-0">
+              <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                    <i class="text-xs"
+                  <i
+                    class="text-xs"
                     :class="{
                         'fab fa-youtube text-red-400': message.platform === 'youtube',
                         'fab fa-twitch text-purple-400': message.platform === 'twitch',
                         'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
                     }"
-                    ></i>
-                    <span class="text-xs font-bold truncate"
+                  ></i>
+                  <span
+                    class="text-xs font-bold truncate"
                     :class="{
                         'text-red-500': message.data.author.roles.broadcaster,
                         'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
                         'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
                         'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
                     }"
-                    >
+                  >
                     {{ message.data.author.display_name }}
-                    </span>
+                  </span>
                 </div>
-                <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
-                </div>
-                <div class="chat-actions flex items-center gap-1">
-                <button 
-                    @click="sendDisplay(message)"
-                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                    title="Display message"
+                <div
+                  v-html="message.data.content.rawHtml"
+                  class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"
+                ></div>
+              </div>
+              <div class="chat-actions flex items-center gap-1">
+                <button
+                  @click="sendDisplay(message)"
+                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                  title="Display message"
                 >
-                    <i class="fas fa-tv text-xs"></i>
+                  <i class="fas fa-tv text-xs"></i>
                 </button>
-                <button 
-                    @click="sendTTS(message)"
-                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                    title="Text to Speech"
+                <button
+                  @click="sendTTS(message)"
+                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                  title="Text to Speech"
                 >
-                    <i class="fas fa-volume-up text-xs"></i>
+                  <i class="fas fa-volume-up text-xs"></i>
                 </button>
-                <button 
-                    @click="saveChat(message)"
-                    class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                    title="Save message"
+                <button
+                  @click="saveChat(message)"
+                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                  title="Save message"
                 >
-                    <i class="fas fa-save text-xs"></i>
-                </button>
-                </div>
-            </div>
-            </div>
-          </div>
-
-          <!-- Scroll to Bottom Button -->
-          <button 
-            @click="chatBox.scrollTop = chatBox.scrollHeight; isAutoScrolling = false;"
-            class="w-full mt-2 p-2 text-sm text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50"
-          >
-            <i class="fas fa-arrow-down mr-1"></i>
-            Scroll to Bottom
-          </button>
-        </div>
-
-        <!-- Saved Tab Content -->
-        <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
-          <!-- Custom Message Section -->
-          <div class="mb-2 rounded-lg border p-3">
-            <textarea 
-              v-model="customMessage"
-              placeholder="Type a custom message..."
-              class="w-full border rounded p-2 text-sm mb-2 resize-none h-20"
-            ></textarea>
-            <div class="flex gap-2">
-              <button 
-                @click="sendCustomTTS"
-                class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
-              >
-                <i class="fas fa-volume-up mr-2"></i>
-                Send TTS
-              </button>
-              <div class="flex-1 flex gap-1">
-                <button 
-                  @click="sendCustomDisplay"
-                  class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
-                >
-                  <i class="fas fa-tv mr-2"></i>
-                  Display
-                </button>
-                <button 
-                  @click="clearDisplay"
-                  class="hover:bg-gray-100 text-red-400 hover:text-red-500 p-2 rounded border text-sm"
-                  title="Clear display"
-                >
-                  <i class="fas fa-times"></i>
+                  <i class="fas fa-save text-xs"></i>
                 </button>
               </div>
             </div>
           </div>
+        </div>
 
-          <!-- Saved Messages List -->
-          <div id="savedchat-box" class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0">
-            <div v-for="message in sortedSavedMessages" :key="message.message_id" class="savedchat-message p-2">
-                <div class="flex items-start gap-2">
-                    <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                        <i class="text-xs"
-                        :class="{
+        <!-- Scroll to Bottom Button -->
+        <button
+          @click="scrollToBottom"
+          class="w-full mt-2 p-2 text-sm text-gray-500 hover:text-gray-700 border rounded-lg hover:bg-gray-50"
+        >
+          <i class="fas fa-arrow-down mr-1"></i>
+          Scroll to Bottom
+        </button>
+      </div>
+
+      <!-- Saved Tab Content -->
+      <div v-if="activeTab === 'saved'" class="flex-1 flex flex-col min-h-0">
+        <!-- Custom Message Section -->
+        <div class="mb-2 rounded-lg border p-3">
+          <textarea
+            v-model="customMessage"
+            placeholder="Type a custom message..."
+            class="w-full border rounded p-2 text-sm mb-2 resize-none h-20"
+          ></textarea>
+          <div class="flex gap-2">
+            <button
+              @click="sendCustomTTS"
+              class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
+            >
+              <i class="fas fa-volume-up mr-2"></i>
+              Send TTS
+            </button>
+            <div class="flex-1 flex gap-1">
+              <button
+                @click="sendCustomDisplay"
+                class="flex-1 hover:bg-gray-100 text-gray-700 hover:text-gray-900 p-2 rounded border text-sm"
+              >
+                <i class="fas fa-tv mr-2"></i>
+                Display
+              </button>
+              <button
+                @click="clearDisplay"
+                class="hover:bg-gray-100 text-red-400 hover:text-red-500 p-2 rounded border text-sm"
+                title="Clear display"
+              >
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved Messages List -->
+        <div
+          id="savedchat-box"
+          class="flex-1 rounded-lg border p-0 overflow-y-auto min-h-0"
+        >
+          <div
+            v-for="message in sortedSavedMessages"
+            :key="message.message_id"
+            class="savedchat-message p-2"
+          >
+            <div class="flex items-start gap-2">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <i
+                    class="text-xs"
+                    :class="{
                             'fab fa-youtube text-red-400': message.platform === 'youtube',
                             'fab fa-twitch text-purple-400': message.platform === 'twitch',
                             'fab fa-tiktok text-pink-400': message.platform === 'tiktok'
                         }"
-                        ></i>
-                        <span class="text-xs font-bold truncate"
-                        :class="{
+                  ></i>
+                  <span
+                    class="text-xs font-bold truncate"
+                    :class="{
                             'text-red-500': message.data.author.roles.broadcaster,
                             'text-blue-500': message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
                             'text-green-500': message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster,
                             'text-gray-500': !message.data.author.roles.subscriber && !message.data.author.roles.moderator && !message.data.author.roles.broadcaster
                         }"
-                        >
-                        {{ message.data.author.display_name }}
-                        </span>
-                    </div>
-                    <div v-html="message.data.content.rawHtml" class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"></div>
-                    </div>
-                    <div class="chat-actions flex items-center gap-1">
-                    <button 
-                        @click="sendDisplay(message)"
-                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                        title="Display message"
-                    >
-                        <i class="fas fa-tv text-xs"></i>
-                    </button>
-                    <button 
-                        @click="sendTTS(message)"
-                        class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
-                        title="Text to Speech"
-                    >
-                        <i class="fas fa-volume-up text-xs"></i>
-                    </button>
-                    <button 
-                        @click="removeSaved(message.message_id)"
-                        class="text-red-400 hover:text-red-300 p-0.5 self-center"
-                        title="Remove from saved"
-                    >
-                        <i class="fas fa-times text-xs"></i>
-                    </button>
-                    </div>
+                  >
+                    {{ message.data.author.display_name }}
+                  </span>
                 </div>
+                <div
+                  v-html="message.data.content.rawHtml"
+                  class="break-words [&_img.emote]:inline-block [&_img.emote]:align-middle [&_img.emote]:h-[1.2em] [&_img.emote]:w-auto"
+                ></div>
+              </div>
+              <div class="chat-actions flex items-center gap-1">
+                <button
+                  @click="sendDisplay(message)"
+                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                  title="Display message"
+                >
+                  <i class="fas fa-tv text-xs"></i>
+                </button>
+                <button
+                  @click="sendTTS(message)"
+                  class="text-gray-400 hover:text-gray-300 p-0.5 self-center"
+                  title="Text to Speech"
+                >
+                  <i class="fas fa-volume-up text-xs"></i>
+                </button>
+                <button
+                  @click="removeSaved(message.message_id)"
+                  class="text-red-400 hover:text-red-300 p-0.5 self-center"
+                  title="Remove from saved"
+                >
+                  <i class="fas fa-times text-xs"></i>
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Connections Modal -->
-      <div class="modal micromodal-slide" id="modal-connections" aria-hidden="true">
+      <div
+        class="modal micromodal-slide"
+        id="modal-connections"
+        aria-hidden="true"
+      >
         <div class="modal__overlay" tabindex="-1" data-micromodal-close>
-          <div class="modal__container rounded-lg p-4 w-full max-w-[400px] border bg-white" role="dialog" aria-modal="true" aria-labelledby="modal-connections-title">
+          <div
+            class="modal__container rounded-lg p-4 w-full max-w-[400px] border bg-white"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="modal-connections-title"
+          >
             <header class="flex justify-between items-center mb-2">
-              <h2 id="modal-connections-title" class="text-lg font-bold">Manage Connections</h2>
-              <button class="text-gray-500 hover:text-gray-700" aria-label="Close modal" data-micromodal-close>
+              <h2 id="modal-connections-title" class="text-lg font-bold">
+                Manage Connections
+              </h2>
+              <button
+                class="text-gray-500 hover:text-gray-700"
+                aria-label="Close modal"
+                data-micromodal-close
+              >
                 <i class="fas fa-times"></i>
               </button>
             </header>
@@ -307,7 +398,9 @@
             <main id="modal-connections-content">
               <!-- Active Connections -->
               <div class="space-y-2 mb-2">
-                <div v-for="conn in savedConnections" :key="conn.id" 
+                <div
+                  v-for="conn in savedConnections"
+                  :key="conn.id"
                   class="flex items-center gap-2 p-2 rounded border"
                   :class="{
                     'bg-gray-50': conn.status === 'connected',
@@ -316,21 +409,30 @@
                     'bg-red-50': conn.status === 'error'
                   }"
                 >
-                  <i :class="{
+                  <i
+                    :class="{
                     'fab fa-youtube text-red-400': conn.platform === 'youtube',
                     'fab fa-twitch text-purple-400': conn.platform === 'twitch',
                     'fab fa-tiktok text-pink-400': conn.platform === 'tiktok'
-                  }"></i>
-                  <span class="flex-1 truncate text-sm">{{ conn.identifier }}</span>
+                  }"
+                  ></i>
+                  <span class="flex-1 truncate text-sm"
+                    >{{ conn.identifier }}</span
+                  >
                   <span class="text-xs text-gray-500">{{ conn.status }}</span>
                   <div class="flex gap-1">
-                    <button @click="refreshChat(conn.id)" 
+                    <button
+                      @click="refreshChat(conn.id)"
                       class="text-blue-400 hover:text-blue-300 p-1"
                       :disabled="conn.status === 'connecting'"
                     >
-                      <i class="fas fa-sync-alt" :class="{ 'animate-spin': conn.status === 'connecting' }"></i>
+                      <i
+                        class="fas fa-sync-alt"
+                        :class="{ 'animate-spin': conn.status === 'connecting' }"
+                      ></i>
                     </button>
-                    <button @click="disconnectChat(conn.id)" 
+                    <button
+                      @click="disconnectChat(conn.id)"
                       class="text-red-400 hover:text-red-300 p-1"
                     >
                       <i class="fas fa-times"></i>
@@ -343,7 +445,7 @@
               <div class="border-t pt-4">
                 <div class="flex items-center gap-2">
                   <div class="flex border rounded-lg overflow-hidden">
-                    <button 
+                    <button
                       v-for="platform in ['youtube', 'twitch', 'tiktok']"
                       :key="platform"
                       @click="newConnection.platform = platform"
@@ -355,16 +457,19 @@
                         'hover:bg-gray-50': newConnection.platform !== platform
                       }"
                     >
-                      <i :class="{
+                      <i
+                        :class="{
                         'fab fa-youtube': platform === 'youtube',
                         'fab fa-twitch': platform === 'twitch',
                         'fab fa-tiktok': platform === 'tiktok'
-                      }"></i>
+                      }"
+                      ></i>
                     </button>
                   </div>
 
-                  <select v-if="newConnection.platform === 'youtube'" 
-                    v-model="newConnection.identifierType" 
+                  <select
+                    v-if="newConnection.platform === 'youtube'"
+                    v-model="newConnection.identifierType"
                     class="border rounded p-2 text-sm"
                   >
                     <option value="username">@user</option>
@@ -373,14 +478,14 @@
                   </select>
 
                   <div class="flex-1">
-                    <input 
-                      v-model="newConnection.identifier" 
+                    <input
+                      v-model="newConnection.identifier"
                       :placeholder="getPlaceholder"
                       class="w-full border rounded p-2 text-sm"
                     />
                   </div>
 
-                  <button 
+                  <button
                     @click="connectNewChat"
                     class="p-2 text-green-500 hover:text-green-600 disabled:opacity-50 disabled:cursor-not-allowed"
                     :disabled="!newConnection.identifier"
@@ -393,47 +498,57 @@
           </div>
         </div>
       </div>
-      <div class="mt-auto text-center text-xs text-gray-500 w-full grow-0 flex justify-center items-center py-1">
-        <span>Made with ❤️ by <a href="https://oristarium.com" class="text-blue-500 hover:text-blue-600">Oristarium</a></span>
+      <div
+        class="mt-auto text-center text-xs text-gray-500 w-full grow-0 flex justify-center items-center py-1"
+      >
+        <span
+          >Made with ❤️ by
+          <a
+            href="https://oristarium.com"
+            class="text-blue-500 hover:text-blue-600"
+            >Oristarium</a
+          ></span
+        >
       </div>
     </main>
 
     <script type="module">
-      import { ConnectionManager } from './js/control/ConnectionManager.js';
-      import { ChatManager } from './js/control/ChatManager.js';
-      
+      import { ConnectionManager } from "./js/control/ConnectionManager.js";
+      import { ChatManager } from "./js/control/ChatManager.js";
+
       const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
 
-      const showToast = (message, type = 'success') => {
+      const showToast = (message, type = "success") => {
         const colors = {
-          success: 'linear-gradient(to right, #00b09b, #96c93d)',
-          error: 'linear-gradient(to right, #ff5f6d, #ffc371)',
-          info: 'linear-gradient(to right, #2193b0, #6dd5ed)'
+          success: "linear-gradient(to right, #00b09b, #96c93d)",
+          error: "linear-gradient(to right, #ff5f6d, #ffc371)",
+          info: "linear-gradient(to right, #2193b0, #6dd5ed)",
         };
-        
+
         Toastify({
           text: message,
           duration: 3000,
           gravity: "top",
           position: "right",
           style: {
-            background: colors[type]
-          }
+            background: colors[type],
+          },
         }).showToast();
       };
 
       const app = createApp({
         setup() {
-          const activeTab = ref('livechats');
-          const customMessage = ref('');
+          const activeTab = ref("livechats");
+          const customMessage = ref("");
           const chatBox = ref(null);
           const lastScrollPosition = ref(0);
           const isAutoScrolling = ref(false);
+          const isTTSAll = ref(false);
 
           // Make MicroModal available to the component
           const modal = {
             show: (modalId) => window.MicroModal.show(modalId),
-            close: (modalId) => window.MicroModal.close(modalId)
+            close: (modalId) => window.MicroModal.close(modalId),
           };
 
           // Initialize managers
@@ -450,7 +565,7 @@
           onMounted(async () => {
             await Promise.all([
               chatManager.init(),
-              connectionManager.init(chatManager)
+              connectionManager.init(chatManager),
             ]);
           });
 
@@ -460,17 +575,13 @@
 
           connectionManager.onConnectionsChange = (connections) => {
             savedConnections.value = connections;
-            activeConnections.value = connections.filter(conn => conn.status === 'connected');
+            activeConnections.value = connections.filter(
+              (conn) => conn.status === "connected"
+            );
           };
 
           chatManager.onMessagesChange = (newMessages) => {
             messages.value = newMessages;
-            console.log('isAutoScrolling', isAutoScrolling.value);
-            if (!isAutoScrolling.value) {
-              if (chatBox.value) {
-                chatBox.value.scrollTop = chatBox.value.scrollHeight;
-              }
-            }
           };
 
           chatManager.onSavedMessagesChange = (newMessages) => {
@@ -479,26 +590,36 @@
 
           connectionManager.onMessageReceived = (message) => {
             chatManager.addMessageUnique(message);
+            if (isTTSAll.value) {
+              sendTTS(message);
+            }
+            if (!isAutoScrolling.value) {
+              if (chatBox.value) {
+                chatBox.value.scrollTop = chatBox.value.scrollHeight;
+              }
+            }
           };
 
           const newConnection = ref({
-            platform: 'youtube',
-            identifierType: 'username',
-            identifier: ''
+            platform: "youtube",
+            identifierType: "username",
+            identifier: "",
           });
 
           const getPlaceholder = computed(() => {
-            if (newConnection.value.platform === 'youtube') {
-              return newConnection.value.identifierType === 'username' ? '@username' :
-                     newConnection.value.identifierType === 'channelId' ? 'Channel ID' :
-                     'Live ID';
+            if (newConnection.value.platform === "youtube") {
+              return newConnection.value.identifierType === "username"
+                ? "@username"
+                : newConnection.value.identifierType === "channelId"
+                ? "Channel ID"
+                : "Live ID";
             }
-            return '@username';
+            return "@username";
           });
 
           const sortedSavedMessages = computed(() => {
-            return [...savedMessages.value].sort((a, b) => 
-              new Date(b.timestamp) - new Date(a.timestamp)
+            return [...savedMessages.value].sort(
+              (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
             );
           });
 
@@ -540,33 +661,35 @@
           // Send Custom TTS
           const sendCustomTTS = async () => {
             if (await chatManager.sendCustomTTS(customMessage.value)) {
-              customMessage.value = '';
+              customMessage.value = "";
             }
           };
 
           // Send Custom Display
           const sendCustomDisplay = async () => {
             if (await chatManager.sendCustomDisplay(customMessage.value)) {
-              customMessage.value = '';
+              customMessage.value = "";
             }
           };
 
           // Clear Display
           const clearDisplay = () => {
             chatManager.clearDisplay();
+            showToast("Display cleared");
           };
 
           // Clear TTS
           const clearTTS = () => {
             chatManager.clearTTS();
+            showToast("TTS cleared");
           };
 
           // Watch for tab changes
           watch(activeTab, (newTab, oldTab) => {
-            if (oldTab === 'livechats' && chatBox.value) {
+            if (oldTab === "livechats" && chatBox.value) {
               // Store scroll position when leaving livechats tab
               lastScrollPosition.value = chatBox.value.scrollTop;
-            } else if (newTab === 'livechats') {
+            } else if (newTab === "livechats") {
               // Restore scroll position when returning to livechats tab
               nextTick(() => {
                 if (chatBox.value) {
@@ -575,6 +698,19 @@
               });
             }
           });
+
+          const toggleTTSAll = () => {
+            isTTSAll.value = !isTTSAll.value;
+            showToast(
+              "TTS All is now " + (isTTSAll.value ? "enabled" : "disabled"),
+              "info"
+            );
+          };
+
+          const scrollToBottom = () => {
+            isAutoScrolling.value = false;
+            chatBox.value.scrollTop = chatBox.value.scrollHeight;
+          };
 
           return {
             activeTab,
@@ -599,6 +735,9 @@
             modal,
             messages,
             isAutoScrolling,
+            isTTSAll,
+            toggleTTSAll,
+            scrollToBottom,
           };
         },
       });
@@ -608,16 +747,16 @@
 
     <script>
       MicroModal.init({
-        onShow: modal => console.log(`${modal.id} is shown`),
-        onClose: modal => console.log(`${modal.id} is hidden`),
-        openTrigger: 'data-micromodal-trigger',
-        closeTrigger: 'data-micromodal-close',
-        openClass: 'is-open',
+        onShow: (modal) => console.log(`${modal.id} is shown`),
+        onClose: (modal) => console.log(`${modal.id} is hidden`),
+        openTrigger: "data-micromodal-trigger",
+        closeTrigger: "data-micromodal-close",
+        openClass: "is-open",
         disableScroll: true,
         disableFocus: false,
         awaitOpenAnimation: false,
         awaitCloseAnimation: false,
-        debugMode: false
+        debugMode: false,
       });
     </script>
   </body>

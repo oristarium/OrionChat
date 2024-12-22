@@ -298,7 +298,9 @@ export class ChatManager {
                 },
                 body: JSON.stringify(ttsData)
             });
-            this.showToast?.('TTS sent');
+            if (!isTTSAll.value) {
+                this.showToast?.('TTS sent');
+            }
         } catch (error) {
             console.error('Error sending TTS:', error);
             this.showToast?.('Failed to send TTS', 'error');
