@@ -408,7 +408,7 @@
         </div>
       </div>
 
-      <!-- Add Chatters Tab Content -->
+      <!-- Chatters Tab Content -->
       <div v-if="activeTab === 'chatters'" class="flex-1 flex flex-col min-h-0">
         <!-- Search and Filters -->
         <div class="space-y-2 mb-2">
@@ -486,66 +486,164 @@
           </div>
         </div>
 
+        <!-- Tabs for Active and Saved Chatters -->
+        <div class="flex gap-2 mb-2">
+          <button
+            @click="chatterListType = 'active'"
+            class="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            :class="chatterListType === 'active' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+          >
+            Active Chatters
+          </button>
+          <button
+            @click="chatterListType = 'saved'"
+            class="flex-1 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors"
+            :class="chatterListType === 'saved' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+          >
+            Saved Chatters ({{ savedChatters.length }})
+          </button>
+        </div>
+
         <!-- Chatters List -->
         <div class="flex-1 overflow-y-auto border rounded-lg">
           <div class="divide-y">
-            <div
-              v-for="chatter in filteredChatters"
-              :key="chatter.id"
-              class="p-2 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <!-- Avatar -->
-              <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
-                <img
-                  v-if="chatter.avatar_url"
-                  :src="chatter.avatar_url"
-                  :alt="chatter.display_name"
-                  class="w-full h-full object-cover"
-                />
-                <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
-                  <i class="fas fa-user"></i>
+            <template v-if="chatterListType === 'active'">
+              <div
+                v-for="chatter in filteredChatters"
+                :key="chatter.id"
+                class="p-2 hover:bg-gray-50 flex items-center gap-2 group"
+              >
+                <!-- Avatar -->
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+                  <img
+                    v-if="chatter.avatar_url"
+                    :src="chatter.avatar_url"
+                    :alt="chatter.display_name"
+                    class="w-full h-full object-cover"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+                    <i class="fas fa-user"></i>
+                  </div>
                 </div>
-              </div>
 
-              <!-- User Info -->
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-1.5">
-                  <span class="font-medium text-sm truncate">{{ chatter.display_name }}</span>
-                  <i
-                    v-if="chatter.platform"
-                    class="text-xs"
-                    :class="{
-                      'fab fa-youtube text-red-400': chatter.platform === 'youtube',
-                      'fab fa-twitch text-purple-400': chatter.platform === 'twitch',
-                      'fab fa-tiktok text-pink-400': chatter.platform === 'tiktok'
-                    }"
-                  ></i>
+                <!-- User Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-medium text-sm truncate">{{ chatter.display_name }}</span>
+                    <i
+                      v-if="chatter.platform"
+                      class="text-xs"
+                      :class="{
+                        'fab fa-youtube text-red-400': chatter.platform === 'youtube',
+                        'fab fa-twitch text-purple-400': chatter.platform === 'twitch',
+                        'fab fa-tiktok text-pink-400': chatter.platform === 'tiktok'
+                      }"
+                    ></i>
+                  </div>
+                  <div class="flex items-center gap-1 text-xs text-gray-500">
+                    <i
+                      v-if="chatter.roles.broadcaster"
+                      class="fas fa-crown text-yellow-400"
+                      title="Broadcaster"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.moderator"
+                      class="fas fa-shield text-blue-400"
+                      title="Moderator"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.subscriber"
+                      class="fas fa-star text-green-400"
+                      title="Subscriber"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.verified"
+                      class="fas fa-check-circle text-blue-400"
+                      title="Verified"
+                    ></i>
+                    <span class="truncate">{{ chatter.username }}</span>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1 text-xs text-gray-500">
-                  <i
-                    v-if="chatter.roles.broadcaster"
-                    class="fas fa-crown text-yellow-400"
-                    title="Broadcaster"
-                  ></i>
-                  <i
-                    v-if="chatter.roles.moderator"
-                    class="fas fa-shield text-blue-400"
-                    title="Moderator"
-                  ></i>
-                  <i
-                    v-if="chatter.roles.subscriber"
-                    class="fas fa-star text-green-400"
-                    title="Subscriber"
-                  ></i>
-                  <i
-                    v-if="chatter.roles.verified"
-                    class="fas fa-check-circle text-blue-400"
-                    title="Verified"
-                  ></i>
-                  <span class="truncate">{{ chatter.username }}</span>
-                </div>
+
+                <!-- Save Button -->
+                <button
+                  @click="saveChatter(chatter)"
+                  class="text-gray-400 hover:text-gray-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Save chatter"
+                >
+                  <i class="fas fa-bookmark"></i>
+                </button>
               </div>
-            </div>
+            </template>
+
+            <template v-else>
+              <div
+                v-for="chatter in savedChatters"
+                :key="chatter.id"
+                class="p-2 hover:bg-gray-50 flex items-center gap-2 group"
+              >
+                <!-- Avatar -->
+                <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+                  <img
+                    v-if="chatter.avatar_url"
+                    :src="chatter.avatar_url"
+                    :alt="chatter.display_name"
+                    class="w-full h-full object-cover"
+                  />
+                  <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+                    <i class="fas fa-user"></i>
+                  </div>
+                </div>
+
+                <!-- User Info -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-1.5">
+                    <span class="font-medium text-sm truncate">{{ chatter.display_name }}</span>
+                    <i
+                      v-if="chatter.platform"
+                      class="text-xs"
+                      :class="{
+                        'fab fa-youtube text-red-400': chatter.platform === 'youtube',
+                        'fab fa-twitch text-purple-400': chatter.platform === 'twitch',
+                        'fab fa-tiktok text-pink-400': chatter.platform === 'tiktok'
+                      }"
+                    ></i>
+                  </div>
+                  <div class="flex items-center gap-1 text-xs text-gray-500">
+                    <i
+                      v-if="chatter.roles.broadcaster"
+                      class="fas fa-crown text-yellow-400"
+                      title="Broadcaster"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.moderator"
+                      class="fas fa-shield text-blue-400"
+                      title="Moderator"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.subscriber"
+                      class="fas fa-star text-green-400"
+                      title="Subscriber"
+                    ></i>
+                    <i
+                      v-if="chatter.roles.verified"
+                      class="fas fa-check-circle text-blue-400"
+                      title="Verified"
+                    ></i>
+                    <span class="truncate">{{ chatter.username }}</span>
+                  </div>
+                </div>
+
+                <!-- Remove Button -->
+                <button
+                  @click="removeSavedChatter(chatter.id)"
+                  class="text-red-400 hover:text-red-600 p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Remove saved chatter"
+                >
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </template>
           </div>
         </div>
       </div>
@@ -1635,6 +1733,8 @@
           };
 
           const chatters = ref([]);
+          const savedChatters = ref([]);
+          const chatterListType = ref('active');
           const chatterFilters = ref({
             search: '',
             platform: '',
@@ -1649,6 +1749,21 @@
           // Handle chatters change
           chatManager.onChattersChange = (newChatters) => {
             chatters.value = newChatters;
+          };
+
+          // Handle saved chatters change
+          chatManager.onSavedChattersChange = (newSavedChatters) => {
+            savedChatters.value = newSavedChatters;
+          };
+
+          // Save chatter
+          const saveChatter = async (chatter) => {
+            await chatManager.saveChatter(chatter);
+          };
+
+          // Remove saved chatter
+          const removeSavedChatter = async (chatterId) => {
+            await chatManager.removeSavedChatter(chatterId);
           };
 
           // Computed property for filtered chatters
@@ -1728,8 +1843,12 @@
             getVoiceDetails,
             baseUrl,
             chatters,
+            savedChatters,
+            chatterListType,
             chatterFilters,
             filteredChatters,
+            saveChatter,
+            removeSavedChatter,
           };
         },
       });

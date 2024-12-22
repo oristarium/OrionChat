@@ -166,6 +166,14 @@ export class ChatManager {
     }
 
     /**
+     * Sets the callback for saved chatters changes
+     * @param {function(ChatAuthor[]): void} callback
+     */
+    set onSavedChattersChange(callback) {
+        this.chatterManager.onSavedChattersChange = callback;
+    }
+
+    /**
      * Adds a new chat message to the messages array and updates unique chatters
      * @param {ChatMessage} message - The chat message to add
      */
@@ -490,5 +498,21 @@ export class ChatManager {
             console.error('Error clearing TTS:', error);
             this.showToast?.('Failed to clear TTS', 'error');
         });
+    }
+
+    /**
+     * Saves a chatter to favorites
+     * @param {ChatAuthor} chatter - The chatter to save
+     */
+    async saveChatter(chatter) {
+        return this.chatterManager.saveChatter(chatter);
+    }
+
+    /**
+     * Removes a saved chatter
+     * @param {string} chatterId - ID of the chatter to remove
+     */
+    async removeSavedChatter(chatterId) {
+        return this.chatterManager.removeSavedChatter(chatterId);
     }
 } 

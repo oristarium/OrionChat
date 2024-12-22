@@ -9,20 +9,146 @@ export class ChatterManager {
         this.activeLiveIds = new Set();
         /** @type {function(ChatAuthor[]): void} */
         this.onChattersChange = null;
+        /** @type {function(ChatAuthor[]): void} */
+        this.onSavedChattersChange = null;
         /** @type {function(string, string=): void} */
         this.showToast = null;
         /** @type {boolean} */
         this.shouldShowChatterToasts = false;
+        /** @type {boolean} */
+        this.isDBReady = false;
+        /** @type {ChatAuthor[]} */
+        this.savedChatters = [];
     }
 
     /**
      * Initializes the ChatterManager
      */
-    init() {
+    async init() {
+        // Initialize IndexedDB
+        try {
+            await this.initDB();
+            this.isDBReady = true;
+            await this.loadSavedChatters();
+        } catch (error) {
+            console.error('Failed to initialize ChatterManager DB:', error);
+        }
+
         // Enable chatter toasts after 3 seconds
         setTimeout(() => {
             this.shouldShowChatterToasts = true;
         }, 3000);
+    }
+
+    /**
+     * Initializes the IndexedDB database for saved chatters
+     * @returns {Promise<IDBDatabase>}
+     */
+    async initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('OrionSavedChattersDB', 1);
+
+            request.onerror = (event) => {
+                console.error('Saved Chatters IndexedDB error:', event.target.error);
+                reject(event.target.error);
+            };
+
+            request.onsuccess = (event) => {
+                console.log('Saved Chatters IndexedDB initialized successfully');
+                this.db = event.target.result;
+                resolve(this.db);
+            };
+
+            request.onupgradeneeded = (event) => {
+                console.log('Creating/upgrading Saved Chatters IndexedDB structure...');
+                const db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('savedChatters')) {
+                    const store = db.createObjectStore('savedChatters', { keyPath: 'id' });
+                    store.createIndex('platform', 'platform', { unique: false });
+                    store.createIndex('username', 'username', { unique: false });
+                    console.log('Saved chatters store created');
+                }
+            };
+        });
+    }
+
+    /**
+     * Loads saved chatters from IndexedDB
+     * @returns {Promise<void>}
+     */
+    async loadSavedChatters() {
+        if (!this.isDBReady) return;
+
+        try {
+            const transaction = this.db.transaction(['savedChatters'], 'readonly');
+            const store = transaction.objectStore('savedChatters');
+            const request = store.getAll();
+
+            return new Promise((resolve, reject) => {
+                request.onsuccess = () => {
+                    this.savedChatters = request.result;
+                    this.onSavedChattersChange?.(this.savedChatters);
+                    resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        } catch (error) {
+            console.error('Failed to load saved chatters:', error);
+        }
+    }
+
+    /**
+     * Saves a chatter to favorites in IndexedDB
+     * @param {ChatAuthor} chatter - The chatter to save
+     */
+    async saveChatter(chatter) {
+        if (!this.isDBReady) return;
+
+        try {
+            const transaction = this.db.transaction(['savedChatters'], 'readwrite');
+            const store = transaction.objectStore('savedChatters');
+            
+            await new Promise((resolve, reject) => {
+                const request = store.put(chatter);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+
+            // Create a new array to trigger reactivity
+            this.savedChatters = [...this.savedChatters, chatter];
+            this.onSavedChattersChange?.(this.savedChatters);
+            this.showToast?.('Chatter saved');
+        } catch (error) {
+            console.error('Failed to save chatter:', error);
+            this.showToast?.('Failed to save chatter', 'error');
+        }
+    }
+
+    /**
+     * Removes a saved chatter from IndexedDB
+     * @param {string} chatterId - ID of the chatter to remove
+     */
+    async removeSavedChatter(chatterId) {
+        if (!this.isDBReady) return;
+
+        try {
+            const transaction = this.db.transaction(['savedChatters'], 'readwrite');
+            const store = transaction.objectStore('savedChatters');
+            
+            await new Promise((resolve, reject) => {
+                const request = store.delete(chatterId);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+
+            this.savedChatters = this.savedChatters.filter(c => c.id !== chatterId);
+            this.onSavedChattersChange?.(this.savedChatters);
+            this.showToast?.('Chatter removed');
+        } catch (error) {
+            console.error('Failed to remove chatter:', error);
+            this.showToast?.('Failed to remove chatter', 'error');
+        }
     }
 
     /**
