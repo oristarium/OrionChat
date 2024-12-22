@@ -1147,6 +1147,21 @@
           avatarManager.showToast = showToast;
 
           connectionManager.onConnectionsChange = (connections) => {
+            // Get previous connections that are now disconnected
+            const previousConnections = savedConnections.value || [];
+            const disconnectedConnections = previousConnections.filter(prev => 
+              prev.status === 'connected' && 
+              (!connections.find(curr => curr.id === prev.id) || 
+               connections.find(curr => curr.id === prev.id).status !== 'connected')
+            );
+
+            // Handle disconnected connections
+            disconnectedConnections.forEach(conn => {
+              console.log('Connection disconnected:', conn.id);
+              chatManager.removeLiveId(conn.id);
+            });
+
+            // Update connections state
             savedConnections.value = connections;
             activeConnections.value = connections.filter(
               (conn) => conn.status === "connected"
@@ -1621,19 +1636,16 @@
 
           // Handle chatters change
           chatManager.onChattersChange = (newChatters) => {
-            console.log('Vue component received new chatters:', newChatters.length);
             chatters.value = newChatters;
           };
 
           // Computed property for filtered chatters
           const filteredChatters = computed(() => {
-            const filtered = chatManager.filterChatters({
+            return chatManager.filterChatters({
               search: chatterFilters.value.search,
               platform: chatterFilters.value.platform,
               roles: chatterFilters.value.roles
             });
-            console.log('Filtered chatters:', filtered.length, 'of', chatters.value.length);
-            return filtered;
           });
 
           return {

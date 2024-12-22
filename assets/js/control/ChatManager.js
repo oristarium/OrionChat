@@ -90,6 +90,8 @@ export class ChatManager {
         this.savedMessages = [];
         /** @type {Map<string, ChatAuthor>} */
         this.uniqueChatters = new Map();
+        /** @type {Set<string>} */
+        this.activeLiveIds = new Set();
         /** @type {boolean} */
         this.isDBReady = false;
         /** @type {function(ChatMessage[]): void} */
@@ -102,6 +104,8 @@ export class ChatManager {
         this.showToast = null;
         /** @type {boolean} */
         this.isTTSAll = false;
+        /** @type {boolean} */
+        this.shouldShowChatterToasts = false;
     }
 
     /**
@@ -112,6 +116,12 @@ export class ChatManager {
             await this.initDB();
             this.isDBReady = true;
             await this.loadSavedMessages();
+            
+            // Enable chatter toasts after 3 seconds
+            setTimeout(() => {
+                console.log('Enabling new chatter toasts');
+                this.shouldShowChatterToasts = true;
+            }, 3000);
         } catch (error) {
             console.error('Failed to initialize ChatManager:', error);
         }
@@ -151,6 +161,51 @@ export class ChatManager {
     }
 
     /**
+     * Adds a new live ID to track
+     * @param {string} liveId - The live ID to add
+     */
+    addLiveId(liveId) {
+        if (!this.activeLiveIds.has(liveId)) {
+            this.activeLiveIds.add(liveId);
+            console.log('Added new liveId:', liveId, 'Active:', Array.from(this.activeLiveIds));
+        }
+    }
+
+    /**
+     * Removes a live ID and prunes associated chatters
+     * @param {string} liveId - The live ID to remove
+     */
+    removeLiveId(liveId) {
+        if (!this.activeLiveIds.has(liveId)) return;
+
+        console.log('Removing liveId:', liveId);
+        this.activeLiveIds.delete(liveId);
+
+        // Get current chatters count for logging
+        const beforeCount = this.uniqueChatters.size;
+
+        // Filter out chatters from the disconnected live ID
+        for (const [chatterId, chatter] of this.uniqueChatters.entries()) {
+            if (chatter.liveId === liveId) {
+                this.uniqueChatters.delete(chatterId);
+            }
+        }
+
+        // Log the pruning results
+        const afterCount = this.uniqueChatters.size;
+        console.log(`Pruned chatters for liveId ${liveId}:`, {
+            before: beforeCount,
+            after: afterCount,
+            removed: beforeCount - afterCount
+        });
+
+        // Notify of chatters change if any were removed
+        if (beforeCount !== afterCount && this.onChattersChange) {
+            this.onChattersChange(Array.from(this.uniqueChatters.values()));
+        }
+    }
+
+    /**
      * Adds a new chat message to the messages array and updates unique chatters
      * @param {ChatMessage} message - The chat message to add
      */
@@ -164,12 +219,30 @@ export class ChatManager {
         // Update unique chatters
         const author = message.data.author;
         if (!this.uniqueChatters.has(author.id)) {
-            console.log('New unique chatter:', author.display_name);
             this.uniqueChatters.set(author.id, author);
+
+            // Only show toast if enabled and after initialization delay
+            if (this.shouldShowChatterToasts) {
+                const platformIcon = {
+                    'youtube': '🔴',
+                    'twitch': '💜',
+                    'tiktok': '🎵'
+                }[author.platform] || '👤';
+
+                let roleIcon = '';
+                if (author.roles.broadcaster) roleIcon = '👑';
+                else if (author.roles.moderator) roleIcon = '🛡️';
+                else if (author.roles.subscriber) roleIcon = '⭐';
+                else if (author.roles.verified) roleIcon = '✓';
+
+                this.showToast?.(
+                    `${platformIcon} New chatter: ${roleIcon}${author.display_name}`,
+                    'info'
+                );
+            }
+
             if (this.onChattersChange) {
-                const chatters = Array.from(this.uniqueChatters.values());
-                console.log('Total unique chatters:', chatters.length);
-                this.onChattersChange(chatters);
+                this.onChattersChange(Array.from(this.uniqueChatters.values()));
             }
         }
     }
