@@ -88,12 +88,16 @@ export class ChatManager {
         this.messages = [];
         /** @type {ChatMessage[]} */
         this.savedMessages = [];
+        /** @type {Map<string, ChatAuthor>} */
+        this.uniqueChatters = new Map();
         /** @type {boolean} */
         this.isDBReady = false;
         /** @type {function(ChatMessage[]): void} */
         this.onMessagesChange = null;
         /** @type {function(ChatMessage[]): void} */
         this.onSavedMessagesChange = null;
+        /** @type {function(ChatAuthor[]): void} */
+        this.onChattersChange = null;
         /** @type {function(string, string=): void} */
         this.showToast = null;
         /** @type {boolean} */
@@ -147,13 +151,26 @@ export class ChatManager {
     }
 
     /**
-     * Adds a new chat message to the messages array
+     * Adds a new chat message to the messages array and updates unique chatters
      * @param {ChatMessage} message - The chat message to add
      */
     addMessageUnique(message) {
+        // Update messages
         this.messages = [...this.messages, message];
         if (this.onMessagesChange) {
             this.onMessagesChange(this.messages);
+        }
+
+        // Update unique chatters
+        const author = message.data.author;
+        if (!this.uniqueChatters.has(author.id)) {
+            console.log('New unique chatter:', author.display_name);
+            this.uniqueChatters.set(author.id, author);
+            if (this.onChattersChange) {
+                const chatters = Array.from(this.uniqueChatters.values());
+                console.log('Total unique chatters:', chatters.length);
+                this.onChattersChange(chatters);
+            }
         }
     }
 
@@ -438,6 +455,46 @@ export class ChatManager {
         }).catch(error => {
             console.error('Error clearing TTS:', error);
             this.showToast?.('Failed to clear TTS', 'error');
+        });
+    }
+
+    /**
+     * Gets all unique chatters
+     * @returns {ChatAuthor[]}
+     */
+    getChatters() {
+        return Array.from(this.uniqueChatters.values());
+    }
+
+    /**
+     * Filters chatters based on criteria
+     * @param {Object} filters
+     * @param {string} [filters.search] - Search term for username/display name
+     * @param {string} [filters.platform] - Platform filter
+     * @param {Object} [filters.roles] - Role filters
+     * @returns {ChatAuthor[]}
+     */
+    filterChatters({ search = '', platform = '', roles = {} } = {}) {
+        return this.getChatters().filter(chatter => {
+            // Platform filter
+            if (platform && chatter.platform !== platform) return false;
+
+            // Role filters
+            if (roles.broadcaster && !chatter.roles.broadcaster) return false;
+            if (roles.moderator && !chatter.roles.moderator) return false;
+            if (roles.subscriber && !chatter.roles.subscriber) return false;
+            if (roles.verified && !chatter.roles.verified) return false;
+
+            // Search filter
+            if (search) {
+                const searchLower = search.toLowerCase();
+                return (
+                    chatter.username.toLowerCase().includes(searchLower) ||
+                    chatter.display_name.toLowerCase().includes(searchLower)
+                );
+            }
+
+            return true;
         });
     }
 } 

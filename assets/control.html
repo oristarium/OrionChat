@@ -143,6 +143,14 @@
           Saved
         </button>
         <button
+          @click="activeTab = 'chatters'"
+          class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex-1 flex items-center justify-center gap-1"
+          :class="activeTab === 'chatters' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
+        >
+          <i class="fas fa-users text-xs"></i>
+          Users
+        </button>
+        <button
           @click="activeTab = 'avatars'"
           class="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors flex-1 flex items-center justify-center gap-1"
           :class="activeTab === 'avatars' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'"
@@ -385,6 +393,148 @@
                 >
                   <i class="fas fa-times text-xs"></i>
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Chatters Tab Content -->
+      <div v-if="activeTab === 'chatters'" class="flex-1 flex flex-col min-h-0">
+        <!-- Search and Filters -->
+        <div class="space-y-2 mb-2">
+          <!-- Counter -->
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-gray-600">
+              Total Unique Chatters: <span class="font-medium">{{ chatters.length }}</span>
+            </span>
+            <span v-if="filteredChatters.length !== chatters.length" class="text-xs text-gray-500">
+              Showing: {{ filteredChatters.length }}
+            </span>
+          </div>
+
+          <!-- Search -->
+          <div class="relative">
+            <input
+              v-model="chatterFilters.search"
+              type="text"
+              placeholder="Search chatters..."
+              class="w-full border rounded pl-8 pr-2 py-1.5 text-sm"
+            />
+            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+          </div>
+
+          <!-- Platform and Role Filters -->
+          <div class="flex flex-wrap gap-1.5">
+            <!-- Platform Filter -->
+            <select
+              v-model="chatterFilters.platform"
+              class="border rounded py-1 pl-2 pr-6 text-xs"
+            >
+              <option value="">All Platforms</option>
+              <option value="youtube">YouTube</option>
+              <option value="twitch">Twitch</option>
+              <option value="tiktok">TikTok</option>
+            </select>
+
+            <!-- Role Toggles -->
+            <label class="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                v-model="chatterFilters.roles.broadcaster"
+                class="w-3 h-3"
+              />
+              <i class="fas fa-crown text-yellow-400"></i>
+              Broadcaster
+            </label>
+            <label class="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                v-model="chatterFilters.roles.moderator"
+                class="w-3 h-3"
+              />
+              <i class="fas fa-shield text-blue-400"></i>
+              Moderator
+            </label>
+            <label class="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                v-model="chatterFilters.roles.subscriber"
+                class="w-3 h-3"
+              />
+              <i class="fas fa-star text-green-400"></i>
+              Subscriber
+            </label>
+            <label class="inline-flex items-center gap-1 text-xs border rounded px-2 py-1 cursor-pointer hover:bg-gray-50">
+              <input
+                type="checkbox"
+                v-model="chatterFilters.roles.verified"
+                class="w-3 h-3"
+              />
+              <i class="fas fa-check-circle text-blue-400"></i>
+              Verified
+            </label>
+          </div>
+        </div>
+
+        <!-- Chatters List -->
+        <div class="flex-1 overflow-y-auto border rounded-lg">
+          <div class="divide-y">
+            <div
+              v-for="chatter in filteredChatters"
+              :key="chatter.id"
+              class="p-2 hover:bg-gray-50 flex items-center gap-2"
+            >
+              <!-- Avatar -->
+              <div class="w-8 h-8 rounded-full overflow-hidden bg-gray-100">
+                <img
+                  v-if="chatter.avatar_url"
+                  :src="chatter.avatar_url"
+                  :alt="chatter.display_name"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="w-full h-full flex items-center justify-center text-gray-400">
+                  <i class="fas fa-user"></i>
+                </div>
+              </div>
+
+              <!-- User Info -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-1.5">
+                  <span class="font-medium text-sm truncate">{{ chatter.display_name }}</span>
+                  <i
+                    v-if="chatter.platform"
+                    class="text-xs"
+                    :class="{
+                      'fab fa-youtube text-red-400': chatter.platform === 'youtube',
+                      'fab fa-twitch text-purple-400': chatter.platform === 'twitch',
+                      'fab fa-tiktok text-pink-400': chatter.platform === 'tiktok'
+                    }"
+                  ></i>
+                </div>
+                <div class="flex items-center gap-1 text-xs text-gray-500">
+                  <i
+                    v-if="chatter.roles.broadcaster"
+                    class="fas fa-crown text-yellow-400"
+                    title="Broadcaster"
+                  ></i>
+                  <i
+                    v-if="chatter.roles.moderator"
+                    class="fas fa-shield text-blue-400"
+                    title="Moderator"
+                  ></i>
+                  <i
+                    v-if="chatter.roles.subscriber"
+                    class="fas fa-star text-green-400"
+                    title="Subscriber"
+                  ></i>
+                  <i
+                    v-if="chatter.roles.verified"
+                    class="fas fa-check-circle text-blue-400"
+                    title="Verified"
+                  ></i>
+                  <span class="truncate">{{ chatter.username }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1457,6 +1607,35 @@
             }
           };
 
+          const chatters = ref([]);
+          const chatterFilters = ref({
+            search: '',
+            platform: '',
+            roles: {
+              broadcaster: false,
+              moderator: false,
+              subscriber: false,
+              verified: false
+            }
+          });
+
+          // Handle chatters change
+          chatManager.onChattersChange = (newChatters) => {
+            console.log('Vue component received new chatters:', newChatters.length);
+            chatters.value = newChatters;
+          };
+
+          // Computed property for filtered chatters
+          const filteredChatters = computed(() => {
+            const filtered = chatManager.filterChatters({
+              search: chatterFilters.value.search,
+              platform: chatterFilters.value.platform,
+              roles: chatterFilters.value.roles
+            });
+            console.log('Filtered chatters:', filtered.length, 'of', chatters.value.length);
+            return filtered;
+          });
+
           return {
             activeTab,
             customMessage,
@@ -1523,6 +1702,9 @@
             isPlayingVoice,
             getVoiceDetails,
             baseUrl,
+            chatters,
+            chatterFilters,
+            filteredChatters,
           };
         },
       });
