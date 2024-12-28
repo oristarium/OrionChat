@@ -252,19 +252,27 @@ func (tm *TTSMiddleware) getAudioBlob(text string, voiceId string, provider stri
 		return "", fmt.Errorf("failed to decode base64 audio: %v", err)
 	}
 
-	// Create temporary file
-	blobFile, err := os.CreateTemp(tm.blobDir, "tts_*.mp3")
+	// Validate audio data
+	if len(audioData) < 4 {
+		return "", fmt.Errorf("invalid audio data: too short")
+	}
+
+	// Create temporary file with proper permissions
+	blobFile, err := os.OpenFile(
+		filepath.Join(tm.blobDir, fmt.Sprintf("tts_%d.mp3", time.Now().UnixNano())),
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC,
+		0644,
+	)
 	if err != nil {
 		return "", fmt.Errorf("failed to create temp file: %v", err)
 	}
+	defer blobFile.Close()
 
-	// Write the raw audio data and close the file
-	if _, err := blobFile.Write(audioData); err != nil {
-		blobFile.Close()
+	// Write the raw audio data
+	if _, err := io.Copy(blobFile, bytes.NewReader(audioData)); err != nil {
 		os.Remove(blobFile.Name())
 		return "", fmt.Errorf("failed to write audio data: %v", err)
 	}
-	blobFile.Close()
 
 	// Schedule cleanup after 5 minutes
 	tm.queueCleanup(blobFile.Name(), 5*time.Minute)

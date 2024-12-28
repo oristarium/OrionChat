@@ -67,8 +67,8 @@ export class ConnectionManager {
                 return;
             }
 
-            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${protocol}//chatsocket.oristarium.com/ws`;
+            // const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `wss://chatsocket.oristarium.com/ws`;
             
             console.log('Connecting to WebSocket:', wsUrl);
             this.ws = new WebSocket(wsUrl);

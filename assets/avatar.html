@@ -269,8 +269,17 @@
                         setAudioStatus('info', 'Loading audio...')
                         audio.src = url
                         
+                        // Set audio attributes for better compatibility
+                        audio.preload = 'auto'
+                        audio.crossOrigin = 'anonymous'
+                        audio.type = 'audio/mpeg'
+                        
+                        // Force reload the audio element
+                        audio.load()
+                        
                         audio.play().catch(e => {
                             const error = `Failed to play audio: ${e.message}`
+                            console.error('Audio play error:', e)
                             setAudioStatus('error', error)
                             setAvatarState(false)
                             sendAvatarFinished(url, error)

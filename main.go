@@ -162,8 +162,21 @@ func (s *Server) setupRoutes() {
 			return
 		}
 
-		// Serve the file
+		// Open and validate the file
+		file, err := os.Open(blobPath)
+		if err != nil {
+			http.Error(w, "Failed to read audio file", http.StatusInternalServerError)
+			return
+		}
+		defer file.Close()
+
+		// Set proper headers
 		w.Header().Set("Content-Type", "audio/mpeg")
+		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		
+		// Serve the file
 		http.ServeFile(w, r, blobPath)
 	})
 }
